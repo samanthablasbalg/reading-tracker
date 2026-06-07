@@ -1,0 +1,10 @@
+{
+    "recommendations": [
+      "ms-python.python",
+      "ms-python.debugpy",
+      "eamodio.gitlens",
+      "rangav.vscode-thunder-client",
+      "esbenp.prettier-vscode",
+      "angular.ng-template"
+    ]
+  }
