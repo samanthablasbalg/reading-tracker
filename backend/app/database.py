@@ -1,13 +1,9 @@
-# Boilerplate code for the database
-# This file sets up the database connection and session management
-# sessions are how we talk to the database, and get_db makes
-# sure they're always closed properly
-
 import os
+from collections.abc import Generator
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 load_dotenv()
 
@@ -23,7 +19,7 @@ class Base(DeclarativeBase):
     pass
 
 
-def get_db():
+def get_db() -> Generator[Session]:
     db = SessionLocal()
     try:
         yield db
