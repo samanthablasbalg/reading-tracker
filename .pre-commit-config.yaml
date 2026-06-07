@@ -12,6 +12,7 @@ repos:
     hooks:
       - id: mypy
         files: ^backend/
+        args: ["--config-file", "backend/pyproject.toml"]
         additional_dependencies:
           - sqlalchemy
           - fastapi
