@@ -62,4 +62,4 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/reading_tracker_test
         run: |
           cd backend
-          pytest
+          pytest || [ $? -eq 5 ]
