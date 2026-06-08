@@ -1,5 +1,12 @@
 # Reading Tracker — Project Planning Document
 
+> **Status — historical design reference, not a task list.** Active work is tracked in
+> GitHub issues (epics = milestones). This doc holds the *why* — decisions, the data
+> model, and deferred ideas — and is **not** all current or implemented. Agents: do
+> not treat anything here as prioritized work or load it as an active to-do; consult
+> it only as background design reference. Kept until everything in it is captured in
+> issues or built.
+
 ## Stack
 
 | Layer | Technology | Notes |
