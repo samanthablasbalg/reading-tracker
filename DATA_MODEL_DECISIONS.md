@@ -100,18 +100,38 @@ stats. `nationality` → `places` reference table still deferred.
   *Discovery date is derived, not stored*.
 
 ### `progress_logs` *(reshaped)*
-A log records **what you did this session** — a volume of pages (as a **range**) or
-minutes — tagged **new-ground vs re-coverage**, plus an optional journal entry and a
-timestamp.
+A log records **what you did this session** — a **range** of pages *or* of minutes
+(audio position is a timestamp on the same axis a page number sits on) — tagged
+**new-ground vs re-coverage**, plus an optional journal entry and a timestamp.
 
 - **Volume** (pages/minutes) is a first-class fact on every log → always sums into
   page/minute totals and the "you read X today" pace stat. Always correct.
 - **Completion %** is *derived* as cumulative new-ground ÷ total — **not** from
   "latest page number."
-- Page input is a **range** (`page_start`–`page_end`), which costs nothing extra
-  and later unlocks coverage maps and automatic re-coverage detection.
-- All logs ordered by time give the single visual journal timeline, re-reads
-  included and visibly flagged.
+- Both inputs are **ranges**: `page_start`–`page_end` and
+  `minute_start`–`minute_end`. The range costs nothing to log (the start pre-fills
+  from where you left off; the end is what your book or player shows you now) and
+  unlocks coverage maps, automatic re-coverage detection, and — because page-% and
+  minute-% are two rulers on one "fraction of the book" axis — **cross-format
+  inference** of one ruler's position from the other (compute from raw counts, round
+  only the final position; never quantize through integer percent). A `unit`
+  (`LogUnit`: `pages` / `minutes`) is stored explicitly on each log to say which
+  ruler it used. *(An earlier draft stored audio as a single total-minutes scalar;
+  corrected — a scalar can't say which part you covered, so it can't drive
+  re-coverage, the pre-fill, or position display, the exact gap StoryGraph has for
+  audiobooks.)*
+- **`new_ground` is per-span, not per-session.** A session that re-reads and then
+  continues straddles the frontier and is stored as **two rows** — the re-covered
+  part (`new_ground=false`) and the new part (`new_ground=true`) — sharing one
+  `logged_at`. A lone boolean on a straddling span would always break either volume
+  or completion, so the split is mandatory; the API does it automatically (the
+  frontier is derivable from cumulative new-ground), so the user logs one action.
+- All logs ordered by `logged_at` give the single visual journal timeline, re-reads
+  included and visibly flagged. `logged_at` is the editable, backdatable *session*
+  time (the "edit date" affordance), distinct from the row's ORM-managed
+  `created_at`.
+- **Layer note:** cross-format inference and frontier-splitting live in the API/UI
+  (`feat/progress-logging-api`), not the model. The table stores dumb, atomic spans.
 
 ### `reviews`
 One review per **engagement** → a separate review per re-read, which StoryGraph
@@ -283,5 +303,17 @@ bibliographic and user-agnostic **without** a personal per-book table.
   and `read_on` on `standalone_entries`). System datetimes keep `_at`
   (`created_at`, `updated_at`, `logged_at`, `written_at`) and need no precision.
   No duration column exists — all "languish" gaps are derived by subtracting dates.
+- `LogUnit` enum (`pages` / `minutes`) must be added to `enums.py`. `progress_logs`
+  stores **both** ranges — `page_start`/`page_end` and `minute_start`/`minute_end`
+  (all nullable) — plus `unit`, `new_ground` (default `True`), `journal_entry`
+  (`Text`), and `logged_at`. Exactly one range pair is populated per row; `unit`
+  says which. Cross-format inference and frontier-splitting are **API-layer**
+  (`feat/progress-logging-api`), not model concerns.
+- `logged_at` on `progress_logs` is an exact `_at` instant (no precision) but is
+  **user-editable / backdatable** — unlike the ORM-managed `created_at` /
+  `updated_at` from `TimestampMixin`. It defaults to now and is the journal-timeline
+  sort key. ("System datetimes need no precision" still holds; "ORM-managed, never
+  edited" applies only to the *audit* `_at`s, not the *activity* ones — `logged_at`,
+  `written_at`.)
 - `DatePrecision` enum (`day` / `month` / `year`) has been added to `enums.py`
   (**done**); the `default day` lives on each model column, not the enum.

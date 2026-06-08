@@ -17,6 +17,11 @@ class DatePrecision(enum.StrEnum):
     year = "year"
 
 
+class LogUnit(enum.StrEnum):
+    pages = "pages"
+    minutes = "minutes"
+
+
 class ReadingFormat(enum.StrEnum):
     print = "print"
     digital = "digital"
