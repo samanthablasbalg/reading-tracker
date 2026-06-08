@@ -11,11 +11,16 @@ class BookAuthorRole(enum.StrEnum):
     editor = "editor"
 
 
+class DatePrecision(enum.StrEnum):
+    day = "day"
+    month = "month"
+    year = "year"
+
+
 class ReadingFormat(enum.StrEnum):
     print = "print"
     digital = "digital"
     audio = "audio"
-    combo = "combo"
 
 
 class ReadingStatus(enum.StrEnum):
