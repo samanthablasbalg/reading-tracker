@@ -4,19 +4,16 @@ import datetime
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.models.enums import DatePrecision
+from app.models.enums import DatePrecision, date_precision_type
 from app.models.mixins import TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.author import Author
     from app.models.book import Book
-
-_date_precision = SAEnum(DatePrecision, name="date_precision")
 
 
 class StandaloneEntry(TimestampMixin, Base):
@@ -29,7 +26,7 @@ class StandaloneEntry(TimestampMixin, Base):
     manual_author: Mapped[str | None]
     read_on: Mapped[datetime.date]
     read_on_precision: Mapped[DatePrecision] = mapped_column(
-        _date_precision, default=DatePrecision.day
+        date_precision_type, default=DatePrecision.day
     )
     pages_read: Mapped[int | None]
     minutes_listened: Mapped[int | None]

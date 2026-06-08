@@ -10,10 +10,8 @@ from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.models.enums import BookAuthorRole, DatePrecision
+from app.models.enums import BookAuthorRole, DatePrecision, date_precision_type
 from app.models.mixins import TimestampMixin
-
-_date_precision = SAEnum(DatePrecision, name="date_precision")
 
 if TYPE_CHECKING:
     from app.models.author import Author
@@ -36,7 +34,7 @@ class Book(TimestampMixin, Base):
     series_position: Mapped[int | None]
     publication_date: Mapped[datetime.date | None]
     publication_date_precision: Mapped[DatePrecision] = mapped_column(
-        _date_precision, default=DatePrecision.day
+        date_precision_type, default=DatePrecision.day
     )
 
     book_authors: Mapped[list[BookAuthor]] = relationship(
