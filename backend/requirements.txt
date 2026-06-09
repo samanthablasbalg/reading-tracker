@@ -10,6 +10,7 @@ fastapi==0.136.3
 filelock==3.29.1
 greenlet==3.5.1
 h11==0.16.0
+httpx2==2.3.0
 identify==2.6.19
 idna==3.18
 iniconfig==2.3.0
