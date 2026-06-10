@@ -51,15 +51,13 @@ describe('BookListComponent', () => {
   it('joins multiple authors with a comma', () => {
     const fixture = TestBed.createComponent(BookListComponent);
 
-    httpTesting
-      .expectOne('/api/books')
-      .flush([
-        {
-          id: 1,
-          title: 'Good Omens',
-          authors: [{ name: 'Terry Pratchett' }, { name: 'Neil Gaiman' }],
-        },
-      ]);
+    httpTesting.expectOne('/api/books').flush([
+      {
+        id: 1,
+        title: 'Good Omens',
+        authors: [{ name: 'Terry Pratchett' }, { name: 'Neil Gaiman' }],
+      },
+    ]);
     fixture.detectChanges();
 
     const item = fixture.nativeElement.querySelector('li');
