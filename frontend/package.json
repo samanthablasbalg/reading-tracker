@@ -10,7 +10,7 @@
     "lint": "ng lint",
     "prettier:check": "prettier --check .",
     "prettier:format": "prettier --write .",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc -b --noEmit"
   },
   "private": true,
   "packageManager": "npm@11.13.0",
