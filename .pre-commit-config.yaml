@@ -21,3 +21,17 @@ repos:
     hooks:
       - id: actionlint
         files: ^\.github/workflows/
+  - repo: local
+    hooks:
+      - id: frontend-eslint
+        name: ESLint (frontend)
+        language: system
+        files: ^frontend/.*\.(ts|html)$
+        entry: bash -c 'cd frontend && npm run lint'
+        pass_filenames: false
+      - id: frontend-typecheck
+        name: TypeScript (frontend)
+        language: system
+        files: ^frontend/.*\.ts$
+        entry: bash -c 'cd frontend && npm run typecheck'
+        pass_filenames: false
