@@ -29,6 +29,12 @@ repos:
         files: ^frontend/.*\.(ts|html)$
         entry: bash -c 'cd frontend && npm run lint'
         pass_filenames: false
+      - id: frontend-prettier
+        name: Prettier (frontend)
+        language: system
+        files: ^frontend/.*\.(ts|html|css|json)$
+        entry: bash -c 'cd frontend && npm run prettier:check'
+        pass_filenames: false
       - id: frontend-typecheck
         name: TypeScript (frontend)
         language: system
