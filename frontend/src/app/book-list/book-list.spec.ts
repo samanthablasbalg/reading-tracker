@@ -33,8 +33,8 @@ describe('BookListComponent', () => {
     const fixture = TestBed.createComponent(BookListComponent);
 
     const mockBooks = [
-      { title: 'Dune', authors: [{ name: 'Frank Herbert' }] },
-      { title: 'Foundation', authors: [{ name: 'Isaac Asimov' }] },
+      { id: 1, title: 'Dune', authors: [{ name: 'Frank Herbert' }] },
+      { id: 2, title: 'Foundation', authors: [{ name: 'Isaac Asimov' }] },
     ];
     httpTesting.expectOne('/api/books').flush(mockBooks);
 
@@ -54,7 +54,11 @@ describe('BookListComponent', () => {
     httpTesting
       .expectOne('/api/books')
       .flush([
-        { title: 'Good Omens', authors: [{ name: 'Terry Pratchett' }, { name: 'Neil Gaiman' }] },
+        {
+          id: 1,
+          title: 'Good Omens',
+          authors: [{ name: 'Terry Pratchett' }, { name: 'Neil Gaiman' }],
+        },
       ]);
     fixture.detectChanges();
 

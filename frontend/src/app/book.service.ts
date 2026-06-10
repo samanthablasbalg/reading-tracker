@@ -7,6 +7,7 @@ export interface Author {
 }
 
 export interface Book {
+  id: number;
   title: string;
   authors: Author[];
 }

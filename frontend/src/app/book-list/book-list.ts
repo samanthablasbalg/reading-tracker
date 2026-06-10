@@ -6,7 +6,7 @@ import { BookService } from '../book.service';
   selector: 'app-book-list',
   template: `
     <ul>
-      @for (book of books(); track book.title) {
+      @for (book of books(); track book.id) {
         <li>{{ book.title }} — {{ book.authors.map((a) => a.name).join(', ') }}</li>
       }
     </ul>
