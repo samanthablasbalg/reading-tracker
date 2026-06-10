@@ -23,17 +23,11 @@ repos:
         files: ^\.github/workflows/
   - repo: local
     hooks:
-      - id: frontend-eslint
-        name: ESLint (frontend)
-        language: system
-        files: ^frontend/.*\.(ts|html)$
-        entry: bash -c 'cd frontend && npm run lint'
-        pass_filenames: false
-      - id: frontend-prettier
-        name: Prettier (frontend)
+      - id: frontend-lint-staged
+        name: Lint staged (frontend)
         language: system
         files: ^frontend/.*\.(ts|html|css|json)$
-        entry: bash -c 'cd frontend && npm run prettier:check'
+        entry: bash -c 'cd frontend && npx lint-staged'
         pass_filenames: false
       - id: frontend-typecheck
         name: TypeScript (frontend)
