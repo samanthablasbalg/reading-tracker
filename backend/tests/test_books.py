@@ -20,6 +20,12 @@ def test_create_book_returns_created(client: TestClient) -> None:
     assert data["authors"][0]["name"] == "Arkady Martine"
     assert "id" in data
     assert "created_at" in data
+    assert data["google_books_id"] is None
+    assert data["default_cover_url"] is None
+    assert data["default_page_count"] is None
+    assert data["original_language"] is None
+    assert data["genres"] == []
+    assert data["publication_date"] is None
 
 
 def test_create_book_reuses_existing_author(client: TestClient) -> None:

@@ -18,6 +18,13 @@ def _to_book_read(book: Book) -> BookRead:
         id=book.id,
         title=book.title,
         authors=[AuthorRead.model_validate(ba.author) for ba in book.book_authors],
+        google_books_id=book.google_books_id,
+        default_cover_url=book.default_cover_url,
+        default_page_count=book.default_page_count,
+        original_language=book.original_language,
+        genres=book.genres,
+        publication_date=book.publication_date,
+        publication_date_precision=book.publication_date_precision,
         created_at=book.created_at,
         updated_at=book.updated_at,
     )
