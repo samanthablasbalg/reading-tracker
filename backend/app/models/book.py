@@ -24,7 +24,7 @@ class Book(TimestampMixin, Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     title: Mapped[str]
-    google_books_id: Mapped[str | None]
+    google_books_id: Mapped[str | None] = mapped_column(unique=True)
     default_cover_url: Mapped[str | None]
     default_page_count: Mapped[int | None]
     default_audio_minutes: Mapped[int | None]
