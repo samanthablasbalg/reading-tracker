@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.author import Author
+from app.models.book import Book
 from tests.conftest import engine
 
 
@@ -135,9 +136,7 @@ def test_import_already_in_catalog_returns_200_no_duplicate(
     assert second.status_code == 200
     assert second.json()["id"] == first.json()["id"]
 
-    from app.models.book import Book
-
-    with Session(_engine) as db:
+    with Session(engine) as db:
         books = db.execute(select(Book)).scalars().all()
     assert len(books) == 1
 
@@ -212,7 +211,7 @@ def test_import_reuses_existing_author(
     client.post("/books/import", json={"google_books_id": "id1"})
     client.post("/books/import", json={"google_books_id": "id2"})
 
-    with Session(_engine) as db:
+    with Session(engine) as db:
         authors = db.execute(select(Author)).scalars().all()
     assert len(authors) == 1
 
