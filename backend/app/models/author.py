@@ -19,7 +19,7 @@ class Author(TimestampMixin, Base):
     __tablename__ = "authors"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(unique=True)
     nationality: Mapped[str | None]
     gender_identity: Mapped[str | None]
     bipoc: Mapped[bool] = mapped_column(default=False)
