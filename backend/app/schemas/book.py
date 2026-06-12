@@ -13,6 +13,21 @@ class BookCreate(BaseModel):
     author: str
 
 
+class BookImportRequest(BaseModel):
+    google_books_id: str
+
+
+class BookSearchCandidate(BaseModel):
+    google_books_id: str
+    title: str
+    authors: list[str]
+    published_date: str | None
+    page_count: int | None
+    categories: list[str]
+    cover_url: str | None
+    language: str | None
+
+
 class AuthorRead(BaseModel):
     id: uuid.UUID
     name: str
