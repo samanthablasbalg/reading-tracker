@@ -1,4 +1,4 @@
-# 0009. Standalone entries (reads off the annual book goal)
+# 0010. Standalone entries (reads off the annual book goal)
 
 - Status: Accepted
 - Date: 2026-06-08

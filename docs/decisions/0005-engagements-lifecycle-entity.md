@@ -1,4 +1,4 @@
-# 0004. Engagements: one lifecycle entity per read
+# 0005. Engagements: one lifecycle entity per read
 
 - Status: Accepted
 - Date: 2026-06-08

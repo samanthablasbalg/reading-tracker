@@ -1,4 +1,4 @@
-# 0003. Store raw facts, derive labels
+# 0004. Store raw facts, derive labels
 
 - Status: Accepted
 - Date: 2026-06-08

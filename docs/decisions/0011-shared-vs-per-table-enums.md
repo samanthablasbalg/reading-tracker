@@ -1,4 +1,4 @@
-# 0010. Shared vs per-table Postgres ENUM types
+# 0011. Shared vs per-table Postgres ENUM types
 
 - Status: Accepted
 - Date: 2026-06-08

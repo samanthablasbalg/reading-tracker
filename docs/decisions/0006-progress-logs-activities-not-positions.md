@@ -1,4 +1,4 @@
-# 0005. Progress logs are activities, not positions
+# 0006. Progress logs are activities, not positions
 
 - Status: Accepted
 - Date: 2026-06-08

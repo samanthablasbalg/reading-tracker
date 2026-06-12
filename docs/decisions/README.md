@@ -19,9 +19,9 @@ asking "why is it like this?"
   consciously made) — don't treat it as settled until it's `Accepted`.
 - A record carrying `> **Stub — write-up pending.**` is a placeholder: the prose
   isn't written yet. Fill at leisure.
-- Records **0001–0012 were backfilled** from `PLANNING.md` and
+- Records **0001–0013 were backfilled** from `PLANNING.md` and
   `DATA_MODEL_DECISIONS.md` to capture decisions made before this log existed, so
-  their dates are approximate. Most of the data-model ones (0002–0010) were decided
+  their dates are approximate. Most of the data-model ones (0002–0011) were decided
   together, so their order relative to each other is cosmetic. Those two planning
   docs can be retired once their reasoning is fully captured here.
 

@@ -1,4 +1,4 @@
-# 0002. A book lives on three independent axes
+# 0003. A book lives on three independent axes
 
 - Status: Accepted
 - Date: 2026-06-08
