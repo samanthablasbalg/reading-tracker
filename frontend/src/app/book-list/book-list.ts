@@ -14,5 +14,5 @@ import { BookService } from '../book.service';
 })
 export class BookListComponent {
   private readonly bookService = inject(BookService);
-  protected readonly books = toSignal(this.bookService.getBooks(), { initialValue: [] });
+  protected readonly books = toSignal(this.bookService.books$, { initialValue: [] });
 }
