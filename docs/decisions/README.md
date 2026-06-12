@@ -54,15 +54,16 @@ The concrete trigger that would reopen this (e.g. "if this goes multi-user").
 | # | Decision | Status |
 |---|----------|--------|
 | [0001](0001-tech-stack-angular-fastapi-postgres.md) | Tech stack: Angular + FastAPI + PostgreSQL 18 | Stub |
-| [0002](0002-three-independent-axes.md) | A book lives on three independent axes | Stub |
-| [0003](0003-derive-dont-store.md) | Store raw facts, derive labels | Stub |
-| [0004](0004-engagements-lifecycle-entity.md) | Engagements: one lifecycle entity per read | Stub |
-| [0005](0005-progress-logs-activities-not-positions.md) | Progress logs are activities, not positions | Stub |
-| [0006](0006-time-modeling-on-vs-at.md) | Time modeling: fuzzy `_on` vs exact `_at` | Stub |
-| [0007](0007-origin-per-read-isbn-provisional.md) | Origin is per-read; ISBN provisional | Stub |
-| [0008](0008-user-extensible-reference-tables.md) | User-extensible reference tables | Stub |
-| [0009](0009-standalone-entries.md) | Standalone entries (reads off the book goal) | Stub |
-| [0010](0010-shared-vs-per-table-enums.md) | Shared vs per-table Postgres ENUM types | Stub |
-| [0011](0011-author-identity-get-or-create.md) | Author identity: get-or-create by name | Stub |
-| [0012](0012-dedicated-test-database.md) | Dedicated test database | Stub |
-| [0013](0013-google-books-access-via-backend-proxy.md) | Google Books access via backend proxy | **Accepted** |
+| [0002](0002-books-are-user-agnostic.md) | Books are user-agnostic shared reference data | **Accepted** |
+| [0003](0003-three-independent-axes.md) | A book lives on three independent axes | **Accepted** |
+| [0004](0004-derive-dont-store.md) | Store raw facts, derive labels | Stub |
+| [0005](0005-engagements-lifecycle-entity.md) | Engagements: one lifecycle entity per read | Stub |
+| [0006](0006-progress-logs-activities-not-positions.md) | Progress logs are activities, not positions | Stub |
+| [0007](0007-time-modeling-on-vs-at.md) | Time modeling: fuzzy `_on` vs exact `_at` | Stub |
+| [0008](0008-origin-per-read-isbn-provisional.md) | Origin is per-read; ISBN provisional | Stub |
+| [0009](0009-user-extensible-reference-tables.md) | User-extensible reference tables | Stub |
+| [0010](0010-standalone-entries.md) | Standalone entries (reads off the book goal) | Stub |
+| [0011](0011-shared-vs-per-table-enums.md) | Shared vs per-table Postgres ENUM types | Stub |
+| [0012](0012-author-identity-get-or-create.md) | Author identity: get-or-create by name | Stub |
+| [0013](0013-dedicated-test-database.md) | Dedicated test database | Stub |
+| [0014](0014-google-books-access-via-backend-proxy.md) | Google Books access via backend proxy | **Accepted** |
