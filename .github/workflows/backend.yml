@@ -60,6 +60,7 @@ jobs:
       - name: Run tests
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/reading_tracker_test
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/reading_tracker_test
         run: |
           cd backend
           pytest || [ $? -eq 5 ]
