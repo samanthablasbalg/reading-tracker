@@ -1,16 +1,24 @@
 from __future__ import annotations
 
+import os
 from collections.abc import Generator
 
 import pytest
+from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.database import DATABASE_URL, Base, get_db
+from app.database import Base, get_db
 from app.main import app
 
-engine = create_engine(DATABASE_URL)
+load_dotenv()
+
+_test_database_url = os.getenv("TEST_DATABASE_URL")
+if not _test_database_url:
+    raise ValueError("TEST_DATABASE_URL environment variable is not set")
+
+engine = create_engine(_test_database_url)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

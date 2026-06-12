@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.database import DATABASE_URL
 from app.models.author import Author
-
-_engine = create_engine(DATABASE_URL)
+from tests.conftest import engine
 
 
 def test_create_book_returns_created(client: TestClient) -> None:
@@ -33,7 +31,7 @@ def test_create_book_reuses_existing_author(client: TestClient) -> None:
         json={"title": "A Desolation Called Peace", "author": "Arkady Martine"},
     )
 
-    with Session(_engine) as db:
+    with Session(engine) as db:
         authors = db.execute(select(Author)).scalars().all()
     assert len(authors) == 1
 
