@@ -8,7 +8,55 @@ import { BookSearchCandidate, BookService } from '../book.service';
 @Component({
   selector: 'app-book-search',
   imports: [MatFormFieldModule, MatInputModule, MatButtonModule, ReactiveFormsModule],
-  template: `<p>Search coming soon</p>`,
+  template: `
+    <section>
+      <mat-form-field>
+        <mat-label>Search books</mat-label>
+        <input matInput [formControl]="queryControl" (keydown.enter)="search()" />
+      </mat-form-field>
+      <button mat-flat-button (click)="search()" [disabled]="isSearching()">Search</button>
+
+      @if (isSearching()) {
+        <p>Searching…</p>
+      }
+      @if (searchError()) {
+        <p role="alert">Search failed — please try again.</p>
+      }
+
+      <ul>
+        @for (candidate of candidates(); track candidate.google_books_id) {
+          <li>
+            @if (candidate.cover_url) {
+              <img
+                [src]="candidate.cover_url.replace('http://', 'https://')"
+                [alt]="candidate.title + ' cover'"
+                width="48"
+                height="64"
+              />
+            }
+            <div>
+              <strong>{{ candidate.title }}</strong>
+              <span>{{ candidate.authors.join(', ') }}</span>
+              @if (candidate.published_date) {
+                <span>{{ candidate.published_date.slice(0, 4) }}</span>
+              }
+            </div>
+            <button
+              mat-stroked-button
+              [attr.aria-label]="'Add ' + candidate.title"
+              [disabled]="importingId() === candidate.google_books_id"
+              (click)="addBook(candidate)"
+            >
+              {{ importingId() === candidate.google_books_id ? 'Adding…' : 'Add' }}
+            </button>
+            @if (importErrorId() === candidate.google_books_id) {
+              <p role="alert">Could not import this book — please try again.</p>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  `,
 })
 export class BookSearchComponent {
   private readonly bookService = inject(BookService);
