@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, Subject, startWith, switchMap } from 'rxjs';
+import { Observable, Subject, shareReplay, startWith, switchMap } from 'rxjs';
 
 export interface Author {
   id: string;
@@ -40,6 +40,7 @@ export class BookService {
   readonly books$: Observable<Book[]> = this.reloadTrigger.pipe(
     startWith(undefined),
     switchMap(() => this.http.get<Book[]>('/api/books')),
+    shareReplay(1),
   );
 
   reloadBooks(): void {
