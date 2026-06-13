@@ -25,7 +25,7 @@ describe('BookListComponent', () => {
     httpTesting.expectOne('/api/books').flush([]);
     fixture.detectChanges();
 
-    const items = fixture.nativeElement.querySelectorAll('li');
+    const items = fixture.nativeElement.querySelectorAll('mat-list-item');
     expect(items).toHaveLength(0);
   });
 
@@ -40,7 +40,7 @@ describe('BookListComponent', () => {
 
     fixture.detectChanges();
 
-    const items = fixture.nativeElement.querySelectorAll('li');
+    const items = fixture.nativeElement.querySelectorAll('mat-list-item');
     expect(items).toHaveLength(mockBooks.length);
     expect(items[0].textContent).toContain(mockBooks[0].title);
     expect(items[0].textContent).toContain(mockBooks[0].authors[0].name);
@@ -63,7 +63,7 @@ describe('BookListComponent', () => {
     ]);
     fixture.detectChanges();
 
-    const item = fixture.nativeElement.querySelector('li');
+    const item = fixture.nativeElement.querySelector('mat-list-item');
     expect(item.textContent).toContain('Terry Pratchett, Neil Gaiman');
   });
 });
