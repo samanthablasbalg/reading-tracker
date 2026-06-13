@@ -5,7 +5,7 @@ Nothing here is built yet, and the actual model lands after the MVP (see the
 "Library & organization" bucket in `PLANNING.md`). This doc captures *what we
 decided and why* so the build later is mechanical.
 
-It follows the same principles as `DATA_MODEL_DECISIONS.md` — especially **store
+It follows the same principles — especially **store
 raw facts, derive labels** and **keep the three axes orthogonal** — and assumes
 those as context.
 
@@ -138,7 +138,7 @@ can keep working a challenge forever; the progress view natively shows e.g.
 
 ### Window dates are fuzzy `_on` dates — soft vs hard deadlines
 `starts_on` / `ends_on` are **fuzzy** (a real `date` plus a `DatePrecision`
-companion), fully matching the `_on` convention in `DATA_MODEL_DECISIONS.md`. This
+companion), fully matching the `_on` convention. This
 is not uniformity for its own sake: precision carries real meaning here.
 
 - A `day`-precision `ends_on` is a **hard deadline** ("done by 2026-12-31"). The

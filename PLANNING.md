@@ -39,9 +39,7 @@ directly edited by the user. See Key Design Decisions for details.
 
 > **Note:** The reading-lifecycle portion of this model (`engagements`,
 > `progress_logs`, `standalone_entries`, `reviews`, and the future `owned_copies`)
-> was redesigned. `DATA_MODEL_DECISIONS.md` is the authoritative record of those
-> decisions and the reasoning behind them; the tables below have been reconciled to
-> match it.
+> was redesigned; the tables below have been reconciled to match the current design.
 
 ### `authors`
 | Field | Type | Notes |
@@ -92,7 +90,7 @@ project gutenberg, book store.
 
 > Renamed and reshaped from the original `reading_sessions`. One row per
 > *engagement* with a book, spanning the whole lifecycle from first interest to
-> finishing or abandoning. See `DATA_MODEL_DECISIONS.md` for the full rationale.
+> finishing or abandoning.
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -124,7 +122,7 @@ set).
 ### `progress_logs`
 
 > Reshaped: a log is an *activity* ("what I did this session"), not a *position*
-> ("where I am now"). See `DATA_MODEL_DECISIONS.md`.
+> ("where I am now").
 
 | Field | Type | Notes |
 |-------|------|-------|
@@ -202,8 +200,7 @@ flaw):
 
 A book is the abstract work; an *engagement* is one specific experience of it —
 format(s), dates, progress, review. This supports re-reads (separate engagements,
-reviews, and logs), multiple formats, and per-engagement custom page counts. See
-`DATA_MODEL_DECISIONS.md` for the full reasoning and worked examples.
+reviews, and logs), multiple formats, and per-engagement custom page counts.
 
 ### Audio progress storage
 Stored as a **range** of whole minutes (`minute_start`–`minute_end`), the same shape
