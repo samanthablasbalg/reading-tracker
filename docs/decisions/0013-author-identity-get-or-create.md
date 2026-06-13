@@ -1,4 +1,4 @@
-# 0012. Author identity: get-or-create by name
+# 0013. Author identity: get-or-create by name
 
 - Status: Accepted
 - Date: 2026-06-09

@@ -1,4 +1,4 @@
-# 0009. User-extensible reference tables
+# 0010. User-extensible reference tables
 
 - Status: Accepted
 - Date: 2026-06-08

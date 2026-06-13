@@ -1,4 +1,4 @@
-# 0008. Origin is a per-read fact; ISBN provisional
+# 0009. Origin is a per-read fact; ISBN provisional
 
 - Status: Accepted
 - Date: 2026-06-08

@@ -1,4 +1,4 @@
-# 0014. Google Books access goes through the backend (proxy + re-fetch by ID)
+# 0015. Google Books access goes through the backend (proxy + re-fetch by ID)
 
 - Status: Accepted
 - Date: 2026-06-11

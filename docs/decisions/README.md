@@ -19,9 +19,9 @@ asking "why is it like this?"
   consciously made) — don't treat it as settled until it's `Accepted`.
 - A record carrying `> **Stub — write-up pending.**` is a placeholder: the prose
   isn't written yet. Fill at leisure.
-- Records **0001–0013 were backfilled** from `PLANNING.md` and
+- Records **0001–0014 were backfilled** from `PLANNING.md` and
   `DATA_MODEL_DECISIONS.md` to capture decisions made before this log existed, so
-  their dates are approximate. Most of the data-model ones (0002–0011) were decided
+  their dates are approximate. Most of the data-model ones (0002–0012) were decided
   together, so their order relative to each other is cosmetic. Those two planning
   docs can be retired once their reasoning is fully captured here.
 
@@ -58,12 +58,12 @@ The concrete trigger that would reopen this (e.g. "if this goes multi-user").
 | [0003](0003-three-independent-axes.md) | A book lives on three independent axes | **Accepted** |
 | [0004](0004-derive-dont-store.md) | Store raw facts, derive labels | **Accepted** |
 | [0005](0005-engagements-lifecycle-entity.md) | Engagements: one lifecycle entity per read | **Accepted** |
-| [0006](0006-progress-logs-activities-not-positions.md) | Progress logs are activities, not positions | Stub |
-| [0007](0007-time-modeling-on-vs-at.md) | Time modeling: fuzzy `_on` vs exact `_at` | Stub |
-| [0008](0008-origin-per-read-isbn-provisional.md) | Origin is per-read; ISBN provisional | Stub |
-| [0009](0009-user-extensible-reference-tables.md) | User-extensible reference tables | Stub |
-| [0010](0010-standalone-entries.md) | Standalone entries (reads off the book goal) | Stub |
-| [0011](0011-shared-vs-per-table-enums.md) | Shared vs per-table Postgres ENUM types | Stub |
-| [0012](0012-author-identity-get-or-create.md) | Author identity: get-or-create by name | Stub |
-| [0013](0013-dedicated-test-database.md) | Dedicated test database | Stub |
-| [0014](0014-google-books-access-via-backend-proxy.md) | Google Books access via backend proxy | **Accepted** |
+| [0007](0007-progress-logs-activities-not-positions.md) | Progress logs are activities, not positions | Stub |
+| [0008](0008-time-modeling-on-vs-at.md) | Time modeling: fuzzy `_on` vs exact `_at` | Stub |
+| [0009](0009-origin-per-read-isbn-provisional.md) | Origin is per-read; ISBN provisional | Stub |
+| [0010](0010-user-extensible-reference-tables.md) | User-extensible reference tables | Stub |
+| [0011](0011-standalone-entries.md) | Standalone entries (reads off the book goal) | Stub |
+| [0012](0012-shared-vs-per-table-enums.md) | Shared vs per-table Postgres ENUM types | Stub |
+| [0013](0013-author-identity-get-or-create.md) | Author identity: get-or-create by name | Stub |
+| [0014](0014-dedicated-test-database.md) | Dedicated test database | Stub |
+| [0015](0015-google-books-access-via-backend-proxy.md) | Google Books access via backend proxy | **Accepted** |

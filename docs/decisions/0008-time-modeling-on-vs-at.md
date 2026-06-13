@@ -1,4 +1,4 @@
-# 0007. Time modeling: fuzzy `_on` dates vs exact `_at` instants
+# 0008. Time modeling: fuzzy `_on` dates vs exact `_at` instants
 
 - Status: Accepted
 - Date: 2026-06-08
