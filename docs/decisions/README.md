@@ -68,7 +68,7 @@ The concrete trigger that would reopen this (e.g. "if this goes multi-user").
 | [0010](0010-user-extensible-reference-tables.md)       | User-extensible reference tables                         | Stub         |
 | [0011](0011-standalone-entries.md)                     | Standalone entries (reads off the book goal)             | **Accepted** |
 | [0012](0012-shared-vs-per-table-enums.md)              | Shared vs per-table Postgres ENUM types                  | Stub         |
-| [0013](0013-author-identity-get-or-create.md)          | Author identity: get-or-create by name                   | Stub         |
+| [0013](0013-author-identity-get-or-create.md)          | Author identity: get-or-create by name                   | **Accepted** |
 | [0014](0014-dedicated-test-database.md)                | Dedicated test database                                  | Stub         |
 | [0015](0015-google-books-access-via-backend-proxy.md)  | Google Books access via backend proxy                    | **Accepted** |
 | [0016](0016-engagement-state-changes.md)               | Engagement state changes: REST resource, server-owned    | **Accepted** |
