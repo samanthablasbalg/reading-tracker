@@ -71,3 +71,4 @@ The concrete trigger that would reopen this (e.g. "if this goes multi-user").
 | [0013](0013-author-identity-get-or-create.md)          | Author identity: get-or-create by name                   | Stub         |
 | [0014](0014-dedicated-test-database.md)                | Dedicated test database                                  | Stub         |
 | [0015](0015-google-books-access-via-backend-proxy.md)  | Google Books access via backend proxy                    | **Accepted** |
+| [0016](0016-engagement-state-changes.md)               | Engagement state changes: REST resource, server-owned    | **Accepted** |
