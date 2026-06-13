@@ -77,10 +77,13 @@ import { BookSearchCandidate, BookService } from '../book.service';
               <button
                 mat-stroked-button
                 [attr.aria-label]="'Add ' + candidate.title"
-                [disabled]="importingId() === candidate.google_books_id"
+                [disabled]="
+                  importingId() === candidate.google_books_id ||
+                  importedIds().has(candidate.google_books_id)
+                "
                 (click)="addBook(candidate)"
               >
-                {{ importingId() === candidate.google_books_id ? 'Adding…' : 'Add' }}
+                {{ addButtonLabel(candidate.google_books_id) }}
               </button>
               @if (importErrorId() === candidate.google_books_id) {
                 <p role="alert">Could not import this book — please try again.</p>
@@ -106,6 +109,13 @@ export class BookSearchComponent {
   protected readonly searchError = signal(false);
   protected readonly importingId = signal<string | null>(null);
   protected readonly importErrorId = signal<string | null>(null);
+  protected readonly importedIds = signal(new Set<string>());
+
+  protected addButtonLabel(googleBooksId: string): string {
+    if (this.importingId() === googleBooksId) return 'Adding…';
+    if (this.importedIds().has(googleBooksId)) return 'Added';
+    return 'Add';
+  }
 
   protected addBook(candidate: BookSearchCandidate): void {
     this.importingId.set(candidate.google_books_id);
@@ -113,6 +123,7 @@ export class BookSearchComponent {
 
     this.bookService.importBook(candidate.google_books_id).subscribe({
       next: () => {
+        this.importedIds.update((ids) => new Set([...ids, candidate.google_books_id]));
         this.importingId.set(null);
         this.bookService.reloadBooks();
       },
@@ -124,6 +135,7 @@ export class BookSearchComponent {
   }
 
   protected search(): void {
+    if (this.isSearching()) return;
     const q = this.queryControl.value.trim();
     if (!q) return;
 
@@ -132,6 +144,7 @@ export class BookSearchComponent {
     this.candidates.set([]);
     this.importingId.set(null);
     this.importErrorId.set(null);
+    this.importedIds.set(new Set());
 
     this.bookService.searchBooks(q).subscribe({
       next: (results) => {

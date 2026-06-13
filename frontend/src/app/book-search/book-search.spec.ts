@@ -146,6 +146,62 @@ describe('BookSearchComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Could not import this book');
   });
 
+  it('shows Added and disables the button after a successful import', () => {
+    const fixture = TestBed.createComponent(BookSearchComponent);
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input');
+    input.value = 'Dune';
+    input.dispatchEvent(new Event('input'));
+    fixture.nativeElement.querySelector('button[mat-flat-button]').click();
+
+    httpTesting
+      .expectOne((req) => req.url.includes('/api/books/search'))
+      .flush([
+        {
+          google_books_id: 'gbid-dune',
+          title: 'Dune',
+          authors: ['Frank Herbert'],
+          published_date: '1965',
+          page_count: null,
+          categories: [],
+          cover_url: null,
+          language: null,
+        },
+      ]);
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button[mat-stroked-button]').click();
+    httpTesting.expectOne('/api/books/import').flush({});
+    fixture.detectChanges();
+
+    const addButton = fixture.nativeElement.querySelector('button[mat-stroked-button]');
+    expect(addButton.textContent).toContain('Added');
+    expect(addButton.disabled).toBe(true);
+  });
+
+  it('does not fire a second search request when Enter is pressed while a search is in flight', () => {
+    const fixture = TestBed.createComponent(BookSearchComponent);
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input');
+    input.value = 'Dune';
+    input.dispatchEvent(new Event('input'));
+
+    // First Enter — starts the search
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    fixture.detectChanges();
+
+    // Second Enter — should be ignored while search is in flight
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    fixture.detectChanges();
+
+    // Only one request should have been made
+    const requests = httpTesting.match((req) => req.url.includes('/api/books/search'));
+    expect(requests).toHaveLength(1);
+    requests[0].flush([]);
+  });
+
   it('clears a stale import error when a new search is run', () => {
     const fixture = TestBed.createComponent(BookSearchComponent);
     fixture.detectChanges();
