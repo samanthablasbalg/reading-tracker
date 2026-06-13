@@ -57,7 +57,7 @@ The concrete trigger that would reopen this (e.g. "if this goes multi-user").
 | [0002](0002-books-are-user-agnostic.md) | Books are user-agnostic shared reference data | **Accepted** |
 | [0003](0003-three-independent-axes.md) | A book lives on three independent axes | **Accepted** |
 | [0004](0004-derive-dont-store.md) | Store raw facts, derive labels | **Accepted** |
-| [0005](0005-engagements-lifecycle-entity.md) | Engagements: one lifecycle entity per read | Stub |
+| [0005](0005-engagements-lifecycle-entity.md) | Engagements: one lifecycle entity per read | **Accepted** |
 | [0006](0006-progress-logs-activities-not-positions.md) | Progress logs are activities, not positions | Stub |
 | [0007](0007-time-modeling-on-vs-at.md) | Time modeling: fuzzy `_on` vs exact `_at` | Stub |
 | [0008](0008-origin-per-read-isbn-provisional.md) | Origin is per-read; ISBN provisional | Stub |
