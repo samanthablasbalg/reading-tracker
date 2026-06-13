@@ -130,6 +130,8 @@ export class BookSearchComponent {
     this.isSearching.set(true);
     this.searchError.set(false);
     this.candidates.set([]);
+    this.importingId.set(null);
+    this.importErrorId.set(null);
 
     this.bookService.searchBooks(q).subscribe({
       next: (results) => {

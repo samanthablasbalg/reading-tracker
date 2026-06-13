@@ -146,6 +146,46 @@ describe('BookSearchComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Could not import this book');
   });
 
+  it('clears a stale import error when a new search is run', () => {
+    const fixture = TestBed.createComponent(BookSearchComponent);
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input');
+    const searchButton = fixture.nativeElement.querySelector('button[mat-flat-button]');
+    const candidate = {
+      google_books_id: 'gbid-dune',
+      title: 'Dune',
+      authors: ['Frank Herbert'],
+      published_date: '1965',
+      page_count: null,
+      categories: [],
+      cover_url: null,
+      language: null,
+    };
+
+    // First search — import fails
+    input.value = 'Dune';
+    input.dispatchEvent(new Event('input'));
+    searchButton.click();
+    httpTesting.expectOne((req) => req.url.includes('/api/books/search')).flush([candidate]);
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button[mat-stroked-button]').click();
+    httpTesting.expectOne('/api/books/import').error(new ProgressEvent('error'));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Could not import this book');
+
+    // Second search — same candidate appears, error should be gone
+    input.value = 'Dune again';
+    input.dispatchEvent(new Event('input'));
+    searchButton.click();
+    httpTesting.expectOne((req) => req.url.includes('/api/books/search')).flush([candidate]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Could not import this book');
+  });
+
   it('renders candidates after a successful search', () => {
     const fixture = TestBed.createComponent(BookSearchComponent);
     fixture.detectChanges();
