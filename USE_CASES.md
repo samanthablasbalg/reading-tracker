@@ -4,8 +4,7 @@ Real scenarios that drove design decisions and double as test cases. Each scenar
 should be fully representable in the data model without hacks or workarounds — if
 it isn't, the model is wrong.
 
-Organised by theme. The data model consequences are noted for each; see
-`DATA_MODEL_DECISIONS.md` for the full reasoning.
+Organised by theme. The data model consequences are noted for each.
 
 ---
 

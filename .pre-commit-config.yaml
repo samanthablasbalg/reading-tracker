@@ -35,3 +35,9 @@ repos:
         files: ^frontend/.*\.ts$
         entry: bash -c 'cd frontend && npm run typecheck'
         pass_filenames: false
+      - id: prettier-docs
+        name: Prettier (docs markdown)
+        language: node
+        additional_dependencies: ["prettier@3.8.1"]
+        files: ^docs/.*\.md$
+        entry: prettier --write
