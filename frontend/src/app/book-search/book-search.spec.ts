@@ -171,10 +171,10 @@ describe('BookSearchComponent', () => {
       ]);
     fixture.detectChanges();
 
-    const items = fixture.nativeElement.querySelectorAll('li');
-    expect(items).toHaveLength(1);
-    expect(items[0].textContent).toContain('Dune');
-    expect(items[0].textContent).toContain('Frank Herbert');
-    expect(items[0].textContent).toContain('1965');
+    const rows = fixture.nativeElement.querySelectorAll('tr.mat-mdc-row');
+    expect(rows).toHaveLength(1);
+    expect(rows[0].textContent).toContain('Dune');
+    expect(rows[0].textContent).toContain('Frank Herbert');
+    expect(rows[0].textContent).toContain('1965');
   });
 });
