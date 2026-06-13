@@ -71,10 +71,26 @@ def update_engagement_status(
 ) -> EngagementRead:
     engagement = _fetch(engagement_id, db)
 
-    engagement.status = ReadingStatus(payload.status)
-    if payload.status == ReadingStatus.finished:
+    new_status = ReadingStatus(payload.status)
+
+    if new_status == engagement.status:
+        return EngagementRead.model_validate(engagement)
+
+    if new_status == ReadingStatus.reading:
+        duplicate = db.execute(
+            select(Engagement).where(
+                Engagement.book_id == engagement.book_id,
+                Engagement.status == ReadingStatus.reading,
+                Engagement.id != engagement_id,
+            )
+        ).scalar_one_or_none()
+        if duplicate is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT)
+
+    engagement.status = new_status
+    if new_status == ReadingStatus.finished:
         engagement.finished_on = datetime.date.today()
-    elif payload.status == ReadingStatus.reading:
+    elif new_status == ReadingStatus.reading:
         engagement.finished_on = None
 
     db.commit()
@@ -84,12 +100,14 @@ def update_engagement_status(
 
 @router.get("", response_model=list[EngagementRead])
 def list_engagements(
-    status: Literal["reading", "finished"] = Query(...),
+    status_filter: Literal["reading", "finished"] = Query(..., alias="status"),
     db: Session = Depends(get_db),
 ) -> list[EngagementRead]:
     engagements = (
         db.execute(
-            select(Engagement).where(Engagement.status == status).options(_BOOK_LOAD)
+            select(Engagement)
+            .where(Engagement.status == status_filter)
+            .options(_BOOK_LOAD)
         )
         .scalars()
         .all()

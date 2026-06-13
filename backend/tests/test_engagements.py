@@ -118,6 +118,34 @@ def test_patch_same_status_is_idempotent(client: TestClient) -> None:
     assert data["finished_on"] is None
 
 
+def test_patch_finished_to_finished_does_not_overwrite_date(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    first = client.patch(
+        f"/engagements/{engagement['id']}", json={"status": "finished"}
+    ).json()
+    original_date = first["finished_on"]
+
+    second = client.patch(
+        f"/engagements/{engagement['id']}", json={"status": "finished"}
+    ).json()
+    assert second["finished_on"] == original_date
+
+
+def test_patch_back_to_reading_conflicts_when_another_active_read_exists(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    eng_a = _create_engagement(client, book["id"])
+    client.patch(f"/engagements/{eng_a['id']}", json={"status": "finished"})
+    _create_engagement(client, book["id"])
+
+    response = client.patch(f"/engagements/{eng_a['id']}", json={"status": "reading"})
+    assert response.status_code == 409
+
+
 # --- List views ---
 
 
