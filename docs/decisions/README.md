@@ -58,6 +58,7 @@ The concrete trigger that would reopen this (e.g. "if this goes multi-user").
 | [0003](0003-three-independent-axes.md) | A book lives on three independent axes | **Accepted** |
 | [0004](0004-derive-dont-store.md) | Store raw facts, derive labels | **Accepted** |
 | [0005](0005-engagements-lifecycle-entity.md) | Engagements: one lifecycle entity per read | **Accepted** |
+| [0006](0006-format-descriptive-set.md) | Format is a descriptive set, decoupled from logging unit | **Accepted** |
 | [0007](0007-progress-logs-activities-not-positions.md) | Progress logs are activities, not positions | Stub |
 | [0008](0008-time-modeling-on-vs-at.md) | Time modeling: fuzzy `_on` vs exact `_at` | Stub |
 | [0009](0009-origin-per-read-isbn-provisional.md) | Origin is per-read; ISBN provisional | Stub |
