@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import datetime
 import uuid
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, StringConstraints
 
 from app.models.enums import DatePrecision
 
+NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
 
 class BookCreate(BaseModel):
-    title: str
-    author: str
+    title: NonEmptyStr
+    author: NonEmptyStr
 
 
 class BookImportRequest(BaseModel):

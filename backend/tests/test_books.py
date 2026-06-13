@@ -273,6 +273,22 @@ def test_create_book_returns_created(client: TestClient) -> None:
     assert data["publication_date"] is None
 
 
+@pytest.mark.parametrize(
+    "title,author",
+    [
+        ("", "Arkady Martine"),
+        ("   ", "Arkady Martine"),
+        ("A Memory Called Empire", ""),
+        ("A Memory Called Empire", "   "),
+    ],
+)
+def test_create_book_rejects_blank_fields(
+    client: TestClient, title: str, author: str
+) -> None:
+    response = client.post("/books", json={"title": title, "author": author})
+    assert response.status_code == 422
+
+
 def test_create_book_reuses_existing_author(client: TestClient) -> None:
     client.post(
         "/books", json={"title": "A Memory Called Empire", "author": "Arkady Martine"}
