@@ -65,7 +65,7 @@ The concrete trigger that would reopen this (e.g. "if this goes multi-user").
 | [0007](0007-progress-logs-activities-not-positions.md) | Progress logs are activities, not positions              | **Accepted** |
 | [0008](0008-time-modeling-on-vs-at.md)                 | Time modeling: fuzzy `_on` vs exact `_at`                | **Accepted** |
 | [0009](0009-origin-per-read-isbn-provisional.md)       | Origin is per-read; ISBN provisional                     | **Accepted** |
-| [0010](0010-user-extensible-reference-tables.md)       | User-extensible reference tables                         | Stub         |
+| [0010](0010-user-extensible-reference-tables.md)       | User-extensible reference tables                         | **Accepted** |
 | [0011](0011-standalone-entries.md)                     | Standalone entries (reads off the book goal)             | **Accepted** |
 | [0012](0012-shared-vs-per-table-enums.md)              | Shared vs per-table Postgres ENUM types                  | **Accepted** |
 | [0013](0013-author-identity-get-or-create.md)          | Author identity: get-or-create by name                   | **Accepted** |
