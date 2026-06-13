@@ -67,7 +67,7 @@ The concrete trigger that would reopen this (e.g. "if this goes multi-user").
 | [0009](0009-origin-per-read-isbn-provisional.md)       | Origin is per-read; ISBN provisional                     | **Accepted** |
 | [0010](0010-user-extensible-reference-tables.md)       | User-extensible reference tables                         | Stub         |
 | [0011](0011-standalone-entries.md)                     | Standalone entries (reads off the book goal)             | **Accepted** |
-| [0012](0012-shared-vs-per-table-enums.md)              | Shared vs per-table Postgres ENUM types                  | Stub         |
+| [0012](0012-shared-vs-per-table-enums.md)              | Shared vs per-table Postgres ENUM types                  | **Accepted** |
 | [0013](0013-author-identity-get-or-create.md)          | Author identity: get-or-create by name                   | **Accepted** |
 | [0014](0014-dedicated-test-database.md)                | Dedicated test database                                  | **Accepted** |
 | [0015](0015-google-books-access-via-backend-proxy.md)  | Google Books access via backend proxy                    | **Accepted** |
