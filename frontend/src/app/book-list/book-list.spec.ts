@@ -25,7 +25,7 @@ describe('BookListComponent', () => {
     httpTesting.expectOne('/api/books').flush([]);
     fixture.detectChanges();
 
-    const items = fixture.nativeElement.querySelectorAll('li');
+    const items = fixture.nativeElement.querySelectorAll('mat-list-item');
     expect(items).toHaveLength(0);
   });
 
@@ -33,14 +33,14 @@ describe('BookListComponent', () => {
     const fixture = TestBed.createComponent(BookListComponent);
 
     const mockBooks = [
-      { id: 1, title: 'Dune', authors: [{ name: 'Frank Herbert' }] },
-      { id: 2, title: 'Foundation', authors: [{ name: 'Isaac Asimov' }] },
+      { id: 'id-1', title: 'Dune', authors: [{ id: 'auth-1', name: 'Frank Herbert' }] },
+      { id: 'id-2', title: 'Foundation', authors: [{ id: 'auth-2', name: 'Isaac Asimov' }] },
     ];
     httpTesting.expectOne('/api/books').flush(mockBooks);
 
     fixture.detectChanges();
 
-    const items = fixture.nativeElement.querySelectorAll('li');
+    const items = fixture.nativeElement.querySelectorAll('mat-list-item');
     expect(items).toHaveLength(mockBooks.length);
     expect(items[0].textContent).toContain(mockBooks[0].title);
     expect(items[0].textContent).toContain(mockBooks[0].authors[0].name);
@@ -53,14 +53,17 @@ describe('BookListComponent', () => {
 
     httpTesting.expectOne('/api/books').flush([
       {
-        id: 1,
+        id: 'id-1',
         title: 'Good Omens',
-        authors: [{ name: 'Terry Pratchett' }, { name: 'Neil Gaiman' }],
+        authors: [
+          { id: 'auth-1', name: 'Terry Pratchett' },
+          { id: 'auth-2', name: 'Neil Gaiman' },
+        ],
       },
     ]);
     fixture.detectChanges();
 
-    const item = fixture.nativeElement.querySelector('li');
+    const item = fixture.nativeElement.querySelector('mat-list-item');
     expect(item.textContent).toContain('Terry Pratchett, Neil Gaiman');
   });
 });
