@@ -61,7 +61,7 @@ The concrete trigger that would reopen this (e.g. "if this goes multi-user").
 | [0006](0006-format-descriptive-set.md) | Format is a descriptive set, decoupled from logging unit | **Accepted** |
 | [0007](0007-progress-logs-activities-not-positions.md) | Progress logs are activities, not positions | **Accepted** |
 | [0008](0008-time-modeling-on-vs-at.md) | Time modeling: fuzzy `_on` vs exact `_at` | **Accepted** |
-| [0009](0009-origin-per-read-isbn-provisional.md) | Origin is per-read; ISBN provisional | Stub |
+| [0009](0009-origin-per-read-isbn-provisional.md) | Origin is per-read; ISBN provisional | **Accepted** |
 | [0010](0010-user-extensible-reference-tables.md) | User-extensible reference tables | Stub |
 | [0011](0011-standalone-entries.md) | Standalone entries (reads off the book goal) | Stub |
 | [0012](0012-shared-vs-per-table-enums.md) | Shared vs per-table Postgres ENUM types | Stub |
