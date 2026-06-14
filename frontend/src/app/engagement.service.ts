@@ -1,18 +1,16 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject, shareReplay, startWith, switchMap } from 'rxjs';
-import { Author } from './book.service';
+import { Book } from './book.service';
 
-export interface EngagedBook {
-  id: string;
-  title: string;
-  authors: Author[];
-}
+export type EngagementStatus = 'reading' | 'finished';
+
+export type EngagedBook = Pick<Book, 'id' | 'title' | 'authors'>;
 
 export interface Engagement {
   id: string;
   book: EngagedBook;
-  status: 'reading' | 'finished';
+  status: EngagementStatus;
   started_on: string | null;
   finished_on: string | null;
 }
@@ -22,21 +20,13 @@ export class EngagementService {
   private readonly http = inject(HttpClient);
   private readonly reloadTrigger = new Subject<void>();
 
-  readonly readingEngagements$: Observable<Engagement[]> = this.reloadTrigger.pipe(
-    startWith(undefined),
-    switchMap(() =>
-      this.http.get<Engagement[]>('/api/engagements', { params: { status: 'reading' } }),
-    ),
-    shareReplay(1),
-  );
-
-  readonly finishedEngagements$: Observable<Engagement[]> = this.reloadTrigger.pipe(
-    startWith(undefined),
-    switchMap(() =>
-      this.http.get<Engagement[]>('/api/engagements', { params: { status: 'finished' } }),
-    ),
-    shareReplay(1),
-  );
+  engagements(status: EngagementStatus): Observable<Engagement[]> {
+    return this.reloadTrigger.pipe(
+      startWith(undefined),
+      switchMap(() => this.http.get<Engagement[]>('/api/engagements', { params: { status } })),
+      shareReplay({ bufferSize: 1, refCount: true }),
+    );
+  }
 
   reloadEngagements(): void {
     this.reloadTrigger.next();

@@ -38,7 +38,7 @@ import { EngagementService } from '../engagement.service';
 export class CurrentlyReadingComponent {
   private readonly engagementService = inject(EngagementService);
 
-  protected readonly engagements = toSignal(this.engagementService.readingEngagements$, {
+  protected readonly engagements = toSignal(this.engagementService.engagements('reading'), {
     initialValue: [],
   });
   protected readonly markingId = signal<string | null>(null);

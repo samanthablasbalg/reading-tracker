@@ -28,7 +28,7 @@ import { EngagementService } from '../engagement.service';
 export class ReadComponent {
   private readonly engagementService = inject(EngagementService);
 
-  protected readonly engagements = toSignal(this.engagementService.finishedEngagements$, {
+  protected readonly engagements = toSignal(this.engagementService.engagements('finished'), {
     initialValue: [],
   });
 }
