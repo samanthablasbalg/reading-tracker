@@ -1,10 +1,10 @@
 import { Component } from '@angular/core';
-import { BookListComponent } from './book-list/book-list';
-import { BookSearchComponent } from './book-search/book-search';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { MatTabsModule } from '@angular/material/tabs';
 
 @Component({
   selector: 'app-root',
-  imports: [BookListComponent, BookSearchComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatTabsModule],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
