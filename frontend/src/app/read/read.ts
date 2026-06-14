@@ -15,7 +15,9 @@ import { EngagementService } from '../engagement.service';
           <span matListItemLine>
             {{ engagement.book.authors.map((a) => a.name).join(', ') }}
           </span>
-          <span matListItemLine>Finished {{ engagement.finished_on | date: 'mediumDate' }}</span>
+          <span matListItemLine
+            >Finished {{ engagement.finished_on | date: 'mediumDate' : 'UTC' }}</span
+          >
         </mat-list-item>
       } @empty {
         <p>No finished books yet.</p>

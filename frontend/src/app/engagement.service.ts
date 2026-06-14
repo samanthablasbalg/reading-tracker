@@ -13,7 +13,7 @@ export interface Engagement {
   id: string;
   book: EngagedBook;
   status: 'reading' | 'finished';
-  started_on: string;
+  started_on: string | null;
   finished_on: string | null;
 }
 

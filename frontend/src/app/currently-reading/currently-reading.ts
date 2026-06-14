@@ -16,7 +16,9 @@ import { EngagementService } from '../engagement.service';
           <span matListItemLine>
             {{ engagement.book.authors.map((a) => a.name).join(', ') }}
           </span>
-          <span matListItemLine>Started {{ engagement.started_on | date: 'mediumDate' }}</span>
+          <span matListItemLine
+            >Started {{ engagement.started_on | date: 'mediumDate' : 'UTC' }}</span
+          >
           <button
             mat-stroked-button
             matListItemMeta
