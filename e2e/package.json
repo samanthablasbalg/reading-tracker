@@ -1,0 +1,19 @@
+{
+  "name": "reading-tracker-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "npm@11.13.0",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^25.9.3",
+    "@types/pg": "^8.11.0",
+    "pg": "^8.13.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
+  }
+}
