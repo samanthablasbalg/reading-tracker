@@ -10,7 +10,9 @@ export default defineConfig({
   workers: 1,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 1 : 0,
-  reporter: [['html', { open: 'never' }]],
+  reporter: process.env['CI']
+    ? [['github'], ['list'], ['html', { open: 'never' }]]
+    : [['html', { open: 'never' }]],
   use: {
     // The e2e frontend runs on its own port (4201) so it never collides with a
     // dev server on 4200. See the webServer config below.
