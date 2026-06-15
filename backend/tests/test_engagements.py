@@ -349,11 +349,28 @@ def test_engagement_completion_pct_is_null_without_page_count(
     assert response.json()[0]["completion_pct"] is None
 
 
+def test_engagement_completion_pct_is_null_when_page_count_is_zero(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_page_count = 0
+    db.commit()
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 100)
+
+    response = client.get("/engagements?status=reading")
+    assert response.json()[0]["completion_pct"] is None
+
+
 def test_engagement_completion_pct_is_null_before_logging(
     client: TestClient, db: Session
 ) -> None:
     book = _create_book(client)
-    db.get(Book, uuid.UUID(book["id"])).default_page_count = 300  # type: ignore[union-attr]
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_page_count = 300
     db.commit()
     engagement = _create_engagement(client, book["id"])
 
@@ -364,7 +381,9 @@ def test_engagement_completion_pct_after_logging(
     client: TestClient, db: Session
 ) -> None:
     book = _create_book(client)
-    db.get(Book, uuid.UUID(book["id"])).default_page_count = 300  # type: ignore[union-attr]
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_page_count = 300
     db.commit()
     engagement = _create_engagement(client, book["id"])
     _log_progress(client, engagement["id"], 150)
@@ -377,7 +396,9 @@ def test_engagement_completion_pct_capped_at_100(
     client: TestClient, db: Session
 ) -> None:
     book = _create_book(client)
-    db.get(Book, uuid.UUID(book["id"])).default_page_count = 300  # type: ignore[union-attr]
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_page_count = 300
     db.commit()
     engagement = _create_engagement(client, book["id"])
     _log_progress(client, engagement["id"], 350)

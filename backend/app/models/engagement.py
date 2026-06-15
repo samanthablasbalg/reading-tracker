@@ -81,7 +81,7 @@ class Engagement(TimestampMixin, Base):
 
     @property
     def completion_pct(self) -> int | None:
-        if not self.progress_logs or self.book.default_page_count is None:
+        if not self.progress_logs or not self.book.default_page_count:
             return None
         latest = max(self.progress_logs, key=lambda log: log.logged_at)
         if latest.page_end is None:
