@@ -10,7 +10,15 @@ const mockEngagement = {
   status: 'reading',
   started_on: '2026-06-01',
   finished_on: null,
+  resume_from_page: 0,
+  completion_pct: null as number | null,
 };
+
+function findButton(nativeEl: HTMLElement, text: string): HTMLButtonElement {
+  return Array.from(nativeEl.querySelectorAll('button')).find((b) =>
+    b.textContent?.trim().includes(text),
+  ) as HTMLButtonElement;
+}
 
 describe('CurrentlyReadingComponent', () => {
   let httpTesting: HttpTestingController;
@@ -80,27 +88,68 @@ describe('CurrentlyReadingComponent', () => {
     );
   });
 
+  it('renders the resume-from page', () => {
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+
+    flushReadingList([{ ...mockEngagement, resume_from_page: 42 }]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).toContain(
+      'Resuming from p.42',
+    );
+  });
+
+  it('renders completion % when non-null', () => {
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+
+    flushReadingList([{ ...mockEngagement, completion_pct: 47 }]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).toContain(
+      '47% complete',
+    );
+  });
+
+  it('omits completion % when null', () => {
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+
+    flushReadingList();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).not.toContain(
+      '% complete',
+    );
+  });
+
   it('renders a Mark as finished button per engagement', () => {
     const fixture = TestBed.createComponent(CurrentlyReadingComponent);
 
     flushReadingList();
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('button[mat-stroked-button]');
-    expect(button.textContent).toContain('Mark as finished');
+    expect(findButton(fixture.nativeElement, 'Mark as finished')).toBeTruthy();
   });
 
-  it('disables the button and shows Marking… while the request is in flight', () => {
+  it('renders a Log progress button per engagement', () => {
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+
+    flushReadingList();
+    fixture.detectChanges();
+
+    expect(findButton(fixture.nativeElement, 'Log progress')).toBeTruthy();
+  });
+
+  it('disables the mark-finished button and shows Marking… while the request is in flight', () => {
     vi.spyOn(engagementService, 'reloadEngagements').mockImplementation(() => undefined);
 
     const fixture = TestBed.createComponent(CurrentlyReadingComponent);
     flushReadingList();
     fixture.detectChanges();
 
-    fixture.nativeElement.querySelector('button[mat-stroked-button]').click();
+    findButton(fixture.nativeElement, 'Mark as finished').click();
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('button[mat-stroked-button]');
+    const button = findButton(fixture.nativeElement, 'Marking…');
     expect(button.disabled).toBe(true);
     expect(button.textContent).toContain('Marking…');
 
@@ -116,24 +165,89 @@ describe('CurrentlyReadingComponent', () => {
     flushReadingList();
     fixture.detectChanges();
 
-    fixture.nativeElement.querySelector('button[mat-stroked-button]').click();
+    findButton(fixture.nativeElement, 'Mark as finished').click();
     httpTesting.expectOne((req) => req.method === 'PATCH').flush({});
     fixture.detectChanges();
 
     expect(spy).toHaveBeenCalledOnce();
   });
 
-  it('shows Error when the mark-finished request fails', () => {
+  it('shows Error on the mark-finished button when the request fails', () => {
     const fixture = TestBed.createComponent(CurrentlyReadingComponent);
     flushReadingList();
     fixture.detectChanges();
 
-    fixture.nativeElement.querySelector('button[mat-stroked-button]').click();
+    findButton(fixture.nativeElement, 'Mark as finished').click();
     httpTesting.expectOne((req) => req.method === 'PATCH').error(new ProgressEvent('error'));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('button[mat-stroked-button]').textContent).toContain(
+    expect(fixture.nativeElement.querySelector('button[aria-label^="Mark"]').textContent).toContain(
       'Error',
     );
+  });
+
+  it('disables the log-progress button and shows Logging… while the request is in flight', () => {
+    vi.spyOn(engagementService, 'reloadEngagements').mockImplementation(() => undefined);
+
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+    flushReadingList();
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input[type="number"]');
+    input.value = '150';
+    input.dispatchEvent(new Event('input'));
+
+    findButton(fixture.nativeElement, 'Log progress').click();
+    fixture.detectChanges();
+
+    const button = findButton(fixture.nativeElement, 'Logging…');
+    expect(button.disabled).toBe(true);
+    expect(button.textContent).toContain('Logging…');
+
+    httpTesting
+      .expectOne((req) => req.method === 'POST' && req.url.includes('progress-logs'))
+      .flush({});
+  });
+
+  it('calls reloadEngagements after a successful log-progress', () => {
+    const spy = vi
+      .spyOn(engagementService, 'reloadEngagements')
+      .mockImplementation(() => undefined);
+
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+    flushReadingList();
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input[type="number"]');
+    input.value = '150';
+    input.dispatchEvent(new Event('input'));
+
+    findButton(fixture.nativeElement, 'Log progress').click();
+    httpTesting
+      .expectOne((req) => req.method === 'POST' && req.url.includes('progress-logs'))
+      .flush({});
+    fixture.detectChanges();
+
+    expect(spy).toHaveBeenCalledOnce();
+  });
+
+  it('shows Error on the log-progress button when the request fails', () => {
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+    flushReadingList();
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input[type="number"]');
+    input.value = '150';
+    input.dispatchEvent(new Event('input'));
+
+    findButton(fixture.nativeElement, 'Log progress').click();
+    httpTesting
+      .expectOne((req) => req.method === 'POST' && req.url.includes('progress-logs'))
+      .error(new ProgressEvent('error'));
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('button[aria-label^="Log progress"]').textContent,
+    ).toContain('Error');
   });
 });
