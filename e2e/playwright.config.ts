@@ -7,6 +7,7 @@ dotenv.config({ path: path.resolve(__dirname, '.env') })
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
+  workers: 1,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 1 : 0,
   reporter: [['html', { open: 'never' }]],
