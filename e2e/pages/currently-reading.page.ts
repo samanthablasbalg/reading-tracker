@@ -12,7 +12,7 @@ export class CurrentlyReadingPage {
   }
 
   getBookListItem(title: string): Locator {
-    return this.page.getByRole('listitem').filter({ hasText: title });
+    return this.page.locator('mat-list-item').filter({ hasText: title });
   }
 
   async markBookFinished(title: string): Promise<void> {

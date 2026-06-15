@@ -8,6 +8,6 @@ export class FinishedReadsPage {
   }
 
   getBookListItem(title: string): Locator {
-    return this.page.getByRole('listitem').filter({ hasText: title });
+    return this.page.locator('mat-list-item').filter({ hasText: title });
   }
 }
