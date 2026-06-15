@@ -11,7 +11,9 @@ export default defineConfig({
   retries: process.env['CI'] ? 1 : 0,
   reporter: [['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://localhost:4200',
+    // The e2e frontend runs on its own port (4201) so it never collides with a
+    // dev server on 4200. See the webServer config below.
+    baseURL: 'http://localhost:4201',
     trace: 'retain-on-failure',
   },
   projects: [
@@ -27,16 +29,23 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'cd ../backend && uvicorn app.main:app --host 127.0.0.1 --port 8000',
-      url: 'http://127.0.0.1:8000/docs',
+      // Dedicated e2e backend on :8001 (dev runs on :8000), bound to the e2e
+      // database via E2E_DATABASE_URL. Because the port is isolated, there is no
+      // dev server here to accidentally reuse, so the wrong-database trap can't
+      // happen regardless of reuseExistingServer.
+      command: 'cd ../backend && uvicorn app.main:app --host 127.0.0.1 --port 8001',
+      url: 'http://127.0.0.1:8001/docs',
       reuseExistingServer: !process.env['CI'],
       env: {
         DATABASE_URL: process.env['E2E_DATABASE_URL'] ?? '',
       },
     },
     {
-      command: 'cd ../frontend && npm start',
-      url: 'http://localhost:4200',
+      // Dedicated e2e frontend on :4201 (dev runs on :4200), using the e2e proxy
+      // config that points /api at the e2e backend on :8001.
+      command:
+        'cd ../frontend && npm start -- --port 4201 --proxy-config proxy.e2e.conf.json',
+      url: 'http://localhost:4201',
       reuseExistingServer: !process.env['CI'],
       timeout: 120_000,
     },

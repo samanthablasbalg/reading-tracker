@@ -1,6 +1,8 @@
 import { APIRequestContext } from '@playwright/test';
 
-const BACKEND_URL = 'http://127.0.0.1:8000';
+// The e2e backend runs on :8001 (dev is on :8000). This client seeds data by
+// calling the API directly, bypassing the frontend proxy, so it needs the port.
+const BACKEND_URL = 'http://127.0.0.1:8001';
 
 export class ApiClient {
   constructor(private readonly request: APIRequestContext) {}
