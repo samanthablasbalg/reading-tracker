@@ -11,25 +11,28 @@ from sqlalchemy.orm import Session, selectinload
 from app.database import get_db
 from app.models.book import Book, BookAuthor
 from app.models.engagement import Engagement
-from app.models.enums import ReadingStatus
+from app.models.enums import LogUnit, ReadingStatus
+from app.models.progress_log import ProgressLog
 from app.schemas.engagement import (
     EngagementCreate,
     EngagementRead,
     EngagementStatusUpdate,
 )
+from app.schemas.progress_log import ProgressLogCreate, ProgressLogRead
 
 router = APIRouter(prefix="/engagements", tags=["engagements"])
 
-_BOOK_LOAD = (
+_LOAD_OPTIONS = (
     selectinload(Engagement.book)
     .selectinload(Book.book_authors)
-    .selectinload(BookAuthor.author)
+    .selectinload(BookAuthor.author),
+    selectinload(Engagement.progress_logs),
 )
 
 
 def _fetch(engagement_id: uuid.UUID, db: Session) -> Engagement:
     engagement = db.execute(
-        select(Engagement).where(Engagement.id == engagement_id).options(_BOOK_LOAD)
+        select(Engagement).where(Engagement.id == engagement_id).options(*_LOAD_OPTIONS)
     ).scalar_one_or_none()
     if engagement is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
@@ -98,6 +101,40 @@ def update_engagement_status(
     return EngagementRead.model_validate(_fetch(engagement_id, db))
 
 
+@router.post(
+    "/{engagement_id}/progress-logs",
+    response_model=ProgressLogRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def log_progress(
+    engagement_id: uuid.UUID,
+    payload: ProgressLogCreate,
+    db: Session = Depends(get_db),
+) -> ProgressLogRead:
+    engagement = _fetch(engagement_id, db)
+
+    if engagement.status != ReadingStatus.reading:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT)
+
+    page_start = engagement.resume_from_page
+    if payload.current_page <= page_start:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT)
+
+    log = ProgressLog(
+        engagement_id=engagement_id,
+        logged_at=datetime.datetime.now(datetime.UTC),
+        unit=LogUnit.pages,
+        page_start=page_start,
+        page_end=payload.current_page,
+        new_ground=True,
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(log)
+
+    return ProgressLogRead.model_validate(log)
+
+
 @router.get("", response_model=list[EngagementRead])
 def list_engagements(
     status_filter: Literal["reading", "finished"] = Query(..., alias="status"),
@@ -107,7 +144,7 @@ def list_engagements(
         db.execute(
             select(Engagement)
             .where(Engagement.status == status_filter)
-            .options(_BOOK_LOAD)
+            .options(*_LOAD_OPTIONS)
         )
         .scalars()
         .all()
