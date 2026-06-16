@@ -100,11 +100,13 @@ finish the current work without naming a number:
 2. Extract the issue number — everything before the first hyphen (e.g.
    `29-add-engagement-statuses` → `29`). If the branch does not match this pattern,
    say so and ask for the number rather than guessing.
-3. Pull the issue with its discussion: `gh issue view <#> --comments`.
+3. Pull the issue: `gh issue view <#>`. This is a solo repo with no comment
+   threads — do NOT use `--comments` (it shows only comments, hides the body, and
+   is empty here, which agents misread as failure and retry-spiral).
 4. Compare the issue's requirements against what already exists — review
    `git diff main...HEAD` and the working tree — before deciding what remains.
 5. Summarize what's done vs. outstanding, then continue per **Working Style**
    (explain before building; confirm one step at a time).
 
-Use `gh` for all issue/PR context (`gh issue view`, `gh pr view`,
-`gh pr view --comments`). It is already authenticated.
+Use `gh` for all issue/PR context (`gh issue view`, `gh pr view`). It is already
+authenticated. Run these bare — no `--comments`, no pipes/redirects/`echo`.
