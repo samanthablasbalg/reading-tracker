@@ -10,6 +10,7 @@ export type EngagedBook = Pick<Book, 'id' | 'title' | 'authors' | 'default_page_
 export interface Engagement {
   id: string;
   book: EngagedBook;
+  cover_url: string | null;
   status: EngagementStatus;
   started_on: string | null;
   finished_on: string | null;

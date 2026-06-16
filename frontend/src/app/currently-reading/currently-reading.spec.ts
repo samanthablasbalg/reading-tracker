@@ -12,6 +12,7 @@ const mockEngagement = {
     authors: [{ id: 'auth-1', name: 'Frank Herbert' }],
     default_page_count: null as number | null,
   },
+  cover_url: null as string | null,
   status: 'reading',
   started_on: '2026-06-01',
   finished_on: null,
