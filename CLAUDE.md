@@ -89,16 +89,16 @@ to later to understand why decisions were made.
 
 ## Working from GitHub Issues
 
-Branches follow the pattern `<type>/<issue#>/<slug>` — for example
-`feat/4/scaffold-angular`. The issue number is always the **second**
-slash-separated segment of the branch name.
+Branches follow the pattern `<issue#>-<slug>` — for example
+`29-add-engagement-statuses` (GitHub's built-in "Create a branch" format). The
+issue number is always the **first** hyphen-separated segment of the branch name.
 
 When the owner refers to "this issue" / "the issue", or asks to continue or
 finish the current work without naming a number:
 
 1. Get the current branch: `git branch --show-current`.
-2. Extract the issue number — the second segment (e.g.
-   `feat/4/scaffold-angular` → `4`). If the branch does not match this pattern,
+2. Extract the issue number — everything before the first hyphen (e.g.
+   `29-add-engagement-statuses` → `29`). If the branch does not match this pattern,
    say so and ask for the number rather than guessing.
 3. Pull the issue with its discussion: `gh issue view <#> --comments`.
 4. Compare the issue's requirements against what already exists — review

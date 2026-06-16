@@ -5,7 +5,7 @@ import { Book } from './book.service';
 
 export type EngagementStatus = 'reading' | 'finished';
 
-export type EngagedBook = Pick<Book, 'id' | 'title' | 'authors'>;
+export type EngagedBook = Pick<Book, 'id' | 'title' | 'authors' | 'default_page_count'>;
 
 export interface Engagement {
   id: string;
@@ -13,6 +13,8 @@ export interface Engagement {
   status: EngagementStatus;
   started_on: string | null;
   finished_on: string | null;
+  resume_from_page: number;
+  completion_pct: number | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -38,5 +40,11 @@ export class EngagementService {
 
   markFinished(engagementId: string): Observable<Engagement> {
     return this.http.patch<Engagement>(`/api/engagements/${engagementId}`, { status: 'finished' });
+  }
+
+  logProgress(engagementId: string, currentPage: number): Observable<unknown> {
+    return this.http.post<unknown>(`/api/engagements/${engagementId}/progress-logs`, {
+      current_page: currentPage,
+    });
   }
 }

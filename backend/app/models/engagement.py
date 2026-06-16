@@ -71,3 +71,21 @@ class Engagement(TimestampMixin, Base):
     review: Mapped[Review | None] = relationship(
         back_populates="engagement", uselist=False
     )
+
+    @property
+    def resume_from_page(self) -> int:
+        if not self.progress_logs:
+            return 0
+        latest = max(self.progress_logs, key=lambda log: log.logged_at)
+        return latest.page_end if latest.page_end is not None else 0
+
+    @property
+    def completion_pct(self) -> int | None:
+        if not self.progress_logs or not self.book.default_page_count:
+            return None
+        latest = max(self.progress_logs, key=lambda log: log.logged_at)
+        if latest.page_end is None:
+            return None
+        return max(
+            0, min(100, round(latest.page_end / self.book.default_page_count * 100))
+        )

@@ -24,6 +24,8 @@ class EngagementRead(BaseModel):
     status: ReadingStatus
     started_on: datetime.date | None
     finished_on: datetime.date | None
+    resume_from_page: int
+    completion_pct: int | None
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
