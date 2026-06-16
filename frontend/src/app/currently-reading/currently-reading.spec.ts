@@ -6,7 +6,12 @@ import { EngagementService } from '../engagement.service';
 
 const mockEngagement = {
   id: 'eng-1',
-  book: { id: 'book-1', title: 'Dune', authors: [{ id: 'auth-1', name: 'Frank Herbert' }] },
+  book: {
+    id: 'book-1',
+    title: 'Dune',
+    authors: [{ id: 'auth-1', name: 'Frank Herbert' }],
+    default_page_count: null as number | null,
+  },
   status: 'reading',
   started_on: '2026-06-01',
   finished_on: null,
@@ -78,6 +83,7 @@ describe('CurrentlyReadingComponent', () => {
             { id: 'auth-1', name: 'Terry Pratchett' },
             { id: 'auth-2', name: 'Neil Gaiman' },
           ],
+          default_page_count: null as number | null,
         },
       },
     ]);
@@ -85,6 +91,17 @@ describe('CurrentlyReadingComponent', () => {
 
     expect(fixture.nativeElement.querySelector('mat-list-item').textContent).toContain(
       'Terry Pratchett, Neil Gaiman',
+    );
+  });
+
+  it('omits the resume-from line when resume_from_page is 0', () => {
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+
+    flushReadingList();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).not.toContain(
+      'Resuming from',
     );
   });
 
@@ -229,6 +246,103 @@ describe('CurrentlyReadingComponent', () => {
     fixture.detectChanges();
 
     expect(spy).toHaveBeenCalledOnce();
+  });
+
+  it('has step="1" on the page input', () => {
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+
+    flushReadingList();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('input[type="number"]').getAttribute('step')).toBe(
+      '1',
+    );
+  });
+
+  it('sets max on the page input to the book page count when known', () => {
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+
+    flushReadingList([
+      { ...mockEngagement, book: { ...mockEngagement.book, default_page_count: 400 } },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('input[type="number"]').getAttribute('max')).toBe(
+      '400',
+    );
+  });
+
+  it('omits max on the page input when page count is unknown', () => {
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+
+    flushReadingList();
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('input[type="number"]').getAttribute('max'),
+    ).toBeNull();
+  });
+
+  it('clears the page input after a successful log-progress', () => {
+    vi.spyOn(engagementService, 'reloadEngagements').mockImplementation(() => undefined);
+
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+    flushReadingList();
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input[type="number"]');
+    input.value = '150';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    findButton(fixture.nativeElement, 'Log progress').click();
+    httpTesting
+      .expectOne((req) => req.method === 'POST' && req.url.includes('progress-logs'))
+      .flush({});
+    fixture.detectChanges();
+
+    expect(input.value).toBe('');
+  });
+
+  it('does not submit when page exceeds the book page count', () => {
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+
+    flushReadingList([
+      { ...mockEngagement, book: { ...mockEngagement.book, default_page_count: 300 } },
+    ]);
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input[type="number"]');
+    input.value = '400';
+    input.dispatchEvent(new Event('input'));
+
+    findButton(fixture.nativeElement, 'Log progress').click();
+    fixture.detectChanges();
+
+    expect(findButton(fixture.nativeElement, 'Log progress')).toBeTruthy();
+    httpTesting.expectNone((req) => req.url.includes('progress-logs'));
+  });
+
+  it('submits when page equals the book page count', () => {
+    vi.spyOn(engagementService, 'reloadEngagements').mockImplementation(() => undefined);
+
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+
+    flushReadingList([
+      { ...mockEngagement, book: { ...mockEngagement.book, default_page_count: 300 } },
+    ]);
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input[type="number"]');
+    input.value = '300';
+    input.dispatchEvent(new Event('input'));
+
+    findButton(fixture.nativeElement, 'Log progress').click();
+    fixture.detectChanges();
+
+    httpTesting
+      .expectOne((req) => req.method === 'POST' && req.url.includes('progress-logs'))
+      .flush({});
   });
 
   it('shows Error on the log-progress button when the request fails', () => {

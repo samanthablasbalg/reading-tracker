@@ -5,7 +5,7 @@ import { Book } from './book.service';
 
 export type EngagementStatus = 'reading' | 'finished';
 
-export type EngagedBook = Pick<Book, 'id' | 'title' | 'authors'>;
+export type EngagedBook = Pick<Book, 'id' | 'title' | 'authors' | 'default_page_count'>;
 
 export interface Engagement {
   id: string;

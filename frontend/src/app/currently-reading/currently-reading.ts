@@ -19,7 +19,9 @@ import { EngagementService } from '../engagement.service';
           <span matListItemLine
             >Started {{ engagement.started_on | date: 'mediumDate' : 'UTC' }}</span
           >
-          <span matListItemLine>Resuming from p.{{ engagement.resume_from_page }}</span>
+          @if (engagement.resume_from_page > 0) {
+            <span matListItemLine>Resuming from p.{{ engagement.resume_from_page }}</span>
+          }
           @if (engagement.completion_pct !== null) {
             <span matListItemLine>{{ engagement.completion_pct }}% complete</span>
           }
@@ -27,6 +29,8 @@ import { EngagementService } from '../engagement.service';
             <input
               type="number"
               min="1"
+              step="1"
+              [attr.max]="engagement.book.default_page_count"
               [value]="pageInputs()[engagement.id] ?? ''"
               (input)="setPageInput(engagement.id, $event)"
               [attr.aria-label]="'Current page for ' + engagement.book.title"
@@ -105,12 +109,20 @@ export class CurrentlyReadingComponent {
     const page = this.pageInputs()[engagementId];
     if (!page) return;
 
+    const maxPage = this.engagements().find((e) => e.id === engagementId)?.book.default_page_count;
+    if (maxPage != null && page > maxPage) return;
+
     this.loggingId.set(engagementId);
     this.logErrorId.set(null);
 
     this.engagementService.logProgress(engagementId, page).subscribe({
       next: () => {
         this.loggingId.set(null);
+        this.pageInputs.update((inputs) => {
+          const next = { ...inputs };
+          delete next[engagementId];
+          return next;
+        });
         this.engagementService.reloadEngagements();
       },
       error: () => {
