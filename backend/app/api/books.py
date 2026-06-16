@@ -69,7 +69,7 @@ def _to_book_read(book: Book) -> BookRead:
 def create_book(payload: BookCreate, db: Session = Depends(get_db)) -> BookRead:
     author = _get_or_create_author(payload.author, db)
 
-    book = Book(title=payload.title)
+    book = Book(title=payload.title, default_page_count=payload.page_count)
     db.add(book)
     db.flush()
 

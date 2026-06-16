@@ -7,12 +7,18 @@ const BACKEND_URL = 'http://127.0.0.1:8001';
 export class ApiClient {
   constructor(private readonly request: APIRequestContext) {}
 
-  async createBook(title: string, author: string): Promise<string> {
+  async createBook(title: string, author: string, pageCount?: number): Promise<string> {
     const response = await this.request.post(`${BACKEND_URL}/books`, {
-      data: { title, author },
+      data: { title, author, ...(pageCount != null && { page_count: pageCount }) },
     });
     const body = await response.json();
     return body.id as string;
+  }
+
+  async logProgress(engagementId: string, currentPage: number): Promise<void> {
+    await this.request.post(`${BACKEND_URL}/engagements/${engagementId}/progress-logs`, {
+      data: { current_page: currentPage },
+    });
   }
 
   async markAsReading(bookId: string): Promise<string> {
