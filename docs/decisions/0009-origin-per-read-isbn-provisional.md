@@ -1,6 +1,6 @@
 # 0009. Origin is a per-read fact; ISBN provisional
 
-- Status: Accepted
+- Status: Superseded by [[0021-editions-and-engagement-edition]]
 - Date: 2026-06-08
 
 ## Context
