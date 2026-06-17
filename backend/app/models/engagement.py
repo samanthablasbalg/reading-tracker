@@ -21,6 +21,7 @@ from app.models.mixins import TimestampMixin
 if TYPE_CHECKING:
     from app.models.book import Book
     from app.models.book_source import BookSource
+    from app.models.edition import EngagementEdition
     from app.models.progress_log import ProgressLog
     from app.models.review import Review
 
@@ -66,6 +67,9 @@ class Engagement(TimestampMixin, Base):
     book: Mapped[Book] = relationship(back_populates="engagements")
     source: Mapped[BookSource | None] = relationship(back_populates="engagements")
     progress_logs: Mapped[list[ProgressLog]] = relationship(
+        back_populates="engagement", cascade="all, delete-orphan"
+    )
+    engagement_editions: Mapped[list[EngagementEdition]] = relationship(
         back_populates="engagement", cascade="all, delete-orphan"
     )
     review: Mapped[Review | None] = relationship(
