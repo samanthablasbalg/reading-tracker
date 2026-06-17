@@ -1,8 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
+import { MatDialog } from '@angular/material/dialog';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { CurrentlyReadingComponent } from './currently-reading';
 import { EngagementService } from '../engagement.service';
+import { ProgressLogSheetComponent } from '../progress-log-sheet/progress-log-sheet';
 
 const mockEngagement = {
   id: 'eng-1',
@@ -29,11 +33,24 @@ function findButton(nativeEl: HTMLElement, text: string): HTMLButtonElement {
 describe('CurrentlyReadingComponent', () => {
   let httpTesting: HttpTestingController;
   let engagementService: EngagementService;
+  let mockBottomSheet: { open: ReturnType<typeof vi.fn> };
+  let mockDialog: { open: ReturnType<typeof vi.fn> };
+  let mockBreakpointObserver: { isMatched: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    mockBottomSheet = { open: vi.fn() };
+    mockDialog = { open: vi.fn() };
+    mockBreakpointObserver = { isMatched: vi.fn().mockReturnValue(false) };
+
     await TestBed.configureTestingModule({
       imports: [CurrentlyReadingComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: MatBottomSheet, useValue: mockBottomSheet },
+        { provide: MatDialog, useValue: mockDialog },
+        { provide: BreakpointObserver, useValue: mockBreakpointObserver },
+      ],
     }).compileComponents();
 
     httpTesting = TestBed.inject(HttpTestingController);
@@ -204,165 +221,54 @@ describe('CurrentlyReadingComponent', () => {
     );
   });
 
-  it('disables the log-progress button and shows Logging… while the request is in flight', () => {
-    vi.spyOn(engagementService, 'reloadEngagements').mockImplementation(() => undefined);
-
+  it('opens a bottom sheet when Log progress is clicked on a narrow viewport', () => {
+    mockBreakpointObserver.isMatched.mockReturnValue(true);
     const fixture = TestBed.createComponent(CurrentlyReadingComponent);
     flushReadingList();
     fixture.detectChanges();
-
-    const input = fixture.nativeElement.querySelector('input[type="number"]');
-    input.value = '150';
-    input.dispatchEvent(new Event('input'));
 
     findButton(fixture.nativeElement, 'Log progress').click();
-    fixture.detectChanges();
 
-    const button = findButton(fixture.nativeElement, 'Logging…');
-    expect(button.disabled).toBe(true);
-    expect(button.textContent).toContain('Logging…');
-
-    httpTesting
-      .expectOne((req) => req.method === 'POST' && req.url.includes('progress-logs'))
-      .flush({});
+    expect(mockBottomSheet.open).toHaveBeenCalledOnce();
+    expect(mockDialog.open).not.toHaveBeenCalled();
   });
 
-  it('calls reloadEngagements after a successful log-progress', () => {
-    const spy = vi
-      .spyOn(engagementService, 'reloadEngagements')
-      .mockImplementation(() => undefined);
-
+  it('opens a dialog when Log progress is clicked on a wide viewport', () => {
     const fixture = TestBed.createComponent(CurrentlyReadingComponent);
     flushReadingList();
     fixture.detectChanges();
-
-    const input = fixture.nativeElement.querySelector('input[type="number"]');
-    input.value = '150';
-    input.dispatchEvent(new Event('input'));
 
     findButton(fixture.nativeElement, 'Log progress').click();
-    httpTesting
-      .expectOne((req) => req.method === 'POST' && req.url.includes('progress-logs'))
-      .flush({});
-    fixture.detectChanges();
 
-    expect(spy).toHaveBeenCalledOnce();
+    expect(mockDialog.open).toHaveBeenCalledOnce();
+    expect(mockBottomSheet.open).not.toHaveBeenCalled();
   });
 
-  it('has step="1" on the page input', () => {
+  it('passes cover, title, resume page, and page count to the sheet', () => {
     const fixture = TestBed.createComponent(CurrentlyReadingComponent);
-
-    flushReadingList();
+    flushReadingList([
+      {
+        ...mockEngagement,
+        resume_from_page: 42,
+        cover_url: 'https://example.com/cover.jpg',
+        book: { ...mockEngagement.book, default_page_count: 412 },
+      },
+    ]);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('input[type="number"]').getAttribute('step')).toBe(
-      '1',
+    findButton(fixture.nativeElement, 'Log progress').click();
+
+    expect(mockDialog.open).toHaveBeenCalledWith(
+      ProgressLogSheetComponent,
+      expect.objectContaining({
+        data: {
+          engagementId: 'eng-1',
+          title: 'Dune',
+          cover_url: 'https://example.com/cover.jpg',
+          resume_from_page: 42,
+          default_page_count: 412,
+        },
+      }),
     );
-  });
-
-  it('sets max on the page input to the book page count when known', () => {
-    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
-
-    flushReadingList([
-      { ...mockEngagement, book: { ...mockEngagement.book, default_page_count: 400 } },
-    ]);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('input[type="number"]').getAttribute('max')).toBe(
-      '400',
-    );
-  });
-
-  it('omits max on the page input when page count is unknown', () => {
-    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
-
-    flushReadingList();
-    fixture.detectChanges();
-
-    expect(
-      fixture.nativeElement.querySelector('input[type="number"]').getAttribute('max'),
-    ).toBeNull();
-  });
-
-  it('clears the page input after a successful log-progress', () => {
-    vi.spyOn(engagementService, 'reloadEngagements').mockImplementation(() => undefined);
-
-    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
-    flushReadingList();
-    fixture.detectChanges();
-
-    const input = fixture.nativeElement.querySelector('input[type="number"]');
-    input.value = '150';
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    findButton(fixture.nativeElement, 'Log progress').click();
-    httpTesting
-      .expectOne((req) => req.method === 'POST' && req.url.includes('progress-logs'))
-      .flush({});
-    fixture.detectChanges();
-
-    expect(input.value).toBe('');
-  });
-
-  it('does not submit when page exceeds the book page count', () => {
-    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
-
-    flushReadingList([
-      { ...mockEngagement, book: { ...mockEngagement.book, default_page_count: 300 } },
-    ]);
-    fixture.detectChanges();
-
-    const input = fixture.nativeElement.querySelector('input[type="number"]');
-    input.value = '400';
-    input.dispatchEvent(new Event('input'));
-
-    findButton(fixture.nativeElement, 'Log progress').click();
-    fixture.detectChanges();
-
-    expect(findButton(fixture.nativeElement, 'Log progress')).toBeTruthy();
-    httpTesting.expectNone((req) => req.url.includes('progress-logs'));
-  });
-
-  it('submits when page equals the book page count', () => {
-    vi.spyOn(engagementService, 'reloadEngagements').mockImplementation(() => undefined);
-
-    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
-
-    flushReadingList([
-      { ...mockEngagement, book: { ...mockEngagement.book, default_page_count: 300 } },
-    ]);
-    fixture.detectChanges();
-
-    const input = fixture.nativeElement.querySelector('input[type="number"]');
-    input.value = '300';
-    input.dispatchEvent(new Event('input'));
-
-    findButton(fixture.nativeElement, 'Log progress').click();
-    fixture.detectChanges();
-
-    httpTesting
-      .expectOne((req) => req.method === 'POST' && req.url.includes('progress-logs'))
-      .flush({});
-  });
-
-  it('shows Error on the log-progress button when the request fails', () => {
-    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
-    flushReadingList();
-    fixture.detectChanges();
-
-    const input = fixture.nativeElement.querySelector('input[type="number"]');
-    input.value = '150';
-    input.dispatchEvent(new Event('input'));
-
-    findButton(fixture.nativeElement, 'Log progress').click();
-    httpTesting
-      .expectOne((req) => req.method === 'POST' && req.url.includes('progress-logs'))
-      .error(new ProgressEvent('error'));
-    fixture.detectChanges();
-
-    expect(
-      fixture.nativeElement.querySelector('button[aria-label^="Log progress"]').textContent,
-    ).toContain('Error');
   });
 });

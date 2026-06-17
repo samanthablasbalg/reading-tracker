@@ -87,6 +87,11 @@ to later to understand why decisions were made.
   just the *what*, since the owner may return to them months later.
 - Do not push branches or open PRs without explicit instruction.
 
+## Running Tests
+
+- **Frontend:** `npm test` from the `frontend/` directory. This runs `ng test --watch=false`, which goes through Angular's build system and sets up the vitest environment. Do NOT run `npx vitest run` directly — it bypasses that setup and globals like `describe` will be undefined.
+- **Backend:** `pytest` from the `backend/` directory.
+
 ## Working from GitHub Issues
 
 Branches follow the pattern `<issue#>-<slug>` — for example
