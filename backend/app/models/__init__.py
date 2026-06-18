@@ -2,6 +2,7 @@ from app.models.author import Author
 from app.models.blog_post import BlogPost
 from app.models.book import Book, BookAuthor
 from app.models.book_source import BookSource
+from app.models.edition import Edition, EngagementEdition
 from app.models.engagement import Engagement
 from app.models.enums import (
     BookAuthorRole,
@@ -22,6 +23,8 @@ __all__ = [
     "BookAuthorRole",
     "BookSource",
     "DatePrecision",
+    "Edition",
+    "EngagementEdition",
     "Engagement",
     "LogUnit",
     "ProgressLog",
