@@ -10,9 +10,11 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.models.book import Book, BookAuthor
+from app.models.edition import Edition, EngagementEdition
 from app.models.engagement import Engagement
 from app.models.enums import LogUnit, ReadingStatus
 from app.models.progress_log import ProgressLog
+from app.schemas.edition import EngagementEditionCreate, EngagementEditionRead
 from app.schemas.engagement import (
     EngagementCreate,
     EngagementRead,
@@ -133,6 +135,112 @@ def log_progress(
     db.refresh(log)
 
     return ProgressLogRead.model_validate(log)
+
+
+@router.post(
+    "/{engagement_id}/editions",
+    response_model=EngagementEditionRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_binding(
+    engagement_id: uuid.UUID,
+    payload: EngagementEditionCreate,
+    db: Session = Depends(get_db),
+) -> EngagementEditionRead:
+    engagement = db.get(Engagement, engagement_id)
+    if engagement is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    if payload.edition_id is not None:
+        edition = db.get(Edition, payload.edition_id)
+        if edition is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    else:
+        candidates = (
+            db.execute(
+                select(Edition).where(
+                    Edition.book_id == engagement.book_id,
+                    Edition.edition_format == payload.edition_format,
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if len(candidates) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=(
+                    f"No {payload.edition_format} edition exists for this book;"
+                    " create one first"
+                ),
+            )
+        if len(candidates) > 1:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "Multiple editions exist for this format; pass edition_id instead"
+                ),
+            )
+        edition = candidates[0]
+
+    if db.get(EngagementEdition, (engagement_id, edition.id)) is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT)
+
+    binding = EngagementEdition(
+        engagement_id=engagement_id,
+        edition_id=edition.id,
+        origin_id=payload.origin_id,
+        length_override=payload.length_override,
+    )
+    db.add(binding)
+    db.commit()
+
+    loaded = db.execute(
+        select(EngagementEdition)
+        .where(
+            EngagementEdition.engagement_id == engagement_id,
+            EngagementEdition.edition_id == edition.id,
+        )
+        .options(selectinload(EngagementEdition.edition))
+    ).scalar_one()
+
+    return EngagementEditionRead.model_validate(loaded)
+
+
+@router.get("/{engagement_id}/editions", response_model=list[EngagementEditionRead])
+def list_bindings(
+    engagement_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> list[EngagementEditionRead]:
+    if db.get(Engagement, engagement_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    bindings = (
+        db.execute(
+            select(EngagementEdition)
+            .where(EngagementEdition.engagement_id == engagement_id)
+            .options(selectinload(EngagementEdition.edition))
+        )
+        .scalars()
+        .all()
+    )
+    return [EngagementEditionRead.model_validate(b) for b in bindings]
+
+
+@router.delete(
+    "/{engagement_id}/editions/{edition_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_binding(
+    engagement_id: uuid.UUID,
+    edition_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> None:
+    binding = db.get(EngagementEdition, (engagement_id, edition_id))
+    if binding is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    db.delete(binding)
+    db.commit()
 
 
 @router.get("", response_model=list[EngagementRead])
