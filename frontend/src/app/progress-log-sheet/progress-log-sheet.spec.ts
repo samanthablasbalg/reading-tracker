@@ -189,6 +189,23 @@ describe('ProgressLogSheetComponent', () => {
     expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 300);
   });
 
+  it('enables Save on open when resume_from_page equals the page count', () => {
+    const fixture = createFixture({ resume_from_page: 200, default_page_count: 200 });
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    expect(button.disabled).toBe(false);
+  });
+
+  it('calls logProgress with the final page when resume_from_page equals the page count', () => {
+    const fixture = createFixture({ resume_from_page: 200, default_page_count: 200 });
+    fixture.nativeElement.querySelector('button').click();
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 200);
+  });
+
+  it('renders the title as a mat-dialog-title element', () => {
+    const fixture = createFixture();
+    expect(fixture.nativeElement.querySelector('[mat-dialog-title]')).not.toBeNull();
+  });
+
   it('closes the sheet without saving when cancel is clicked', () => {
     const fixture = createFixture();
     const buttons = Array.from(

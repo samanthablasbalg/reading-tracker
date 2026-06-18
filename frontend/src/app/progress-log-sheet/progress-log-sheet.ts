@@ -3,7 +3,7 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MatDialogRef, MAT_DIALOG_DATA, MatDialogTitle } from '@angular/material/dialog';
 import { MatBottomSheetRef, MAT_BOTTOM_SHEET_DATA } from '@angular/material/bottom-sheet';
 import { EngagementService } from '../engagement.service';
 
@@ -17,7 +17,13 @@ export interface ProgressLogSheetData {
 
 @Component({
   selector: 'app-progress-log-sheet',
-  imports: [ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatInputModule],
+  imports: [
+    ReactiveFormsModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatDialogTitle,
+  ],
   template: `
     <div
       style="display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 12px;"
@@ -29,15 +35,10 @@ export interface ProgressLogSheetData {
           style="height: 120px; width: auto;"
         />
       }
-      <h2 style="margin: 0; text-align: center;">{{ data.title }}</h2>
+      <h2 mat-dialog-title style="margin: 0; text-align: center;">{{ data.title }}</h2>
       <mat-form-field style="width: 100%;">
         <mat-label>Current page</mat-label>
-        <input
-          matInput
-          type="number"
-          [attr.min]="data.resume_from_page + 1"
-          [formControl]="pageControl"
-        />
+        <input matInput type="number" [attr.min]="effectiveMin" [formControl]="pageControl" />
         @if (pageControl.hasError('min')) {
           <mat-error>Must be greater than page {{ data.resume_from_page }}</mat-error>
         }
@@ -71,10 +72,14 @@ export class ProgressLogSheetComponent {
 
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly effectiveMin: number =
+    this.data.default_page_count != null
+      ? Math.min(this.data.resume_from_page + 1, this.data.default_page_count)
+      : this.data.resume_from_page + 1;
   protected readonly pageControl = new FormControl<number | null>(this.data.resume_from_page, {
     validators: [
       Validators.required,
-      Validators.min(this.data.resume_from_page + 1),
+      Validators.min(this.effectiveMin),
       ...(this.data.default_page_count != null
         ? [Validators.max(this.data.default_page_count)]
         : []),

@@ -244,7 +244,7 @@ describe('CurrentlyReadingComponent', () => {
     expect(mockBottomSheet.open).not.toHaveBeenCalled();
   });
 
-  it('passes cover, title, resume page, and page count to the sheet', () => {
+  it('passes cover, title, resume page, and page count to the dialog on wide viewport', () => {
     const fixture = TestBed.createComponent(CurrentlyReadingComponent);
     flushReadingList([
       {
@@ -259,6 +259,36 @@ describe('CurrentlyReadingComponent', () => {
     findButton(fixture.nativeElement, 'Log progress').click();
 
     expect(mockDialog.open).toHaveBeenCalledWith(
+      ProgressLogSheetComponent,
+      expect.objectContaining({
+        data: {
+          engagementId: 'eng-1',
+          title: 'Dune',
+          cover_url: 'https://example.com/cover.jpg',
+          resume_from_page: 42,
+          default_page_count: 412,
+        },
+      }),
+    );
+  });
+
+  it('passes cover, title, resume page, and page count to the bottom sheet on narrow viewport', () => {
+    mockBreakpointObserver.isMatched.mockReturnValue(true);
+
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+    flushReadingList([
+      {
+        ...mockEngagement,
+        resume_from_page: 42,
+        cover_url: 'https://example.com/cover.jpg',
+        book: { ...mockEngagement.book, default_page_count: 412 },
+      },
+    ]);
+    fixture.detectChanges();
+
+    findButton(fixture.nativeElement, 'Log progress').click();
+
+    expect(mockBottomSheet.open).toHaveBeenCalledWith(
       ProgressLogSheetComponent,
       expect.objectContaining({
         data: {
