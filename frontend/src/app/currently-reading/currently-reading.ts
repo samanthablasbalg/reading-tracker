@@ -1,8 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { NgOptimizedImage } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatListModule } from '@angular/material/list';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { BreakpointObserver } from '@angular/cdk/layout';
@@ -14,23 +15,38 @@ import {
 
 @Component({
   selector: 'app-currently-reading',
-  imports: [MatListModule, MatButtonModule, DatePipe],
+  imports: [NgOptimizedImage, MatListModule, MatButtonModule, MatProgressBarModule],
+  styles: [
+    `
+      [matListItemAvatar] {
+        position: relative;
+        border-radius: 4px;
+        overflow: hidden;
+        background-color: var(--mat-sys-surface-variant);
+      }
+
+      [matListItemAvatar] img {
+        object-fit: cover;
+      }
+    `,
+  ],
   template: `
     <mat-list>
       @for (engagement of engagements(); track engagement.id) {
         <mat-list-item>
+          <div matListItemAvatar>
+            @let url = coverUrl(engagement);
+            @if (url) {
+              <img [ngSrc]="url" fill [alt]="engagement.book.title + ' cover'" />
+            }
+          </div>
           <span matListItemTitle>{{ engagement.book.title }}</span>
-          <span matListItemLine>
-            {{ engagement.book.authors.map((a) => a.name).join(', ') }}
-          </span>
-          <span matListItemLine
-            >Started {{ engagement.started_on | date: 'mediumDate' : 'UTC' }}</span
-          >
-          @if (engagement.resume_from_page > 0) {
-            <span matListItemLine>Resuming from p.{{ engagement.resume_from_page }}</span>
-          }
+          <span matListItemLine>{{ engagement.book.authors.map((a) => a.name).join(', ') }}</span>
           @if (engagement.completion_pct !== null) {
-            <span matListItemLine>{{ engagement.completion_pct }}% complete</span>
+            <span matListItemLine>
+              <mat-progress-bar [value]="engagement.completion_pct" />
+              {{ engagement.completion_pct }}%
+            </span>
           }
           <button
             mat-stroked-button
@@ -66,6 +82,10 @@ export class CurrentlyReadingComponent {
   });
   protected readonly markingId = signal<string | null>(null);
   protected readonly markErrorId = signal<string | null>(null);
+
+  protected coverUrl(engagement: Engagement): string | null {
+    return engagement.cover_url ?? engagement.book.default_cover_url;
+  }
 
   protected markButtonLabel(engagementId: string): string {
     if (this.markingId() === engagementId) return 'Marking…';

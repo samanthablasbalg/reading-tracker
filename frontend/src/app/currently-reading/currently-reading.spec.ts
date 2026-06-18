@@ -14,6 +14,7 @@ const mockEngagement = {
     id: 'book-1',
     title: 'Dune',
     authors: [{ id: 'auth-1', name: 'Frank Herbert' }],
+    default_cover_url: null as string | null,
     default_page_count: null as number | null,
   },
   cover_url: null as string | null,
@@ -76,7 +77,7 @@ describe('CurrentlyReadingComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('No books in progress');
   });
 
-  it('renders title, authors, and start date for each engagement', () => {
+  it('renders title and authors for each engagement', () => {
     const fixture = TestBed.createComponent(CurrentlyReadingComponent);
 
     flushReadingList();
@@ -85,7 +86,6 @@ describe('CurrentlyReadingComponent', () => {
     const item = fixture.nativeElement.querySelector('mat-list-item');
     expect(item.textContent).toContain('Dune');
     expect(item.textContent).toContain('Frank Herbert');
-    expect(item.textContent).toContain('Started');
   });
 
   it('joins multiple authors with a comma', () => {
@@ -95,13 +95,12 @@ describe('CurrentlyReadingComponent', () => {
       {
         ...mockEngagement,
         book: {
-          id: 'book-1',
+          ...mockEngagement.book,
           title: 'Good Omens',
           authors: [
             { id: 'auth-1', name: 'Terry Pratchett' },
             { id: 'auth-2', name: 'Neil Gaiman' },
           ],
-          default_page_count: null as number | null,
         },
       },
     ]);
@@ -112,26 +111,40 @@ describe('CurrentlyReadingComponent', () => {
     );
   });
 
-  it('omits the resume-from line when resume_from_page is 0', () => {
+  it('renders a cover image when cover_url is set', () => {
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+
+    flushReadingList([{ ...mockEngagement, cover_url: 'https://example.com/cover.jpg' }]);
+    fixture.detectChanges();
+
+    const img = fixture.nativeElement.querySelector('img');
+    expect(img).toBeTruthy();
+    expect(img.getAttribute('ng-img')).toBeTruthy();
+  });
+
+  it('falls back to default_cover_url when cover_url is null', () => {
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+
+    flushReadingList([
+      {
+        ...mockEngagement,
+        cover_url: null,
+        book: { ...mockEngagement.book, default_cover_url: 'https://example.com/default.jpg' },
+      },
+    ]);
+    fixture.detectChanges();
+
+    const img = fixture.nativeElement.querySelector('img');
+    expect(img).toBeTruthy();
+  });
+
+  it('shows no cover image when both cover_url and default_cover_url are null', () => {
     const fixture = TestBed.createComponent(CurrentlyReadingComponent);
 
     flushReadingList();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).not.toContain(
-      'Resuming from',
-    );
-  });
-
-  it('renders the resume-from page', () => {
-    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
-
-    flushReadingList([{ ...mockEngagement, resume_from_page: 42 }]);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).toContain(
-      'Resuming from p.42',
-    );
+    expect(fixture.nativeElement.querySelector('img')).toBeNull();
   });
 
   it('renders completion % when non-null', () => {
@@ -140,9 +153,7 @@ describe('CurrentlyReadingComponent', () => {
     flushReadingList([{ ...mockEngagement, completion_pct: 47 }]);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).toContain(
-      '47% complete',
-    );
+    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).toContain('47%');
   });
 
   it('omits completion % when null', () => {
@@ -151,9 +162,7 @@ describe('CurrentlyReadingComponent', () => {
     flushReadingList();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).not.toContain(
-      '% complete',
-    );
+    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).not.toContain('%');
   });
 
   it('renders a Mark as finished button per engagement', () => {
