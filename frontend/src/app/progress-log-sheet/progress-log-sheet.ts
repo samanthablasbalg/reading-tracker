@@ -19,32 +19,46 @@ export interface ProgressLogSheetData {
   selector: 'app-progress-log-sheet',
   imports: [ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatInputModule],
   template: `
-    @if (data.cover_url) {
-      <img
-        [src]="data.cover_url"
-        [alt]="data.title + ' cover'"
-        style="height: 120px; width: auto;"
-      />
-    }
-    <h2>{{ data.title }}</h2>
-    <mat-form-field>
-      <mat-label>Current page</mat-label>
-      <input matInput type="number" min="1" [formControl]="pageControl" />
-      @if (pageControl.hasError('max')) {
-        <mat-error>Cannot exceed {{ data.default_page_count }} pages</mat-error>
-      }
-    </mat-form-field>
-    @if (error()) {
-      <p role="alert">{{ error() }}</p>
-    }
-    <button
-      mat-flat-button
-      [disabled]="pageControl.invalid || saving()"
-      (click)="save()"
-      [attr.aria-label]="'Save progress for ' + data.title"
+    <div
+      style="display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 12px;"
     >
-      {{ saving() ? 'Saving…' : 'Save' }}
-    </button>
+      @if (data.cover_url) {
+        <img
+          [src]="data.cover_url"
+          [alt]="data.title + ' cover'"
+          style="height: 120px; width: auto;"
+        />
+      }
+      <h2 style="margin: 0; text-align: center;">{{ data.title }}</h2>
+      <mat-form-field style="width: 100%;">
+        <mat-label>Current page</mat-label>
+        <input
+          matInput
+          type="number"
+          [attr.min]="data.resume_from_page + 1"
+          [formControl]="pageControl"
+        />
+        @if (pageControl.hasError('min')) {
+          <mat-error>Must be greater than page {{ data.resume_from_page }}</mat-error>
+        }
+        @if (pageControl.hasError('max')) {
+          <mat-error>Cannot exceed {{ data.default_page_count }} pages</mat-error>
+        }
+      </mat-form-field>
+      @if (error()) {
+        <p role="alert">{{ error() }}</p>
+      }
+      <button
+        mat-flat-button
+        style="width: 100%;"
+        [disabled]="pageControl.invalid || saving()"
+        (click)="save()"
+        [attr.aria-label]="'Save progress for ' + data.title"
+      >
+        {{ saving() ? 'Saving…' : 'Save' }}
+      </button>
+      <button mat-button style="width: 100%;" (click)="close()">Cancel</button>
+    </div>
   `,
 })
 export class ProgressLogSheetComponent {
@@ -60,7 +74,7 @@ export class ProgressLogSheetComponent {
   protected readonly pageControl = new FormControl<number | null>(this.data.resume_from_page, {
     validators: [
       Validators.required,
-      Validators.min(1),
+      Validators.min(this.data.resume_from_page + 1),
       ...(this.data.default_page_count != null
         ? [Validators.max(this.data.default_page_count)]
         : []),
@@ -85,7 +99,7 @@ export class ProgressLogSheetComponent {
     });
   }
 
-  private close(): void {
+  protected close(): void {
     this.dialogRef?.close();
     this.bottomSheetRef?.dismiss();
   }

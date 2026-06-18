@@ -68,6 +68,20 @@ describe('ProgressLogSheetComponent', () => {
     expect(input.value).toBe('50');
   });
 
+  it('disables Save on open when the pre-filled page equals resume_from_page', () => {
+    const fixture = createFixture();
+    expect((fixture.nativeElement.querySelector('button') as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
+  it('shows a min error when page is at or below resume_from_page', () => {
+    const fixture = createFixture();
+    fixture.nativeElement.querySelector('input[type="number"]').dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Must be greater than page 50');
+  });
+
   it('save calls logProgress with the engagement id and entered page', () => {
     const fixture = createFixture();
     const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
@@ -173,6 +187,18 @@ describe('ProgressLogSheetComponent', () => {
     fixture.nativeElement.querySelector('button').click();
 
     expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 300);
+  });
+
+  it('closes the sheet without saving when cancel is clicked', () => {
+    const fixture = createFixture();
+    const buttons = Array.from(
+      fixture.nativeElement.querySelectorAll('button'),
+    ) as HTMLButtonElement[];
+    const cancelButton = buttons.find((b) => b.textContent?.trim() === 'Cancel')!;
+    cancelButton.click();
+
+    expect(mockDialogRef.close).toHaveBeenCalledOnce();
+    expect(mockEngagementService.logProgress).not.toHaveBeenCalled();
   });
 
   it('does not submit when page count is unknown and no page is entered', () => {
