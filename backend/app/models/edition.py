@@ -32,7 +32,7 @@ class Edition(TimestampMixin, Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     book_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("books.id"))
     edition_format: Mapped[ReadingFormat] = mapped_column(
-        SAEnum(ReadingFormat, name="reading_format", create_type=False)
+        SAEnum(ReadingFormat, name="edition_format")
     )
     isbn: Mapped[str | None]
     page_count: Mapped[int | None]
