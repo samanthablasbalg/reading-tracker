@@ -28,6 +28,17 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['db setup'],
+      testIgnore: /seed\.spec\.ts/,
+    },
+    {
+      // Authoring seed for the playwright-new-test skill: a single paused
+      // session to drive with playwright-cli under --debug=cli. Excluded from
+      // the suite above; timeout: 0 so the pause never expires.
+      name: 'seed',
+      testMatch: /seed\.spec\.ts/,
+      timeout: 0,
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['db setup'],
     },
   ],
   webServer: [
