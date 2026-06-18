@@ -1,8 +1,9 @@
 import { Component, inject, signal } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
-import { MatListModule } from '@angular/material/list';
+import { MatCardModule } from '@angular/material/card';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
@@ -15,60 +16,141 @@ import {
 
 @Component({
   selector: 'app-currently-reading',
-  imports: [NgOptimizedImage, MatListModule, MatButtonModule, MatProgressBarModule],
+  imports: [NgOptimizedImage, MatCardModule, MatButtonModule, MatProgressBarModule],
   styles: [
     `
-      [matListItemAvatar] {
+      .book-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 16px;
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .cover {
+        width: 40px;
+        height: 60px;
+        flex-shrink: 0;
         position: relative;
         border-radius: 4px;
         overflow: hidden;
         background-color: var(--mat-sys-surface-variant);
       }
 
-      [matListItemAvatar] img {
-        object-fit: cover;
+      .text {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .title {
+        font-weight: 500;
+        color: var(--mat-sys-on-surface);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .author {
+        font-size: 0.875rem;
+        color: var(--mat-sys-on-surface-variant);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .progress-col {
+        min-width: 160px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .progress-col mat-progress-bar {
+        flex: 1;
+      }
+
+      .pct {
+        font-size: 0.875rem;
+        color: var(--mat-sys-on-surface-variant);
+        white-space: nowrap;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+
+      .push-right {
+        margin-left: auto;
       }
     `,
   ],
   template: `
-    <mat-list>
+    <div class="book-list">
       @for (engagement of engagements(); track engagement.id) {
-        <mat-list-item>
-          <div matListItemAvatar>
-            @let url = coverUrl(engagement);
-            @if (url) {
-              <img [ngSrc]="url" fill [alt]="engagement.book.title + ' cover'" />
-            }
-          </div>
-          <span matListItemTitle>{{ engagement.book.title }}</span>
-          <span matListItemLine>{{ engagement.book.authors.map((a) => a.name).join(', ') }}</span>
-          @if (engagement.completion_pct !== null) {
-            <span matListItemLine>
-              <mat-progress-bar [value]="engagement.completion_pct" />
-              {{ engagement.completion_pct }}%
-            </span>
-          }
-          <button
-            mat-stroked-button
-            [attr.aria-label]="'Log progress for ' + engagement.book.title"
-            (click)="openLogSheet(engagement)"
-          >
-            Log progress
-          </button>
-          <button
-            mat-stroked-button
-            matListItemMeta
-            [disabled]="markingId() === engagement.id"
-            [attr.aria-label]="'Mark ' + engagement.book.title + ' as finished'"
-            (click)="markFinished(engagement.id)"
-          >
-            {{ markButtonLabel(engagement.id) }}
-          </button>
-        </mat-list-item>
+        <mat-card appearance="outlined">
+          <mat-card-content>
+            <div class="row">
+              <div class="cover">
+                @let url = coverUrl(engagement);
+                @if (url) {
+                  <img
+                    [ngSrc]="url"
+                    fill
+                    [priority]="$first"
+                    [alt]="engagement.book.title + ' cover'"
+                  />
+                }
+              </div>
+              @if (showText()) {
+                <div class="text">
+                  <span class="title">{{ engagement.book.title }}</span>
+                  <span class="author">{{
+                    engagement.book.authors.map((a) => a.name).join(', ')
+                  }}</span>
+                </div>
+              }
+              @if (showProgress()) {
+                <div class="progress-col" [class.push-right]="!showText()">
+                  @if (engagement.completion_pct !== null) {
+                    <mat-progress-bar [value]="engagement.completion_pct" />
+                    <span class="pct">{{ engagement.completion_pct }}%</span>
+                  }
+                </div>
+              }
+              <div class="actions" [class.push-right]="!showProgress()">
+                <button
+                  mat-stroked-button
+                  [attr.aria-label]="'Log progress for ' + engagement.book.title"
+                  (click)="openLogSheet(engagement)"
+                >
+                  Log progress
+                </button>
+                <button
+                  mat-stroked-button
+                  [disabled]="markingId() === engagement.id"
+                  [attr.aria-label]="'Mark ' + engagement.book.title + ' as finished'"
+                  (click)="markFinished(engagement.id)"
+                >
+                  {{ markButtonLabel(engagement.id) }}
+                </button>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
       } @empty {
         <p>No books in progress.</p>
       }
-    </mat-list>
+    </div>
   `,
 })
 export class CurrentlyReadingComponent {
@@ -82,6 +164,15 @@ export class CurrentlyReadingComponent {
   });
   protected readonly markingId = signal<string | null>(null);
   protected readonly markErrorId = signal<string | null>(null);
+
+  protected readonly showText = toSignal(
+    this.breakpointObserver.observe('(min-width: 781px)').pipe(map((r) => r.matches)),
+    { initialValue: true },
+  );
+  protected readonly showProgress = toSignal(
+    this.breakpointObserver.observe('(min-width: 600px)').pipe(map((r) => r.matches)),
+    { initialValue: true },
+  );
 
   protected coverUrl(engagement: Engagement): string | null {
     return engagement.cover_url ?? engagement.book.default_cover_url;

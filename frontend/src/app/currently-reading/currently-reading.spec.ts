@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { of } from 'rxjs';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { BreakpointObserver } from '@angular/cdk/layout';
@@ -36,12 +37,18 @@ describe('CurrentlyReadingComponent', () => {
   let engagementService: EngagementService;
   let mockBottomSheet: { open: ReturnType<typeof vi.fn> };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
-  let mockBreakpointObserver: { isMatched: ReturnType<typeof vi.fn> };
+  let mockBreakpointObserver: {
+    isMatched: ReturnType<typeof vi.fn>;
+    observe: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     mockBottomSheet = { open: vi.fn() };
     mockDialog = { open: vi.fn() };
-    mockBreakpointObserver = { isMatched: vi.fn().mockReturnValue(false) };
+    mockBreakpointObserver = {
+      isMatched: vi.fn().mockReturnValue(false),
+      observe: vi.fn().mockReturnValue(of({ matches: true })),
+    };
 
     await TestBed.configureTestingModule({
       imports: [CurrentlyReadingComponent],
@@ -83,7 +90,7 @@ describe('CurrentlyReadingComponent', () => {
     flushReadingList();
     fixture.detectChanges();
 
-    const item = fixture.nativeElement.querySelector('mat-list-item');
+    const item = fixture.nativeElement.querySelector('mat-card');
     expect(item.textContent).toContain('Dune');
     expect(item.textContent).toContain('Frank Herbert');
   });
@@ -106,7 +113,7 @@ describe('CurrentlyReadingComponent', () => {
     ]);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).toContain(
+    expect(fixture.nativeElement.querySelector('mat-card').textContent).toContain(
       'Terry Pratchett, Neil Gaiman',
     );
   });
@@ -153,7 +160,7 @@ describe('CurrentlyReadingComponent', () => {
     flushReadingList([{ ...mockEngagement, completion_pct: 47 }]);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).toContain('47%');
+    expect(fixture.nativeElement.querySelector('mat-card').textContent).toContain('47%');
   });
 
   it('omits completion % when null', () => {
@@ -162,7 +169,7 @@ describe('CurrentlyReadingComponent', () => {
     flushReadingList();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).not.toContain('%');
+    expect(fixture.nativeElement.querySelector('mat-card').textContent).not.toContain('%');
   });
 
   it('renders a Mark as finished button per engagement', () => {
@@ -181,6 +188,43 @@ describe('CurrentlyReadingComponent', () => {
     fixture.detectChanges();
 
     expect(findButton(fixture.nativeElement, 'Log progress')).toBeTruthy();
+  });
+
+  describe('responsive layout', () => {
+    it('shows text and progress at wide viewport', () => {
+      mockBreakpointObserver.observe.mockReturnValue(of({ matches: true }));
+
+      const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+      flushReadingList([{ ...mockEngagement, completion_pct: 47 }]);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.text')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.progress-col')).toBeTruthy();
+    });
+
+    it('hides text but shows progress at medium viewport', () => {
+      mockBreakpointObserver.observe.mockImplementation((query: string) =>
+        of({ matches: query === '(min-width: 600px)' }),
+      );
+
+      const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+      flushReadingList([{ ...mockEngagement, completion_pct: 47 }]);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.text')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.progress-col')).toBeTruthy();
+    });
+
+    it('hides both text and progress at narrow viewport', () => {
+      mockBreakpointObserver.observe.mockReturnValue(of({ matches: false }));
+
+      const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+      flushReadingList();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.text')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.progress-col')).toBeNull();
+    });
   });
 
   it('disables the mark-finished button and shows Marking… while the request is in flight', () => {
