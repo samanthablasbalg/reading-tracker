@@ -19,8 +19,12 @@ export class CurrentlyReadingPage {
     return this.page.getByRole('button', { name: `Log progress for ${title}` });
   }
 
-  getPageInput(title: string): Locator {
-    return this.page.getByRole('spinbutton', { name: `Current page for ${title}` });
+  getSheetPageInput(): Locator {
+    return this.page.getByRole('spinbutton', { name: 'Current page' });
+  }
+
+  getSaveButton(title: string): Locator {
+    return this.page.getByRole('button', { name: `Save progress for ${title}` });
   }
 
   getResumeFromText(title: string): Locator {
@@ -36,7 +40,8 @@ export class CurrentlyReadingPage {
   }
 
   async logProgress(title: string, currentPage: number): Promise<void> {
-    await this.getPageInput(title).fill(String(currentPage));
     await this.getLogProgressButton(title).click();
+    await this.getSheetPageInput().fill(String(currentPage));
+    await this.getSaveButton(title).click();
   }
 }
