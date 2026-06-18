@@ -3,7 +3,14 @@ import { DatePipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatListModule } from '@angular/material/list';
-import { EngagementService } from '../engagement.service';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
+import { MatDialog } from '@angular/material/dialog';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { Engagement, EngagementService } from '../engagement.service';
+import {
+  ProgressLogSheetComponent,
+  ProgressLogSheetData,
+} from '../progress-log-sheet/progress-log-sheet';
 
 @Component({
   selector: 'app-currently-reading',
@@ -25,25 +32,13 @@ import { EngagementService } from '../engagement.service';
           @if (engagement.completion_pct !== null) {
             <span matListItemLine>{{ engagement.completion_pct }}% complete</span>
           }
-          <span matListItemLine>
-            <input
-              type="number"
-              min="1"
-              step="1"
-              [attr.max]="engagement.book.default_page_count"
-              [value]="pageInputs()[engagement.id] ?? ''"
-              (input)="setPageInput(engagement.id, $event)"
-              [attr.aria-label]="'Current page for ' + engagement.book.title"
-            />
-            <button
-              mat-stroked-button
-              [disabled]="loggingId() === engagement.id"
-              [attr.aria-label]="'Log progress for ' + engagement.book.title"
-              (click)="logProgress(engagement.id)"
-            >
-              {{ logButtonLabel(engagement.id) }}
-            </button>
-          </span>
+          <button
+            mat-stroked-button
+            [attr.aria-label]="'Log progress for ' + engagement.book.title"
+            (click)="openLogSheet(engagement)"
+          >
+            Log progress
+          </button>
           <button
             mat-stroked-button
             matListItemMeta
@@ -62,31 +57,20 @@ import { EngagementService } from '../engagement.service';
 })
 export class CurrentlyReadingComponent {
   private readonly engagementService = inject(EngagementService);
+  private readonly bottomSheet = inject(MatBottomSheet);
+  private readonly dialog = inject(MatDialog);
+  private readonly breakpointObserver = inject(BreakpointObserver);
 
   protected readonly engagements = toSignal(this.engagementService.engagements('reading'), {
     initialValue: [],
   });
   protected readonly markingId = signal<string | null>(null);
   protected readonly markErrorId = signal<string | null>(null);
-  protected readonly loggingId = signal<string | null>(null);
-  protected readonly logErrorId = signal<string | null>(null);
-  protected readonly pageInputs = signal<Record<string, number>>({});
 
   protected markButtonLabel(engagementId: string): string {
     if (this.markingId() === engagementId) return 'Marking…';
     if (this.markErrorId() === engagementId) return 'Error';
     return 'Mark as finished';
-  }
-
-  protected logButtonLabel(engagementId: string): string {
-    if (this.loggingId() === engagementId) return 'Logging…';
-    if (this.logErrorId() === engagementId) return 'Error';
-    return 'Log progress';
-  }
-
-  protected setPageInput(engagementId: string, event: Event): void {
-    const value = +(event.target as HTMLInputElement).value;
-    this.pageInputs.update((inputs) => ({ ...inputs, [engagementId]: value }));
   }
 
   protected markFinished(engagementId: string): void {
@@ -105,30 +89,19 @@ export class CurrentlyReadingComponent {
     });
   }
 
-  protected logProgress(engagementId: string): void {
-    const page = this.pageInputs()[engagementId];
-    if (!page) return;
+  protected openLogSheet(engagement: Engagement): void {
+    const data: ProgressLogSheetData = {
+      engagementId: engagement.id,
+      title: engagement.book.title,
+      cover_url: engagement.cover_url,
+      resume_from_page: engagement.resume_from_page,
+      default_page_count: engagement.book.default_page_count,
+    };
 
-    const maxPage = this.engagements().find((e) => e.id === engagementId)?.book.default_page_count;
-    if (maxPage != null && page > maxPage) return;
-
-    this.loggingId.set(engagementId);
-    this.logErrorId.set(null);
-
-    this.engagementService.logProgress(engagementId, page).subscribe({
-      next: () => {
-        this.loggingId.set(null);
-        this.pageInputs.update((inputs) => {
-          const next = { ...inputs };
-          delete next[engagementId];
-          return next;
-        });
-        this.engagementService.reloadEngagements();
-      },
-      error: () => {
-        this.loggingId.set(null);
-        this.logErrorId.set(engagementId);
-      },
-    });
+    if (this.breakpointObserver.isMatched('(max-width: 599px)')) {
+      this.bottomSheet.open(ProgressLogSheetComponent, { data });
+    } else {
+      this.dialog.open(ProgressLogSheetComponent, { data });
+    }
   }
 }

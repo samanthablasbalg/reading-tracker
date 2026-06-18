@@ -21,6 +21,7 @@ class EngagementStatusUpdate(BaseModel):
 class EngagementRead(BaseModel):
     id: uuid.UUID
     book: BookRead
+    cover_url: str | None
     status: ReadingStatus
     started_on: datetime.date | None
     finished_on: datetime.date | None

@@ -74,6 +74,29 @@ def test_create_engagement_on_finished_book_succeeds(client: TestClient) -> None
     assert response.json()["status"] == "reading"
 
 
+def test_create_engagement_copies_book_cover_url(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_cover_url = "https://covers.example/dune.jpg"
+    db.commit()
+
+    response = client.post("/engagements", json={"book_id": book["id"]})
+    assert response.status_code == 201
+    assert response.json()["cover_url"] == "https://covers.example/dune.jpg"
+
+
+def test_create_engagement_cover_url_is_null_without_book_cover(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    response = client.post("/engagements", json={"book_id": book["id"]})
+    assert response.status_code == 201
+    assert response.json()["cover_url"] is None
+
+
 # --- Transition ---
 
 

@@ -45,7 +45,8 @@ def _fetch(engagement_id: uuid.UUID, db: Session) -> Engagement:
 def create_engagement(
     payload: EngagementCreate, db: Session = Depends(get_db)
 ) -> EngagementRead:
-    if db.get(Book, payload.book_id) is None:
+    book = db.get(Book, payload.book_id)
+    if book is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     duplicate = db.execute(
@@ -61,6 +62,7 @@ def create_engagement(
         book_id=payload.book_id,
         status=ReadingStatus.reading,
         started_on=datetime.date.today(),
+        cover_url=book.default_cover_url,
     )
     db.add(engagement)
     db.commit()
