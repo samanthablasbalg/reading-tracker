@@ -35,7 +35,7 @@ class Edition(TimestampMixin, Base):
         SAEnum(ReadingFormat, name="reading_format", create_type=False)
     )
     isbn: Mapped[str | None]
-    length: Mapped[int | None]
+    page_count: Mapped[int | None]
     cover_url: Mapped[str | None]
 
     book: Mapped[Book] = relationship(back_populates="editions")
