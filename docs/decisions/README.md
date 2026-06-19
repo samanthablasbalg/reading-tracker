@@ -56,7 +56,7 @@ The concrete trigger that would reopen this (e.g. "if this goes multi-user").
 
 | #                                                               | Decision                                                 | Status                                                        |
 | --------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------- |
-| [0001](0001-tech-stack-angular-fastapi-postgres.md)             | Tech stack: Angular + FastAPI + PostgreSQL 18            | Stub                                                          |
+| [0001](0001-tech-stack-angular-fastapi-postgres.md)             | Tech stack: Angular + FastAPI + PostgreSQL 18            | **Accepted**                                                  |
 | [0002](0002-books-are-user-agnostic.md)                         | Books are user-agnostic shared reference data            | **Accepted**                                                  |
 | [0003](0003-three-independent-axes.md)                          | A book lives on three independent axes                   | **Accepted**                                                  |
 | [0004](0004-derive-dont-store.md)                               | Store raw facts, derive labels                           | **Accepted**                                                  |
@@ -65,11 +65,11 @@ The concrete trigger that would reopen this (e.g. "if this goes multi-user").
 | [0007](0007-progress-logs-activities-not-positions.md)          | Progress logs are activities, not positions              | **Accepted**                                                  |
 | [0008](0008-time-modeling-on-vs-at.md)                          | Time modeling: fuzzy `_on` vs exact `_at`                | **Accepted**                                                  |
 | [0009](0009-origin-per-read-isbn-provisional.md)                | Origin is per-read; ISBN provisional                     | Superseded by [0021](0021-editions-and-engagement-edition.md) |
-| [0010](0010-user-extensible-reference-tables.md)                | User-extensible reference tables                         | Stub                                                          |
+| [0010](0010-user-extensible-reference-tables.md)                | User-extensible reference tables                         | **Accepted**                                                  |
 | [0011](0011-standalone-entries.md)                              | Standalone entries (reads off the book goal)             | **Accepted**                                                  |
-| [0012](0012-shared-vs-per-table-enums.md)                       | Shared vs per-table Postgres ENUM types                  | Stub                                                          |
-| [0013](0013-author-identity-get-or-create.md)                   | Author identity: get-or-create by name                   | Stub                                                          |
-| [0014](0014-dedicated-test-database.md)                         | Dedicated test database                                  | Stub                                                          |
+| [0012](0012-shared-vs-per-table-enums.md)                       | Shared vs per-table Postgres ENUM types                  | **Accepted**                                                  |
+| [0013](0013-author-identity-get-or-create.md)                   | Author identity: get-or-create by name                   | **Accepted**                                                  |
+| [0014](0014-dedicated-test-database.md)                         | Dedicated test database                                  | **Accepted**                                                   |
 | [0015](0015-google-books-access-via-backend-proxy.md)           | Google Books access via backend proxy                    | **Accepted**                                                  |
 | [0016](0016-engagement-state-changes.md)                        | Engagement state changes: REST resource, server-owned    | **Accepted**                                                  |
 | [0017](0017-orm-property-accessors.md)                          | ORM relationship traversal: property accessors on models | **Accepted**                                                  |
