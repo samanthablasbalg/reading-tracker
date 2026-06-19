@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import datetime
 import uuid
 from typing import Any, cast
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.book import Book
+from app.models.engagement import Engagement
+from app.models.progress_log import ProgressLog
 
 
 def _create_book(
@@ -446,3 +450,68 @@ def test_progress_logs_preserved_through_status_cycle(client: TestClient) -> Non
 
     second = _log_progress(client, engagement["id"], 200)
     assert second["page_start"] == 100
+
+
+# --- Ordering ---
+
+
+def test_list_reading_ordered_by_most_recent_log(
+    client: TestClient, db: Session
+) -> None:
+    book_a = _create_book(client, title="Book A", author="Author A")
+    book_b = _create_book(client, title="Book B", author="Author B")
+    eng_a = _create_engagement(client, book_a["id"])
+    eng_b = _create_engagement(client, book_b["id"])
+    _log_progress(client, eng_a["id"], 50)
+    _log_progress(client, eng_b["id"], 50)
+
+    log_a = db.execute(
+        select(ProgressLog).where(ProgressLog.engagement_id == uuid.UUID(eng_a["id"]))
+    ).scalar_one()
+    log_a.logged_at = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC)
+    db.commit()
+
+    data = client.get("/engagements?status=reading").json()
+    assert data[0]["book"]["title"] == "Book B"
+    assert data[1]["book"]["title"] == "Book A"
+
+
+def test_list_reading_no_log_engagement_sorts_by_started_on(
+    client: TestClient, db: Session
+) -> None:
+    book_a = _create_book(client, title="Book A", author="Author A")
+    book_b = _create_book(client, title="Book B", author="Author B")
+    eng_a = _create_engagement(client, book_a["id"])
+    eng_b = _create_engagement(client, book_b["id"])
+
+    engagement_a = db.get(Engagement, uuid.UUID(eng_a["id"]))
+    engagement_b = db.get(Engagement, uuid.UUID(eng_b["id"]))
+    assert engagement_a is not None and engagement_b is not None
+    engagement_a.started_on = datetime.date(2020, 1, 1)
+    engagement_b.started_on = datetime.date(2024, 1, 1)
+    db.commit()
+
+    data = client.get("/engagements?status=reading").json()
+    assert data[0]["book"]["title"] == "Book B"
+    assert data[1]["book"]["title"] == "Book A"
+
+
+def test_list_reading_order_stable_for_same_activity_date(
+    client: TestClient, db: Session
+) -> None:
+    book_a = _create_book(client, title="Book A", author="Author A")
+    book_b = _create_book(client, title="Book B", author="Author B")
+    eng_a = _create_engagement(client, book_a["id"])
+    eng_b = _create_engagement(client, book_b["id"])
+
+    same_date = datetime.date(2024, 6, 1)
+    engagement_a = db.get(Engagement, uuid.UUID(eng_a["id"]))
+    engagement_b = db.get(Engagement, uuid.UUID(eng_b["id"]))
+    assert engagement_a is not None and engagement_b is not None
+    engagement_a.started_on = same_date
+    engagement_b.started_on = same_date
+    db.commit()
+
+    first_order = [e["id"] for e in client.get("/engagements?status=reading").json()]
+    second_order = [e["id"] for e in client.get("/engagements?status=reading").json()]
+    assert first_order == second_order
