@@ -28,6 +28,33 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['db setup'],
+      testIgnore: /seed\.spec\.ts/,
+    },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+      dependencies: ['db setup'],
+      testIgnore: /seed\.spec\.ts/,
+    },
+    {
+      // The only project that exercises the small-screen path: at ≤599px the
+      // progress log opens as a bottom sheet instead of a dialog. Pixel 7
+      // (412px wide, touch) trips that breakpoint. (Firefox can't do mobile
+      // device emulation, so the mobile project is Chromium-engine.)
+      name: 'mobile',
+      use: { ...devices['Pixel 7'] },
+      dependencies: ['db setup'],
+      testIgnore: /seed\.spec\.ts/,
+    },
+    {
+      // Authoring seed for the playwright-new-test skill: a single paused
+      // session to drive with playwright-cli under --debug=cli. Excluded from
+      // the suite above; timeout: 0 so the pause never expires.
+      name: 'seed',
+      testMatch: /seed\.spec\.ts/,
+      timeout: 0,
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['db setup'],
     },
   ],
   webServer: [
