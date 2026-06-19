@@ -128,8 +128,9 @@ mechanics:
   `readonly Locator` props; add action/verification methods. Extend an existing POM if one fits.
   (Conventions are in the auto-loaded rule; existing POMs under `e2e/page-objects/` are the model.)
 - **Spec** at `e2e/tests/<feature>/<name>.spec.ts`: import `test`/`expect` from the `fixtures/` tree
-  (never `@playwright/test` directly), plus the POM. One `test.step()` per action, the step
-  description as its title. All element access through the POM.
+  (never `@playwright/test` directly), plus the POM. Group steps by test phase — setup → exercise →
+  verify, each step titled for what it does (see the rule's Structure section). All element access
+  through the POM.
 
 ## Step 6 — Run & fix (bounded)
 

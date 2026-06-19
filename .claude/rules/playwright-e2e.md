@@ -108,7 +108,12 @@ line is setup, action, or assertion. Production-code habits are anti-patterns:
   sub-feature) and **propose a split** to the user rather than piling on; a spec over 10 tests is
   too big.
 - No `describe` block unless the file genuinely needs more than one setup.
-- Every action `test.step()` has a corresponding verification.
+- **Every action lives in a `test.step()`** — setup included (data seeding via `ApiClient`, route
+  stubs, navigation). Loose actions at the top of the test body don't appear in the report; a reader
+  should see the test's phases — setup → exercise → verify — from the step list alone.
+- **Verification is its own step**, titled for what it checks, so the verify phase is visible. The
+  one exception: an assertion that *gates a precondition* (confirming a setup action took effect
+  before the test proceeds) rides inside that setup/exercise step instead of standing alone.
 - No `page.waitForTimeout()` and no `networkidle` — use `toBeVisible` / `toHaveURL` /
   `waitForResponse` / `domcontentloaded`.
 - Don't hardcode timeouts; rely on Playwright's auto-waiting and 30s default. Only set an explicit
