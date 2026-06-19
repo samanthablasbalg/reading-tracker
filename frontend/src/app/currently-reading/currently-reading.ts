@@ -5,6 +5,7 @@ import { map } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { BreakpointObserver } from '@angular/cdk/layout';
@@ -16,7 +17,13 @@ import {
 
 @Component({
   selector: 'app-currently-reading',
-  imports: [NgOptimizedImage, MatCardModule, MatButtonModule, MatProgressBarModule],
+  imports: [
+    NgOptimizedImage,
+    MatCardModule,
+    MatButtonModule,
+    MatProgressBarModule,
+    MatProgressSpinnerModule,
+  ],
   styles: [
     `
       .book-list {
@@ -119,8 +126,8 @@ import {
                   }}</span>
                 </div>
               }
-              @if (showProgress()) {
-                <div class="progress-col" [class.push-right]="!showText()">
+              @if (showBar()) {
+                <div class="progress-col">
                   @if (engagement.completion_pct !== null) {
                     <mat-progress-bar
                       [value]="engagement.completion_pct"
@@ -132,7 +139,17 @@ import {
                   }
                 </div>
               }
-              <div class="actions" [class.push-right]="!showProgress()">
+              @if (!showBar() && engagement.completion_pct !== null) {
+                <mat-progress-spinner
+                  mode="determinate"
+                  [value]="engagement.completion_pct"
+                  [diameter]="36"
+                  [attr.aria-label]="
+                    engagement.book.title + ' progress: ' + engagement.completion_pct + '%'
+                  "
+                />
+              }
+              <div class="actions" [class.push-right]="!showText()">
                 <button
                   mat-stroked-button
                   [attr.aria-label]="'Log progress for ' + engagement.book.title"
@@ -171,11 +188,11 @@ export class CurrentlyReadingComponent {
   protected readonly markErrorId = signal<string | null>(null);
 
   protected readonly showText = toSignal(
-    this.breakpointObserver.observe('(min-width: 781px)').pipe(map((r) => r.matches)),
+    this.breakpointObserver.observe('(min-width: 600px)').pipe(map((r) => r.matches)),
     { initialValue: true },
   );
-  protected readonly showProgress = toSignal(
-    this.breakpointObserver.observe('(min-width: 600px)').pipe(map((r) => r.matches)),
+  protected readonly showBar = toSignal(
+    this.breakpointObserver.observe('(min-width: 781px)').pipe(map((r) => r.matches)),
     { initialValue: true },
   );
 
