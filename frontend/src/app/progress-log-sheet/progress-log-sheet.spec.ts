@@ -15,13 +15,13 @@ const baseData: ProgressLogSheetData = {
 
 describe('ProgressLogSheetComponent', () => {
   let mockDialogRef: { close: ReturnType<typeof vi.fn> };
-  let mockEngagementService: Pick<EngagementService, 'logProgress' | 'reloadEngagements'>;
+  let mockEngagementService: Pick<EngagementService, 'logProgress' | 'patchEngagementInPlace'>;
 
   beforeEach(async () => {
     mockDialogRef = { close: vi.fn() };
     mockEngagementService = {
       logProgress: vi.fn(() => of({})),
-      reloadEngagements: vi.fn(),
+      patchEngagementInPlace: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -94,7 +94,7 @@ describe('ProgressLogSheetComponent', () => {
     expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 100);
   });
 
-  it('calls reloadEngagements and closes on save success', () => {
+  it('patches the engagement in place and closes on save success', () => {
     const fixture = createFixture();
     const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
     input.value = '100';
@@ -103,8 +103,26 @@ describe('ProgressLogSheetComponent', () => {
 
     fixture.nativeElement.querySelector('button').click();
 
-    expect(mockEngagementService.reloadEngagements).toHaveBeenCalledOnce();
+    expect(mockEngagementService.patchEngagementInPlace).toHaveBeenCalledWith('eng-1', {
+      resume_from_page: 100,
+      completion_pct: 24,
+    });
     expect(mockDialogRef.close).toHaveBeenCalledOnce();
+  });
+
+  it('passes null completion_pct when page count is unknown', () => {
+    const fixture = createFixture({ default_page_count: null });
+    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
+    input.value = '100';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button').click();
+
+    expect(mockEngagementService.patchEngagementInPlace).toHaveBeenCalledWith('eng-1', {
+      resume_from_page: 100,
+      completion_pct: null,
+    });
   });
 
   it('shows Saving… and disables the button while the request is in flight', () => {

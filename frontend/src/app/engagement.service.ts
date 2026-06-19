@@ -1,6 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, Subject, shareReplay, startWith, switchMap } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { Book } from './book.service';
 
 export type EngagementStatus = 'reading' | 'finished';
@@ -24,18 +24,36 @@ export interface Engagement {
 @Injectable({ providedIn: 'root' })
 export class EngagementService {
   private readonly http = inject(HttpClient);
-  private readonly reloadTrigger = new Subject<void>();
+  private readonly cache = new Map<EngagementStatus, BehaviorSubject<Engagement[]>>();
+
+  private subject(status: EngagementStatus): BehaviorSubject<Engagement[]> {
+    if (!this.cache.has(status)) {
+      this.cache.set(status, new BehaviorSubject<Engagement[]>([]));
+    }
+    return this.cache.get(status)!;
+  }
+
+  private fetch(status: EngagementStatus): void {
+    this.http
+      .get<Engagement[]>('/api/engagements', { params: { status } })
+      .subscribe((list) => this.subject(status).next(list));
+  }
 
   engagements(status: EngagementStatus): Observable<Engagement[]> {
-    return this.reloadTrigger.pipe(
-      startWith(undefined),
-      switchMap(() => this.http.get<Engagement[]>('/api/engagements', { params: { status } })),
-      shareReplay({ bufferSize: 1, refCount: true }),
-    );
+    const subject = this.subject(status);
+    this.fetch(status);
+    return subject.asObservable();
   }
 
   reloadEngagements(): void {
-    this.reloadTrigger.next();
+    this.cache.forEach((_, status) => this.fetch(status));
+  }
+
+  patchEngagementInPlace(id: string, patch: Partial<Engagement>): void {
+    const subject = this.cache.get('reading');
+    if (subject) {
+      subject.next(subject.value.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+    }
   }
 
   markReading(bookId: string): Observable<Engagement> {

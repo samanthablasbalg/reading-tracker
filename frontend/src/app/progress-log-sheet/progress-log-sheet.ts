@@ -94,7 +94,13 @@ export class ProgressLogSheetComponent {
 
     this.engagementService.logProgress(this.data.engagementId, page).subscribe({
       next: () => {
-        this.engagementService.reloadEngagements();
+        const completion_pct = this.data.default_page_count
+          ? Math.min(100, Math.round((page / this.data.default_page_count) * 100))
+          : null;
+        this.engagementService.patchEngagementInPlace(this.data.engagementId, {
+          resume_from_page: page,
+          completion_pct,
+        });
         this.close();
       },
       error: () => {
