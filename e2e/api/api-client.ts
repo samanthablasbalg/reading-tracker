@@ -12,13 +12,39 @@ export class ApiClient {
    * Creates a book directly via the backend, inferring the author by name.
    * @param title - The book's title.
    * @param author - The author's name; created if it doesn't exist.
+   * @param pageCount - Optional page count; required for a completion % to derive.
    * @returns The new book's id.
    */
-  async createBook(title: string, author: string): Promise<string> {
+  async createBook(title: string, author: string, pageCount?: number): Promise<string> {
     const response = await this.request.post(`${BACKEND_URL}/books`, {
-      data: { title, author },
+      data: { title, author, ...(pageCount != null && { page_count: pageCount }) },
     });
     const { id } = (await response.json()) as { id: string };
     return id;
+  }
+
+  /**
+   * Starts a reading engagement for a book.
+   * @param bookId - The book to start reading.
+   * @returns The new engagement's id.
+   */
+  async markAsReading(bookId: string): Promise<string> {
+    const response = await this.request.post(`${BACKEND_URL}/engagements`, {
+      data: { book_id: bookId },
+    });
+    const { id } = (await response.json()) as { id: string };
+    return id;
+  }
+
+  /**
+   * Logs progress on an engagement. The page must advance past the current
+   * resume point, or the backend rejects it.
+   * @param engagementId - The engagement to log against.
+   * @param currentPage - The page reached.
+   */
+  async logProgress(engagementId: string, currentPage: number): Promise<void> {
+    await this.request.post(`${BACKEND_URL}/engagements/${engagementId}/progress-logs`, {
+      data: { current_page: currentPage },
+    });
   }
 }

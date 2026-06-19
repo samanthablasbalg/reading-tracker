@@ -1,9 +1,5 @@
 import { Locator, Page } from '@playwright/test';
 
-// Minimal stand-in pending the currently-reading redesign (tests #4–#7). For now
-// it only needs to confirm a book reached this page, which the catalog spec (#3)
-// asserts via the per-engagement "Mark as finished" action. The redesign extends
-// this with the progress-log and resume-point locators.
 export class CurrentlyReadingPage {
   /** @param page - The Playwright page to drive currently-reading through. */
   constructor(public readonly page: Page) {}
@@ -14,12 +10,50 @@ export class CurrentlyReadingPage {
   }
 
   /**
-   * Locates the "Mark as finished" button for a book in the currently-reading
-   * list. Its presence confirms the book's engagement card is on the page.
+   * Locates the "Log progress" button for a book's card. Identified by its
+   * aria-label, so it works across all three responsive layouts (the visible
+   * title is hidden on narrow viewports).
    * @param title - The book's title.
-   * @returns The mark-as-finished button locator for that book.
+   * @returns The log-progress button locator.
+   */
+  getLogProgressButton(title: string): Locator {
+    return this.page.getByRole('button', { name: `Log progress for ${title}` });
+  }
+
+  /**
+   * Locates the "Mark as finished" button for a book's card, by aria-label.
+   * @param title - The book's title.
+   * @returns The mark-as-finished button locator.
    */
   getMarkAsFinishedButton(title: string): Locator {
     return this.page.getByRole('button', { name: `Mark ${title} as finished` });
+  }
+
+  /**
+   * Locates a book's progress indicator. Both the wide-viewport bar and the
+   * narrower-viewport spinner expose the same `<title> progress: N%` accessible
+   * name, so this matches regardless of layout.
+   * @param title - The book's title.
+   * @returns The progressbar locator.
+   */
+  getProgressBar(title: string): Locator {
+    return this.page.getByRole('progressbar', { name: `${title} progress:` });
+  }
+
+  /**
+   * Opens the progress-log sheet for a book (a dialog on wide viewports, a
+   * bottom sheet on narrow ones — same content either way).
+   * @param title - The book's title.
+   */
+  async openLogSheet(title: string): Promise<void> {
+    await this.getLogProgressButton(title).click();
+  }
+
+  /**
+   * Marks a book as finished, removing it from currently-reading.
+   * @param title - The book's title.
+   */
+  async markAsFinished(title: string): Promise<void> {
+    await this.getMarkAsFinishedButton(title).click();
   }
 }
