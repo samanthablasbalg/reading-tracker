@@ -56,4 +56,14 @@ export class CurrentlyReadingPage {
   async markAsFinished(title: string): Promise<void> {
     await this.getMarkAsFinishedButton(title).click();
   }
+
+  /**
+   * Returns the book titles in their current DOM order, derived from the
+   * aria-label on each listitem card.
+   */
+  async getCardTitlesInOrder(): Promise<string[]> {
+    return this.page
+      .getByRole('listitem')
+      .evaluateAll((els) => els.map((el) => el.getAttribute('aria-label') ?? ''));
+  }
 }
