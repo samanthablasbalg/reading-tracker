@@ -92,6 +92,7 @@ import {
 
       .actions {
         display: flex;
+        align-items: center;
         gap: 8px;
         flex-shrink: 0;
       }
@@ -139,17 +140,17 @@ import {
                   }
                 </div>
               }
-              @if (!showBar() && engagement.completion_pct !== null) {
-                <mat-progress-spinner
-                  mode="determinate"
-                  [value]="engagement.completion_pct"
-                  [diameter]="36"
-                  [attr.aria-label]="
-                    engagement.book.title + ' progress: ' + engagement.completion_pct + '%'
-                  "
-                />
-              }
               <div class="actions" [class.push-right]="!showText()">
+                @if (!showBar() && engagement.completion_pct !== null) {
+                  <mat-progress-spinner
+                    mode="determinate"
+                    [value]="engagement.completion_pct"
+                    [diameter]="36"
+                    [attr.aria-label]="
+                      engagement.book.title + ' progress: ' + engagement.completion_pct + '%'
+                    "
+                  />
+                }
                 <button
                   mat-stroked-button
                   [attr.aria-label]="'Log progress for ' + engagement.book.title"
