@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m mypy *)",
+      "Bash(python -m ruff *)",
+      "Bash(python -m pytest *)",
+      "Bash(cd * && python -m mypy *)",
+      "Bash(cd * && python -m ruff *)",
+      "Bash(cd * && python -m pytest *)",
+      "Bash(* /tmp/*)",
+      "Write(/tmp/*)"
+    ]
+  }
+}

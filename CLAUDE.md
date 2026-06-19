@@ -87,24 +87,31 @@ to later to understand why decisions were made.
   just the *what*, since the owner may return to them months later.
 - Do not push branches or open PRs without explicit instruction.
 
+## Running Tests
+
+- **Frontend:** `npm test` from the `frontend/` directory. This runs `ng test --watch=false`, which goes through Angular's build system and sets up the vitest environment. Do NOT run `npx vitest run` directly — it bypasses that setup and globals like `describe` will be undefined.
+- **Backend:** `pytest` from the `backend/` directory.
+
 ## Working from GitHub Issues
 
-Branches follow the pattern `<type>/<issue#>/<slug>` — for example
-`feat/4/scaffold-angular`. The issue number is always the **second**
-slash-separated segment of the branch name.
+Branches follow the pattern `<issue#>-<slug>` — for example
+`29-add-engagement-statuses` (GitHub's built-in "Create a branch" format). The
+issue number is always the **first** hyphen-separated segment of the branch name.
 
 When the owner refers to "this issue" / "the issue", or asks to continue or
 finish the current work without naming a number:
 
 1. Get the current branch: `git branch --show-current`.
-2. Extract the issue number — the second segment (e.g.
-   `feat/4/scaffold-angular` → `4`). If the branch does not match this pattern,
+2. Extract the issue number — everything before the first hyphen (e.g.
+   `29-add-engagement-statuses` → `29`). If the branch does not match this pattern,
    say so and ask for the number rather than guessing.
-3. Pull the issue with its discussion: `gh issue view <#> --comments`.
+3. Pull the issue: `gh issue view <#>`. This is a solo repo with no comment
+   threads — do NOT use `--comments` (it shows only comments, hides the body, and
+   is empty here, which agents misread as failure and retry-spiral).
 4. Compare the issue's requirements against what already exists — review
    `git diff main...HEAD` and the working tree — before deciding what remains.
 5. Summarize what's done vs. outstanding, then continue per **Working Style**
    (explain before building; confirm one step at a time).
 
-Use `gh` for all issue/PR context (`gh issue view`, `gh pr view`,
-`gh pr view --comments`). It is already authenticated.
+Use `gh` for all issue/PR context (`gh issue view`, `gh pr view`). It is already
+authenticated. Run these bare — no `--comments`, no pipes/redirects/`echo`.

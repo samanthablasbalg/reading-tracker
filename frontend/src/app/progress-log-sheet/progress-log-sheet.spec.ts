@@ -1,0 +1,232 @@
+import { TestBed } from '@angular/core/testing';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { Observable, of, throwError } from 'rxjs';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { ProgressLogSheetComponent, ProgressLogSheetData } from './progress-log-sheet';
+import { EngagementService } from '../engagement.service';
+
+const baseData: ProgressLogSheetData = {
+  engagementId: 'eng-1',
+  title: 'Dune',
+  cover_url: null,
+  resume_from_page: 50,
+  default_page_count: 412,
+};
+
+describe('ProgressLogSheetComponent', () => {
+  let mockDialogRef: { close: ReturnType<typeof vi.fn> };
+  let mockEngagementService: Pick<EngagementService, 'logProgress' | 'reloadEngagements'>;
+
+  beforeEach(async () => {
+    mockDialogRef = { close: vi.fn() };
+    mockEngagementService = {
+      logProgress: vi.fn(() => of({})),
+      reloadEngagements: vi.fn(),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [ProgressLogSheetComponent],
+      providers: [
+        provideNoopAnimations(),
+        { provide: MAT_DIALOG_DATA, useValue: baseData },
+        { provide: MatDialogRef, useValue: mockDialogRef },
+        { provide: EngagementService, useValue: mockEngagementService },
+      ],
+    }).compileComponents();
+  });
+
+  function createFixture(dataOverrides: Partial<ProgressLogSheetData> = {}) {
+    if (Object.keys(dataOverrides).length) {
+      TestBed.overrideProvider(MAT_DIALOG_DATA, { useValue: { ...baseData, ...dataOverrides } });
+    }
+    const fixture = TestBed.createComponent(ProgressLogSheetComponent);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('renders the book title', () => {
+    const fixture = createFixture();
+    expect(fixture.nativeElement.textContent).toContain('Dune');
+  });
+
+  it('does not render an image when cover_url is null', () => {
+    const fixture = createFixture();
+    expect(fixture.nativeElement.querySelector('img')).toBeNull();
+  });
+
+  it('renders a cover image when cover_url is set', () => {
+    const fixture = createFixture({ cover_url: 'https://example.com/cover.jpg' });
+    const img = fixture.nativeElement.querySelector('img') as HTMLImageElement;
+    expect(img).not.toBeNull();
+    expect(img.getAttribute('src')).toBe('https://example.com/cover.jpg');
+    expect(img.getAttribute('alt')).toBe('Dune cover');
+  });
+
+  it('pre-fills the page input with resume_from_page', () => {
+    const fixture = createFixture();
+    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
+    expect(input.value).toBe('50');
+  });
+
+  it('disables Save on open when the pre-filled page equals resume_from_page', () => {
+    const fixture = createFixture();
+    expect((fixture.nativeElement.querySelector('button') as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
+  it('shows a min error when page is at or below resume_from_page', () => {
+    const fixture = createFixture();
+    fixture.nativeElement.querySelector('input[type="number"]').dispatchEvent(new Event('blur'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Must be greater than page 50');
+  });
+
+  it('save calls logProgress with the engagement id and entered page', () => {
+    const fixture = createFixture();
+    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
+    input.value = '100';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button').click();
+
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 100);
+  });
+
+  it('calls reloadEngagements and closes on save success', () => {
+    const fixture = createFixture();
+    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
+    input.value = '100';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button').click();
+
+    expect(mockEngagementService.reloadEngagements).toHaveBeenCalledOnce();
+    expect(mockDialogRef.close).toHaveBeenCalledOnce();
+  });
+
+  it('shows Saving… and disables the button while the request is in flight', () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    mockEngagementService.logProgress = vi.fn(
+      () =>
+        new Observable((sub) => {
+          promise.then(() => sub.next({}));
+        }),
+    );
+
+    const fixture = createFixture();
+    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
+    input.value = '100';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button').click();
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    expect(button.textContent).toContain('Saving…');
+    expect(button.disabled).toBe(true);
+
+    resolve();
+  });
+
+  it('shows an inline error and keeps the sheet open on save failure', () => {
+    mockEngagementService.logProgress = vi.fn(() => throwError(() => new Error('server error')));
+
+    const fixture = createFixture();
+    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
+    input.value = '100';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button').click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain(
+      'Failed to save',
+    );
+    expect(mockDialogRef.close).not.toHaveBeenCalled();
+  });
+
+  it('preserves the page input value after a save failure', () => {
+    mockEngagementService.logProgress = vi.fn(() => throwError(() => new Error()));
+
+    const fixture = createFixture();
+    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
+    input.value = '100';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button').click();
+    fixture.detectChanges();
+
+    expect(input.value).toBe('100');
+  });
+
+  it('disables Save and does not submit when page exceeds page count', () => {
+    const fixture = createFixture({ default_page_count: 300 });
+    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
+    input.value = '400';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button').click();
+
+    expect(mockEngagementService.logProgress).not.toHaveBeenCalled();
+  });
+
+  it('saves when page equals the page count', () => {
+    const fixture = createFixture({ default_page_count: 300 });
+    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
+    input.value = '300';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button').click();
+
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 300);
+  });
+
+  it('enables Save on open when resume_from_page equals the page count', () => {
+    const fixture = createFixture({ resume_from_page: 200, default_page_count: 200 });
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    expect(button.disabled).toBe(false);
+  });
+
+  it('calls logProgress with the final page when resume_from_page equals the page count', () => {
+    const fixture = createFixture({ resume_from_page: 200, default_page_count: 200 });
+    fixture.nativeElement.querySelector('button').click();
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 200);
+  });
+
+  it('renders the title as a mat-dialog-title element', () => {
+    const fixture = createFixture();
+    expect(fixture.nativeElement.querySelector('[mat-dialog-title]')).not.toBeNull();
+  });
+
+  it('closes the sheet without saving when cancel is clicked', () => {
+    const fixture = createFixture();
+    const buttons = Array.from(
+      fixture.nativeElement.querySelectorAll('button'),
+    ) as HTMLButtonElement[];
+    const cancelButton = buttons.find((b) => b.textContent?.trim() === 'Cancel')!;
+    cancelButton.click();
+
+    expect(mockDialogRef.close).toHaveBeenCalledOnce();
+    expect(mockEngagementService.logProgress).not.toHaveBeenCalled();
+  });
+
+  it('does not submit when page count is unknown and no page is entered', () => {
+    const fixture = createFixture({ default_page_count: null, resume_from_page: 0 });
+    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
+    input.value = '';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button').click();
+
+    expect(mockEngagementService.logProgress).not.toHaveBeenCalled();
+  });
+});

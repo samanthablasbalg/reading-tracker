@@ -21,6 +21,7 @@ from app.models.mixins import TimestampMixin
 if TYPE_CHECKING:
     from app.models.book import Book
     from app.models.book_source import BookSource
+    from app.models.edition import EngagementEdition
     from app.models.progress_log import ProgressLog
     from app.models.review import Review
 
@@ -68,6 +69,27 @@ class Engagement(TimestampMixin, Base):
     progress_logs: Mapped[list[ProgressLog]] = relationship(
         back_populates="engagement", cascade="all, delete-orphan"
     )
+    engagement_editions: Mapped[list[EngagementEdition]] = relationship(
+        back_populates="engagement", cascade="all, delete-orphan"
+    )
     review: Mapped[Review | None] = relationship(
         back_populates="engagement", uselist=False
     )
+
+    @property
+    def resume_from_page(self) -> int:
+        if not self.progress_logs:
+            return 0
+        latest = max(self.progress_logs, key=lambda log: log.logged_at)
+        return latest.page_end if latest.page_end is not None else 0
+
+    @property
+    def completion_pct(self) -> int | None:
+        if not self.progress_logs or not self.book.default_page_count:
+            return None
+        latest = max(self.progress_logs, key=lambda log: log.logged_at)
+        if latest.page_end is None:
+            return None
+        return max(
+            0, min(100, round(latest.page_end / self.book.default_page_count * 100))
+        )

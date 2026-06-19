@@ -14,6 +14,7 @@ NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length
 class BookCreate(BaseModel):
     title: NonEmptyStr
     author: NonEmptyStr
+    page_count: int | None = None
 
 
 class BookImportRequest(BaseModel):

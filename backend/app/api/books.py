@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session, selectinload
 from app.database import get_db
 from app.models.author import Author
 from app.models.book import Book, BookAuthor
-from app.models.enums import BookAuthorRole, DatePrecision
+from app.models.edition import Edition
+from app.models.enums import BookAuthorRole, DatePrecision, ReadingFormat
 from app.schemas.book import (
     AuthorRead,
     BookCreate,
@@ -69,7 +70,7 @@ def _to_book_read(book: Book) -> BookRead:
 def create_book(payload: BookCreate, db: Session = Depends(get_db)) -> BookRead:
     author = _get_or_create_author(payload.author, db)
 
-    book = Book(title=payload.title)
+    book = Book(title=payload.title, default_page_count=payload.page_count)
     db.add(book)
     db.flush()
 
@@ -147,6 +148,16 @@ def import_book(
         db.add(
             BookAuthor(book_id=book.id, author_id=author.id, role=BookAuthorRole.author)
         )
+
+    db.add(
+        Edition(
+            book_id=book.id,
+            edition_format=ReadingFormat.print,
+            isbn=volume.isbn,
+            page_count=volume.page_count,
+            cover_url=volume.cover_url,
+        )
+    )
 
     db.commit()
 

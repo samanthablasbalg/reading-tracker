@@ -37,7 +37,7 @@ repos:
         pass_filenames: false
       - id: prettier-docs
         name: Prettier (docs markdown)
-        language: node
-        additional_dependencies: ["prettier@3.8.1"]
+        language: system
         files: ^docs/.*\.md$
-        entry: prettier --write
+        entry: bash -c 'npm --prefix frontend exec -- prettier --write "$@" && git add "$@"' --
+        pass_filenames: true

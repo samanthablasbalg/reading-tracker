@@ -15,6 +15,7 @@ from app.models.mixins import TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.author import Author
+    from app.models.edition import Edition
     from app.models.engagement import Engagement
     from app.models.standalone_entry import StandaloneEntry
 
@@ -41,6 +42,12 @@ class Book(TimestampMixin, Base):
         back_populates="book", cascade="all, delete-orphan"
     )
     engagements: Mapped[list[Engagement]] = relationship(back_populates="book")
+
+    @property
+    def authors(self) -> list[Author]:
+        return [ba.author for ba in self.book_authors]
+
+    editions: Mapped[list[Edition]] = relationship(back_populates="book")
     standalone_entries: Mapped[list[StandaloneEntry]] = relationship(
         back_populates="book"
     )

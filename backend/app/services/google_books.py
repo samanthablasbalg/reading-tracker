@@ -23,11 +23,17 @@ class GoogleVolume:
     categories: list[str]
     cover_url: str | None
     language: str | None
+    isbn: str | None
 
 
 def _api_key_params() -> dict[str, str]:
     key = os.getenv("GOOGLE_BOOKS_API_KEY")
     return {"key": key} if key else {}
+
+
+def _extract_isbn(identifiers: list[dict[str, str]]) -> str | None:
+    by_type = {entry["type"]: entry["identifier"] for entry in identifiers}
+    return by_type.get("ISBN_13") or by_type.get("ISBN_10")
 
 
 def _parse_volume(item: dict[str, Any]) -> GoogleVolume:
@@ -42,6 +48,7 @@ def _parse_volume(item: dict[str, Any]) -> GoogleVolume:
         categories=info.get("categories", []),
         cover_url=image_links.get("thumbnail"),
         language=info.get("language"),
+        isbn=_extract_isbn(info.get("industryIdentifiers", [])),
     )
 
 
