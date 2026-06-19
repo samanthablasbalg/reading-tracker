@@ -122,7 +122,12 @@ import {
               @if (showProgress()) {
                 <div class="progress-col" [class.push-right]="!showText()">
                   @if (engagement.completion_pct !== null) {
-                    <mat-progress-bar [value]="engagement.completion_pct" />
+                    <mat-progress-bar
+                      [value]="engagement.completion_pct"
+                      [attr.aria-label]="
+                        engagement.book.title + ' progress: ' + engagement.completion_pct + '%'
+                      "
+                    />
                     <span class="pct">{{ engagement.completion_pct }}%</span>
                   }
                 </div>
@@ -204,7 +209,7 @@ export class CurrentlyReadingComponent {
     const data: ProgressLogSheetData = {
       engagementId: engagement.id,
       title: engagement.book.title,
-      cover_url: engagement.cover_url,
+      cover_url: this.coverUrl(engagement),
       resume_from_page: engagement.resume_from_page,
       default_page_count: engagement.book.default_page_count,
     };

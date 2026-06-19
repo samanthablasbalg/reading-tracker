@@ -198,6 +198,8 @@ describe('CurrentlyReadingComponent', () => {
       flushReadingList([{ ...mockEngagement, completion_pct: 47 }]);
       fixture.detectChanges();
 
+      expect(mockBreakpointObserver.observe).toHaveBeenCalledWith('(min-width: 781px)');
+      expect(mockBreakpointObserver.observe).toHaveBeenCalledWith('(min-width: 600px)');
       expect(fixture.nativeElement.querySelector('.text')).toBeTruthy();
       expect(fixture.nativeElement.querySelector('.progress-col')).toBeTruthy();
     });
