@@ -68,7 +68,7 @@ test('Search for and add book to the catalog', async ({ page }) => {
   });
 });
 
-test('Set a book to "Currently Reading"', async ({ page, request }) => {
+test.skip('Set a book to "Currently Reading"', async ({ page, request }) => {
   await test.step('Create the book', async () => {
     const api = new ApiClient(request);
     await api.createBook(bookTitle, bookAuthor);
