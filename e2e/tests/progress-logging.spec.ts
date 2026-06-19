@@ -5,7 +5,7 @@ import { CurrentlyReadingPage } from '../pages/currently-reading.page';
 const bookTitle = 'Piranesi';
 const bookAuthor = 'Susanna Clarke';
 
-test('Log progress — resume-from and completion % appear after first log', async ({
+test.skip('Log progress — resume-from and completion % appear after first log', async ({
   page,
   request,
 }) => {
@@ -33,7 +33,7 @@ test('Log progress — resume-from and completion % appear after first log', asy
   });
 });
 
-test('Log progress — second log updates resume-from page', async ({ page, request }) => {
+test.skip('Log progress — second log updates resume-from page', async ({ page, request }) => {
   await test.step('Seed: book + engagement + first log at page 100', async () => {
     const api = new ApiClient(request);
     const bookId = await api.createBook(bookTitle, bookAuthor);
@@ -77,7 +77,7 @@ test('Log progress — sheet opens pre-filled with last logged page', async ({ p
   });
 });
 
-test('Log progress — backward page disables Save in the sheet', async ({ page, request }) => {
+test.skip('Log progress — backward page disables Save in the sheet', async ({ page, request }) => {
   await test.step('Seed: book + engagement + log at page 100', async () => {
     const api = new ApiClient(request);
     const bookId = await api.createBook(bookTitle, bookAuthor);

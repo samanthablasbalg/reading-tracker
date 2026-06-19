@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { of } from 'rxjs';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { BreakpointObserver } from '@angular/cdk/layout';
@@ -14,6 +15,7 @@ const mockEngagement = {
     id: 'book-1',
     title: 'Dune',
     authors: [{ id: 'auth-1', name: 'Frank Herbert' }],
+    default_cover_url: null as string | null,
     default_page_count: null as number | null,
   },
   cover_url: null as string | null,
@@ -35,12 +37,18 @@ describe('CurrentlyReadingComponent', () => {
   let engagementService: EngagementService;
   let mockBottomSheet: { open: ReturnType<typeof vi.fn> };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
-  let mockBreakpointObserver: { isMatched: ReturnType<typeof vi.fn> };
+  let mockBreakpointObserver: {
+    isMatched: ReturnType<typeof vi.fn>;
+    observe: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     mockBottomSheet = { open: vi.fn() };
     mockDialog = { open: vi.fn() };
-    mockBreakpointObserver = { isMatched: vi.fn().mockReturnValue(false) };
+    mockBreakpointObserver = {
+      isMatched: vi.fn().mockReturnValue(false),
+      observe: vi.fn().mockReturnValue(of({ matches: true })),
+    };
 
     await TestBed.configureTestingModule({
       imports: [CurrentlyReadingComponent],
@@ -76,16 +84,15 @@ describe('CurrentlyReadingComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('No books in progress');
   });
 
-  it('renders title, authors, and start date for each engagement', () => {
+  it('renders title and authors for each engagement', () => {
     const fixture = TestBed.createComponent(CurrentlyReadingComponent);
 
     flushReadingList();
     fixture.detectChanges();
 
-    const item = fixture.nativeElement.querySelector('mat-list-item');
+    const item = fixture.nativeElement.querySelector('mat-card');
     expect(item.textContent).toContain('Dune');
     expect(item.textContent).toContain('Frank Herbert');
-    expect(item.textContent).toContain('Started');
   });
 
   it('joins multiple authors with a comma', () => {
@@ -95,43 +102,56 @@ describe('CurrentlyReadingComponent', () => {
       {
         ...mockEngagement,
         book: {
-          id: 'book-1',
+          ...mockEngagement.book,
           title: 'Good Omens',
           authors: [
             { id: 'auth-1', name: 'Terry Pratchett' },
             { id: 'auth-2', name: 'Neil Gaiman' },
           ],
-          default_page_count: null as number | null,
         },
       },
     ]);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).toContain(
+    expect(fixture.nativeElement.querySelector('mat-card').textContent).toContain(
       'Terry Pratchett, Neil Gaiman',
     );
   });
 
-  it('omits the resume-from line when resume_from_page is 0', () => {
+  it('renders a cover image when cover_url is set', () => {
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+
+    flushReadingList([{ ...mockEngagement, cover_url: 'https://example.com/cover.jpg' }]);
+    fixture.detectChanges();
+
+    const img = fixture.nativeElement.querySelector('img');
+    expect(img).toBeTruthy();
+    expect(img.getAttribute('ng-img')).toBeTruthy();
+  });
+
+  it('falls back to default_cover_url when cover_url is null', () => {
+    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+
+    flushReadingList([
+      {
+        ...mockEngagement,
+        cover_url: null,
+        book: { ...mockEngagement.book, default_cover_url: 'https://example.com/default.jpg' },
+      },
+    ]);
+    fixture.detectChanges();
+
+    const img = fixture.nativeElement.querySelector('img');
+    expect(img).toBeTruthy();
+  });
+
+  it('shows no cover image when both cover_url and default_cover_url are null', () => {
     const fixture = TestBed.createComponent(CurrentlyReadingComponent);
 
     flushReadingList();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).not.toContain(
-      'Resuming from',
-    );
-  });
-
-  it('renders the resume-from page', () => {
-    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
-
-    flushReadingList([{ ...mockEngagement, resume_from_page: 42 }]);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).toContain(
-      'Resuming from p.42',
-    );
+    expect(fixture.nativeElement.querySelector('img')).toBeNull();
   });
 
   it('renders completion % when non-null', () => {
@@ -140,9 +160,7 @@ describe('CurrentlyReadingComponent', () => {
     flushReadingList([{ ...mockEngagement, completion_pct: 47 }]);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).toContain(
-      '47% complete',
-    );
+    expect(fixture.nativeElement.querySelector('mat-card').textContent).toContain('47%');
   });
 
   it('omits completion % when null', () => {
@@ -151,9 +169,7 @@ describe('CurrentlyReadingComponent', () => {
     flushReadingList();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).not.toContain(
-      '% complete',
-    );
+    expect(fixture.nativeElement.querySelector('mat-card').textContent).not.toContain('%');
   });
 
   it('renders a Mark as finished button per engagement', () => {
@@ -172,6 +188,58 @@ describe('CurrentlyReadingComponent', () => {
     fixture.detectChanges();
 
     expect(findButton(fixture.nativeElement, 'Log progress')).toBeTruthy();
+  });
+
+  describe('responsive layout', () => {
+    it('shows text and bar, hides spinner at wide viewport', () => {
+      mockBreakpointObserver.observe.mockReturnValue(of({ matches: true }));
+
+      const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+      flushReadingList([{ ...mockEngagement, completion_pct: 47 }]);
+      fixture.detectChanges();
+
+      expect(mockBreakpointObserver.observe).toHaveBeenCalledWith('(min-width: 781px)');
+      expect(mockBreakpointObserver.observe).toHaveBeenCalledWith('(min-width: 600px)');
+      expect(fixture.nativeElement.querySelector('.text')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.progress-col')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('mat-progress-spinner')).toBeNull();
+    });
+
+    it('shows text and spinner, hides bar at medium viewport', () => {
+      mockBreakpointObserver.observe.mockImplementation((query: string) =>
+        of({ matches: query === '(min-width: 600px)' }),
+      );
+
+      const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+      flushReadingList([{ ...mockEngagement, completion_pct: 47 }]);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.text')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('.progress-col')).toBeNull();
+      expect(fixture.nativeElement.querySelector('mat-progress-spinner')).toBeTruthy();
+    });
+
+    it('hides text and bar, shows spinner at narrow viewport', () => {
+      mockBreakpointObserver.observe.mockReturnValue(of({ matches: false }));
+
+      const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+      flushReadingList([{ ...mockEngagement, completion_pct: 47 }]);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.text')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.progress-col')).toBeNull();
+      expect(fixture.nativeElement.querySelector('mat-progress-spinner')).toBeTruthy();
+    });
+
+    it('shows no spinner when completion_pct is null', () => {
+      mockBreakpointObserver.observe.mockReturnValue(of({ matches: false }));
+
+      const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+      flushReadingList();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('mat-progress-spinner')).toBeNull();
+    });
   });
 
   it('disables the mark-finished button and shows Marking… while the request is in flight', () => {
