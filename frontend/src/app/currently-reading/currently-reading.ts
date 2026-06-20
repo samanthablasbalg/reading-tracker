@@ -103,9 +103,9 @@ import {
     `,
   ],
   template: `
-    <div class="book-list">
+    <div class="book-list" role="list">
       @for (engagement of engagements(); track engagement.id) {
-        <mat-card appearance="outlined">
+        <mat-card appearance="outlined" role="listitem" [attr.aria-label]="engagement.book.title">
           <mat-card-content>
             <div class="row">
               <div class="cover">
