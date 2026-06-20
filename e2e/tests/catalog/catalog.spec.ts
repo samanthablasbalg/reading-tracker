@@ -79,6 +79,6 @@ test('Marking a catalog book as reading moves it to Currently reading', async ({
 
   await test.step('Verify it appears under Currently reading', async () => {
     await currentlyReading.goto();
-    await expect(currentlyReading.getMarkAsFinishedButton('Piranesi')).toBeVisible();
+    await expect(currentlyReading.getBookCard('Piranesi')).toBeVisible();
   });
 });

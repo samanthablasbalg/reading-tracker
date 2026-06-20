@@ -6,11 +6,15 @@ import { Locator, Page } from '@playwright/test';
 export class ProgressLogSheetPage {
   readonly pageInput: Locator;
   readonly cancelButton: Locator;
+  readonly confirmationMessage: Locator;
+  readonly finishButton: Locator;
 
   /** @param page - The Playwright page the sheet is open on. */
   constructor(public readonly page: Page) {
     this.pageInput = page.getByRole('spinbutton', { name: 'Current page' });
     this.cancelButton = page.getByRole('button', { name: 'Cancel' });
+    this.confirmationMessage = page.getByText('Finish and discard the page you entered');
+    this.finishButton = page.getByRole('button', { name: /finish/i });
   }
 
   /**

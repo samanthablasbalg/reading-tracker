@@ -6,7 +6,6 @@ import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { CurrentlyReadingComponent } from './currently-reading';
-import { EngagementService } from '../engagement.service';
 import { ProgressLogSheetComponent } from '../progress-log-sheet/progress-log-sheet';
 
 const mockEngagement = {
@@ -34,7 +33,6 @@ function findButton(nativeEl: HTMLElement, text: string): HTMLButtonElement {
 
 describe('CurrentlyReadingComponent', () => {
   let httpTesting: HttpTestingController;
-  let engagementService: EngagementService;
   let mockBottomSheet: { open: ReturnType<typeof vi.fn> };
   let mockDialog: { open: ReturnType<typeof vi.fn> };
   let mockBreakpointObserver: {
@@ -62,7 +60,6 @@ describe('CurrentlyReadingComponent', () => {
     }).compileComponents();
 
     httpTesting = TestBed.inject(HttpTestingController);
-    engagementService = TestBed.inject(EngagementService);
   });
 
   afterEach(() => {
@@ -156,15 +153,6 @@ describe('CurrentlyReadingComponent', () => {
     expect(fixture.nativeElement.querySelector('mat-card').textContent).not.toContain('%');
   });
 
-  it('renders a Mark as finished button per engagement', () => {
-    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
-
-    flushReadingList();
-    fixture.detectChanges();
-
-    expect(findButton(fixture.nativeElement, 'Mark as finished')).toBeTruthy();
-  });
-
   it('renders a Log progress button per engagement', () => {
     const fixture = TestBed.createComponent(CurrentlyReadingComponent);
 
@@ -203,14 +191,14 @@ describe('CurrentlyReadingComponent', () => {
       expect(fixture.nativeElement.querySelector('mat-progress-spinner')).toBeTruthy();
     });
 
-    it('hides text and bar, shows spinner at narrow viewport', () => {
+    it('shows text and spinner, hides bar at narrow viewport', () => {
       mockBreakpointObserver.observe.mockReturnValue(of({ matches: false }));
 
       const fixture = TestBed.createComponent(CurrentlyReadingComponent);
       flushReadingList([{ ...mockEngagement, completion_pct: 47 }]);
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.querySelector('.text')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.text')).toBeTruthy();
       expect(fixture.nativeElement.querySelector('.progress-col')).toBeNull();
       expect(fixture.nativeElement.querySelector('mat-progress-spinner')).toBeTruthy();
     });
@@ -224,53 +212,6 @@ describe('CurrentlyReadingComponent', () => {
 
       expect(fixture.nativeElement.querySelector('mat-progress-spinner')).toBeNull();
     });
-  });
-
-  it('disables the mark-finished button and shows Marking… while the request is in flight', () => {
-    vi.spyOn(engagementService, 'reloadEngagements').mockImplementation(() => undefined);
-
-    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
-    flushReadingList();
-    fixture.detectChanges();
-
-    findButton(fixture.nativeElement, 'Mark as finished').click();
-    fixture.detectChanges();
-
-    const button = findButton(fixture.nativeElement, 'Marking…');
-    expect(button.disabled).toBe(true);
-    expect(button.textContent).toContain('Marking…');
-
-    httpTesting.expectOne((req) => req.method === 'PATCH').flush({});
-  });
-
-  it('calls reloadEngagements after a successful mark-finished', () => {
-    const spy = vi
-      .spyOn(engagementService, 'reloadEngagements')
-      .mockImplementation(() => undefined);
-
-    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
-    flushReadingList();
-    fixture.detectChanges();
-
-    findButton(fixture.nativeElement, 'Mark as finished').click();
-    httpTesting.expectOne((req) => req.method === 'PATCH').flush({});
-    fixture.detectChanges();
-
-    expect(spy).toHaveBeenCalledOnce();
-  });
-
-  it('shows Error on the mark-finished button when the request fails', () => {
-    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
-    flushReadingList();
-    fixture.detectChanges();
-
-    findButton(fixture.nativeElement, 'Mark as finished').click();
-    httpTesting.expectOne((req) => req.method === 'PATCH').error(new ProgressEvent('error'));
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('button[aria-label^="Mark"]').textContent).toContain(
-      'Error',
-    );
   });
 
   it('opens a bottom sheet when Log progress is clicked on a narrow viewport', () => {

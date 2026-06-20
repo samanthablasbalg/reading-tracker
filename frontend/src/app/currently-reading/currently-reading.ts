@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -119,14 +119,13 @@ import {
                   />
                 }
               </div>
-              @if (showText()) {
-                <div class="text">
-                  <span class="title">{{ engagement.book.title }}</span>
-                  <span class="author">{{
-                    engagement.book.authors.map((a) => a.name).join(', ')
-                  }}</span>
-                </div>
-              }
+
+              <div class="text">
+                <span class="title">{{ engagement.book.title }}</span>
+                <span class="author">{{
+                  engagement.book.authors.map((a) => a.name).join(', ')
+                }}</span>
+              </div>
               @if (showBar()) {
                 <div class="progress-col">
                   @if (engagement.completion_pct !== null) {
@@ -158,14 +157,6 @@ import {
                 >
                   Log progress
                 </button>
-                <button
-                  mat-stroked-button
-                  [disabled]="markingId() === engagement.id"
-                  [attr.aria-label]="'Mark ' + engagement.book.title + ' as finished'"
-                  (click)="markFinished(engagement.id)"
-                >
-                  {{ markButtonLabel(engagement.id) }}
-                </button>
               </div>
             </div>
           </mat-card-content>
@@ -185,9 +176,6 @@ export class CurrentlyReadingComponent {
   protected readonly engagements = toSignal(this.engagementService.engagements('reading'), {
     initialValue: [],
   });
-  protected readonly markingId = signal<string | null>(null);
-  protected readonly markErrorId = signal<string | null>(null);
-
   protected readonly showText = toSignal(
     this.breakpointObserver.observe('(min-width: 600px)').pipe(map((r) => r.matches)),
     { initialValue: true },
@@ -199,28 +187,6 @@ export class CurrentlyReadingComponent {
 
   protected coverUrl(engagement: Engagement): string | null {
     return engagement.cover_url;
-  }
-
-  protected markButtonLabel(engagementId: string): string {
-    if (this.markingId() === engagementId) return 'Marking…';
-    if (this.markErrorId() === engagementId) return 'Error';
-    return 'Mark as finished';
-  }
-
-  protected markFinished(engagementId: string): void {
-    this.markingId.set(engagementId);
-    this.markErrorId.set(null);
-
-    this.engagementService.markFinished(engagementId).subscribe({
-      next: () => {
-        this.markingId.set(null);
-        this.engagementService.reloadEngagements();
-      },
-      error: () => {
-        this.markingId.set(null);
-        this.markErrorId.set(engagementId);
-      },
-    });
   }
 
   protected openLogSheet(engagement: Engagement): void {

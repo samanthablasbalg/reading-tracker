@@ -3,7 +3,10 @@ import { CurrentlyReadingPage } from '../../page-objects/currently-reading.page'
 import { ProgressLogSheetPage } from '../../page-objects/progress-log-sheet.page';
 import { ReadPage } from '../../page-objects/read.page';
 
-test('Logging progress advances the card in place and survives reload', async ({ page, apiClient }) => {
+test('Logging progress advances the card in place and survives reload', async ({
+  page,
+  apiClient,
+}) => {
   const currentlyReading = new CurrentlyReadingPage(page);
   const sheet = new ProgressLogSheetPage(page);
 
@@ -56,6 +59,7 @@ test('Marking a book finished moves it from Currently reading to Read', async ({
   apiClient,
 }) => {
   const currentlyReading = new CurrentlyReadingPage(page);
+  const sheet = new ProgressLogSheetPage(page);
   const read = new ReadPage(page);
 
   await test.step('Seed a book being read', async () => {
@@ -65,11 +69,58 @@ test('Marking a book finished moves it from Currently reading to Read', async ({
 
   await test.step('Mark the book as finished', async () => {
     await currentlyReading.goto();
-    await currentlyReading.markAsFinished('Dune');
+    await currentlyReading.openLogSheet('Dune');
+    await sheet.finishButton.click();
   });
 
   await test.step('Verify it left Currently reading', async () => {
-    await expect(currentlyReading.getMarkAsFinishedButton('Dune')).toHaveCount(0);
+    await expect(currentlyReading.getBookCard('Dune')).toHaveCount(0);
+  });
+
+  await test.step('Verify it appears under Read', async () => {
+    await read.goto();
+    await expect(read.getBookEntry('Dune')).toBeVisible();
+  });
+});
+
+test('Marking a book finished after entering text causes confirmation flow', async ({
+  page,
+  apiClient,
+}) => {
+  const currentlyReading = new CurrentlyReadingPage(page);
+  const sheet = new ProgressLogSheetPage(page);
+  const read = new ReadPage(page);
+
+  await test.step('Seed a book being read', async () => {
+    const duneId = await apiClient.createBook('Dune', 'Frank Herbert', 412);
+    const duneEngId = await apiClient.markAsReading(duneId);
+    await apiClient.logProgress(duneEngId, 100);
+  });
+
+  await test.step('Open the log sheet for Dune', async () => {
+    await currentlyReading.goto();
+    await currentlyReading.openLogSheet('Dune');
+    await expect(sheet.pageInput).toHaveValue('100');
+  });
+
+  await test.step('Enter a higher page', async () => {
+    await sheet.enterPage(200);
+  });
+
+  await test.step('Mark the book as finished', async () => {
+    await sheet.finishButton.click();
+  });
+
+  await test.step('Verify confirmation appears', async () => {
+    await expect(sheet.confirmationMessage).toBeVisible();
+  });
+
+  await test.step('Confirm finish flow', async () => {
+    await sheet.finishButton.click();
+  });
+
+  await test.step('Verify it left Currently reading', async () => {
+    await expect(currentlyReading.getBookCard('Dune')).toHaveCount(0);
   });
 
   await test.step('Verify it appears under Read', async () => {

@@ -682,3 +682,85 @@ def test_completion_pct_binding_takes_precedence_over_book_page_count(
 
     data = client.get("/engagements?status=reading").json()
     assert data[0]["completion_pct"] == 50
+
+
+# --- Finish log ---
+
+
+def test_finish_creates_final_progress_log(client: TestClient, db: Session) -> None:
+    book = _create_book(client)
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_page_count = 300
+    db.commit()
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 150)
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}", json={"status": "finished"}
+    )
+    assert response.status_code == 200
+    assert response.json()["completion_pct"] == 100
+
+    logs = (
+        db.execute(
+            select(ProgressLog).where(
+                ProgressLog.engagement_id == uuid.UUID(engagement["id"])
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(logs) == 2
+    final_log = max(logs, key=lambda log: log.logged_at)
+    assert final_log.page_start == 150
+    assert final_log.page_end == 300
+
+
+def test_finish_does_not_duplicate_log_when_already_at_page_count(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_page_count = 300
+    db.commit()
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 300)
+
+    client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
+
+    logs = (
+        db.execute(
+            select(ProgressLog).where(
+                ProgressLog.engagement_id == uuid.UUID(engagement["id"])
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(logs) == 1
+
+
+def test_finish_with_no_page_count_creates_no_log(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 150)
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}", json={"status": "finished"}
+    )
+    assert response.status_code == 200
+
+    logs = (
+        db.execute(
+            select(ProgressLog).where(
+                ProgressLog.engagement_id == uuid.UUID(engagement["id"])
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(logs) == 1
