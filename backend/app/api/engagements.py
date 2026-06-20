@@ -5,7 +5,7 @@ import uuid
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import Date, cast, func, nulls_last, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
@@ -253,7 +253,7 @@ def list_engagements(
     latest_log_sq = (
         select(
             ProgressLog.engagement_id,
-            func.max(cast(ProgressLog.logged_at, Date)).label("max_log_date"),
+            func.max(ProgressLog.logged_at).label("max_logged_at"),
         )
         .group_by(ProgressLog.engagement_id)
         .subquery()
@@ -264,14 +264,9 @@ def list_engagements(
             .where(Engagement.status == status_filter)
             .outerjoin(latest_log_sq, Engagement.id == latest_log_sq.c.engagement_id)
             .order_by(
-                nulls_last(
-                    func.greatest(
-                        func.coalesce(
-                            latest_log_sq.c.max_log_date, Engagement.started_on
-                        ),
-                        Engagement.started_on,
-                    ).desc()
-                ),
+                func.greatest(
+                    Engagement.updated_at, latest_log_sq.c.max_logged_at
+                ).desc(),
                 Engagement.id.asc(),
             )
             .options(*_LOAD_OPTIONS)

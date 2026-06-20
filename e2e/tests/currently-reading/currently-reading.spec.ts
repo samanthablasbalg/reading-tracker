@@ -9,12 +9,12 @@ test('Logging progress advances the card in place and survives reload', async ({
 
   let initialOrder: string[] = [];
 
-  await test.step('Seed two books being read, with Dune already at page 100', async () => {
+  await test.step('Seed two books, Dune logged to page 100 then Piranesi marked reading most recently', async () => {
     const piranesiId = await apiClient.createBook('Piranesi', 'Susanna Clarke', 272);
     const duneId = await apiClient.createBook('Dune', 'Frank Herbert', 412);
-    await apiClient.markAsReading(piranesiId);
     const duneEngId = await apiClient.markAsReading(duneId);
     await apiClient.logProgress(duneEngId, 100);
+    await apiClient.markAsReading(piranesiId);
   });
 
   await test.step('Navigate and record the initial card order', async () => {

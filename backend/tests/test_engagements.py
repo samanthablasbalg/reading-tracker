@@ -455,28 +455,82 @@ def test_progress_logs_preserved_through_status_cycle(client: TestClient) -> Non
 # --- Ordering ---
 
 
-def test_list_reading_ordered_by_most_recent_log(
+def _set_updated_at(db: Session, engagement_id: str, when: datetime.datetime) -> None:
+    engagement = db.get(Engagement, uuid.UUID(engagement_id))
+    assert engagement is not None
+    engagement.updated_at = when
+    db.commit()
+
+
+def _set_logged_at(db: Session, engagement_id: str, when: datetime.datetime) -> None:
+    log = db.execute(
+        select(ProgressLog).where(ProgressLog.engagement_id == uuid.UUID(engagement_id))
+    ).scalar_one()
+    log.logged_at = when
+    db.commit()
+
+
+def test_list_reading_orders_more_recently_marked_first(
     client: TestClient, db: Session
 ) -> None:
+    # No logs: the engagement touched (marked reading) most recently leads.
+    book_a = _create_book(client, title="Book A", author="Author A")
+    book_b = _create_book(client, title="Book B", author="Author B")
+    eng_a = _create_engagement(client, book_a["id"])
+    eng_b = _create_engagement(client, book_b["id"])
+
+    _set_updated_at(db, eng_a["id"], datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC))
+    _set_updated_at(db, eng_b["id"], datetime.datetime(2024, 6, 1, tzinfo=datetime.UTC))
+
+    data = client.get("/engagements?status=reading").json()
+    assert [e["book"]["title"] for e in data] == ["Book B", "Book A"]
+
+
+def test_list_reading_log_outranks_more_recently_marked(
+    client: TestClient, db: Session
+) -> None:
+    # A logged progress later than B was marked reading, so A leads even though
+    # B is the more recently marked engagement.
     book_a = _create_book(client, title="Book A", author="Author A")
     book_b = _create_book(client, title="Book B", author="Author B")
     eng_a = _create_engagement(client, book_a["id"])
     eng_b = _create_engagement(client, book_b["id"])
     _log_progress(client, eng_a["id"], 50)
-    _log_progress(client, eng_b["id"], 50)
 
-    log_a = db.execute(
-        select(ProgressLog).where(ProgressLog.engagement_id == uuid.UUID(eng_a["id"]))
-    ).scalar_one()
-    log_a.logged_at = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC)
-    db.commit()
+    _set_updated_at(db, eng_a["id"], datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC))
+    _set_updated_at(db, eng_b["id"], datetime.datetime(2024, 6, 1, tzinfo=datetime.UTC))
+    _set_logged_at(db, eng_a["id"], datetime.datetime(2024, 12, 1, tzinfo=datetime.UTC))
 
     data = client.get("/engagements?status=reading").json()
-    assert data[0]["book"]["title"] == "Book B"
-    assert data[1]["book"]["title"] == "Book A"
+    assert [e["book"]["title"] for e in data] == ["Book A", "Book B"]
 
 
-def test_list_reading_no_log_engagement_sorts_by_started_on(
+def test_list_reading_orders_multiple_logs_by_recency(
+    client: TestClient, db: Session
+) -> None:
+    # Several logged books rank by which was logged most recently.
+    engagements = {}
+    for title in ("Book A", "Book B", "Book C"):
+        book = _create_book(client, title=title, author=f"Author {title[-1]}")
+        eng = _create_engagement(client, book["id"])
+        _log_progress(client, eng["id"], 50)
+        engagements[title] = eng["id"]
+
+    marked = datetime.datetime(2023, 1, 1, tzinfo=datetime.UTC)
+    log_times = {
+        "Book A": datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
+        "Book B": datetime.datetime(2024, 2, 1, tzinfo=datetime.UTC),
+        "Book C": datetime.datetime(2024, 3, 1, tzinfo=datetime.UTC),
+    }
+    for title, eng_id in engagements.items():
+        _set_updated_at(db, eng_id, marked)
+        _set_logged_at(db, eng_id, log_times[title])
+
+    data = client.get("/engagements?status=reading").json()
+    assert [e["book"]["title"] for e in data] == ["Book C", "Book B", "Book A"]
+
+
+def test_list_reading_order_stable_for_identical_activity(
     client: TestClient, db: Session
 ) -> None:
     book_a = _create_book(client, title="Book A", author="Author A")
@@ -484,33 +538,9 @@ def test_list_reading_no_log_engagement_sorts_by_started_on(
     eng_a = _create_engagement(client, book_a["id"])
     eng_b = _create_engagement(client, book_b["id"])
 
-    engagement_a = db.get(Engagement, uuid.UUID(eng_a["id"]))
-    engagement_b = db.get(Engagement, uuid.UUID(eng_b["id"]))
-    assert engagement_a is not None and engagement_b is not None
-    engagement_a.started_on = datetime.date(2020, 1, 1)
-    engagement_b.started_on = datetime.date(2024, 1, 1)
-    db.commit()
-
-    data = client.get("/engagements?status=reading").json()
-    assert data[0]["book"]["title"] == "Book B"
-    assert data[1]["book"]["title"] == "Book A"
-
-
-def test_list_reading_order_stable_for_same_activity_date(
-    client: TestClient, db: Session
-) -> None:
-    book_a = _create_book(client, title="Book A", author="Author A")
-    book_b = _create_book(client, title="Book B", author="Author B")
-    eng_a = _create_engagement(client, book_a["id"])
-    eng_b = _create_engagement(client, book_b["id"])
-
-    same_date = datetime.date(2024, 6, 1)
-    engagement_a = db.get(Engagement, uuid.UUID(eng_a["id"]))
-    engagement_b = db.get(Engagement, uuid.UUID(eng_b["id"]))
-    assert engagement_a is not None and engagement_b is not None
-    engagement_a.started_on = same_date
-    engagement_b.started_on = same_date
-    db.commit()
+    same = datetime.datetime(2024, 6, 1, tzinfo=datetime.UTC)
+    _set_updated_at(db, eng_a["id"], same)
+    _set_updated_at(db, eng_b["id"], same)
 
     first_order = [e["id"] for e in client.get("/engagements?status=reading").json()]
     second_order = [e["id"] for e in client.get("/engagements?status=reading").json()]
