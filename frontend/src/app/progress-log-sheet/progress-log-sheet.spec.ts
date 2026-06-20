@@ -1,6 +1,6 @@
-import { TestBed } from '@angular/core/testing';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { render, screen, fireEvent } from '@testing-library/angular';
 import { Observable, of, throwError } from 'rxjs';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ProgressLogSheetComponent, ProgressLogSheetData } from './progress-log-sheet';
 import { EngagementService } from '../engagement.service';
@@ -13,96 +13,83 @@ const baseData: ProgressLogSheetData = {
   default_page_count: 412,
 };
 
+type MockEngagementService = Pick<
+  EngagementService,
+  'logProgress' | 'patchEngagementInPlace' | 'markFinished' | 'reloadEngagements'
+>;
+
+async function setup(
+  dataOverrides: Partial<ProgressLogSheetData> = {},
+  serviceOverrides: Record<string, unknown> = {},
+) {
+  const mockDialogRef = { close: vi.fn() };
+  const mockEngagementService = {
+    logProgress: vi.fn(() => of({})),
+    patchEngagementInPlace: vi.fn(),
+    markFinished: vi.fn(() => of({})),
+    reloadEngagements: vi.fn(),
+    ...serviceOverrides,
+  } as unknown as MockEngagementService;
+
+  await render(ProgressLogSheetComponent, {
+    providers: [
+      provideNoopAnimations(),
+      { provide: MAT_DIALOG_DATA, useValue: { ...baseData, ...dataOverrides } },
+      { provide: MatDialogRef, useValue: mockDialogRef },
+      { provide: EngagementService, useValue: mockEngagementService },
+    ],
+  });
+
+  return { mockDialogRef, mockEngagementService };
+}
+
 describe('ProgressLogSheetComponent', () => {
-  let mockDialogRef: { close: ReturnType<typeof vi.fn> };
-  let mockEngagementService: Pick<EngagementService, 'logProgress' | 'patchEngagementInPlace'>;
-
-  beforeEach(async () => {
-    mockDialogRef = { close: vi.fn() };
-    mockEngagementService = {
-      logProgress: vi.fn(() => of({})),
-      patchEngagementInPlace: vi.fn(),
-    };
-
-    await TestBed.configureTestingModule({
-      imports: [ProgressLogSheetComponent],
-      providers: [
-        provideNoopAnimations(),
-        { provide: MAT_DIALOG_DATA, useValue: baseData },
-        { provide: MatDialogRef, useValue: mockDialogRef },
-        { provide: EngagementService, useValue: mockEngagementService },
-      ],
-    }).compileComponents();
+  it('renders the book title', async () => {
+    await setup();
+    expect(screen.getByRole('heading', { name: 'Dune' })).toBeTruthy();
   });
 
-  function createFixture(dataOverrides: Partial<ProgressLogSheetData> = {}) {
-    if (Object.keys(dataOverrides).length) {
-      TestBed.overrideProvider(MAT_DIALOG_DATA, { useValue: { ...baseData, ...dataOverrides } });
-    }
-    const fixture = TestBed.createComponent(ProgressLogSheetComponent);
-    fixture.detectChanges();
-    return fixture;
-  }
-
-  it('renders the book title', () => {
-    const fixture = createFixture();
-    expect(fixture.nativeElement.textContent).toContain('Dune');
+  it('does not render an image when cover_url is null', async () => {
+    await setup();
+    expect(screen.queryByRole('img')).toBeNull();
   });
 
-  it('does not render an image when cover_url is null', () => {
-    const fixture = createFixture();
-    expect(fixture.nativeElement.querySelector('img')).toBeNull();
-  });
-
-  it('renders a cover image when cover_url is set', () => {
-    const fixture = createFixture({ cover_url: 'https://example.com/cover.jpg' });
-    const img = fixture.nativeElement.querySelector('img') as HTMLImageElement;
-    expect(img).not.toBeNull();
+  it('renders a cover image when cover_url is set', async () => {
+    await setup({ cover_url: 'https://example.com/cover.jpg' });
+    const img = screen.getByRole('img', { name: 'Dune cover' }) as HTMLImageElement;
     expect(img.getAttribute('src')).toBe('https://example.com/cover.jpg');
-    expect(img.getAttribute('alt')).toBe('Dune cover');
   });
 
-  it('pre-fills the page input with resume_from_page', () => {
-    const fixture = createFixture();
-    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
-    expect(input.value).toBe('50');
+  it('pre-fills the page input with resume_from_page', async () => {
+    await setup();
+    expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('50');
   });
 
-  it('disables Save on open when the pre-filled page equals resume_from_page', () => {
-    const fixture = createFixture();
-    expect((fixture.nativeElement.querySelector('button') as HTMLButtonElement).disabled).toBe(
-      true,
-    );
+  it('disables Save on open when the pre-filled page equals resume_from_page', async () => {
+    await setup();
+    expect(
+      (screen.getByRole('button', { name: 'Save progress for Dune' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
   });
 
-  it('shows a min error when page is at or below resume_from_page', () => {
-    const fixture = createFixture();
-    fixture.nativeElement.querySelector('input[type="number"]').dispatchEvent(new Event('blur'));
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Must be greater than page 50');
+  it('shows a min error when page is at or below resume_from_page', async () => {
+    await setup();
+    fireEvent.blur(screen.getByRole('spinbutton'));
+    expect(screen.getByText(/must be greater than page 50/i)).toBeTruthy();
   });
 
-  it('save calls logProgress with the engagement id and entered page', () => {
-    const fixture = createFixture();
-    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
-    input.value = '100';
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    fixture.nativeElement.querySelector('button').click();
-
+  it('save calls logProgress with the engagement id and entered page', async () => {
+    const { mockEngagementService } = await setup();
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
     expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 100);
   });
 
-  it('patches the engagement in place and closes on save success', () => {
-    const fixture = createFixture();
-    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
-    input.value = '100';
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    fixture.nativeElement.querySelector('button').click();
-
+  it('patches the engagement in place and closes on save success', async () => {
+    const { mockDialogRef, mockEngagementService } = await setup();
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
     expect(mockEngagementService.patchEngagementInPlace).toHaveBeenCalledWith('eng-1', {
       resume_from_page: 100,
       completion_pct: 24,
@@ -110,141 +97,145 @@ describe('ProgressLogSheetComponent', () => {
     expect(mockDialogRef.close).toHaveBeenCalledOnce();
   });
 
-  it('passes null completion_pct when page count is unknown', () => {
-    const fixture = createFixture({ default_page_count: null });
-    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
-    input.value = '100';
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    fixture.nativeElement.querySelector('button').click();
-
+  it('passes null completion_pct when page count is unknown', async () => {
+    const { mockEngagementService } = await setup({ default_page_count: null });
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
     expect(mockEngagementService.patchEngagementInPlace).toHaveBeenCalledWith('eng-1', {
       resume_from_page: 100,
       completion_pct: null,
     });
   });
 
-  it('shows Saving… and disables the button while the request is in flight', () => {
+  it('shows Saving… and disables the button while the request is in flight', async () => {
     const { resolve, promise } = Promise.withResolvers<void>();
-    mockEngagementService.logProgress = vi.fn(
-      () =>
-        new Observable((sub) => {
-          promise.then(() => sub.next({}));
-        }),
+    await setup(
+      {},
+      {
+        logProgress: vi.fn(
+          () =>
+            new Observable((sub) => {
+              promise.then(() => sub.next({}));
+            }),
+        ),
+      },
     );
-
-    const fixture = createFixture();
-    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
-    input.value = '100';
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    fixture.nativeElement.querySelector('button').click();
-    fixture.detectChanges();
-
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
+    const button = screen.getByRole('button', {
+      name: 'Save progress for Dune',
+    }) as HTMLButtonElement;
+    fireEvent.click(button);
     expect(button.textContent).toContain('Saving…');
     expect(button.disabled).toBe(true);
-
     resolve();
   });
 
-  it('shows an inline error and keeps the sheet open on save failure', () => {
-    mockEngagementService.logProgress = vi.fn(() => throwError(() => new Error('server error')));
-
-    const fixture = createFixture();
-    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
-    input.value = '100';
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    fixture.nativeElement.querySelector('button').click();
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain(
-      'Failed to save',
+  it('shows an inline error and keeps the sheet open on save failure', async () => {
+    const { mockDialogRef } = await setup(
+      {},
+      { logProgress: vi.fn(() => throwError(() => new Error('server error'))) },
     );
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
+    expect(screen.getByRole('alert').textContent).toContain('Failed to save');
     expect(mockDialogRef.close).not.toHaveBeenCalled();
   });
 
-  it('preserves the page input value after a save failure', () => {
-    mockEngagementService.logProgress = vi.fn(() => throwError(() => new Error()));
-
-    const fixture = createFixture();
-    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
-    input.value = '100';
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    fixture.nativeElement.querySelector('button').click();
-    fixture.detectChanges();
-
+  it('preserves the page input value after a save failure', async () => {
+    await setup({}, { logProgress: vi.fn(() => throwError(() => new Error())) });
+    const input = screen.getByRole('spinbutton') as HTMLInputElement;
+    fireEvent.input(input, { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
     expect(input.value).toBe('100');
   });
 
-  it('disables Save and does not submit when page exceeds page count', () => {
-    const fixture = createFixture({ default_page_count: 300 });
-    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
-    input.value = '400';
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    fixture.nativeElement.querySelector('button').click();
-
+  it('disables Save and does not submit when page exceeds page count', async () => {
+    const { mockEngagementService } = await setup({ default_page_count: 300 });
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '400' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
     expect(mockEngagementService.logProgress).not.toHaveBeenCalled();
   });
 
-  it('saves when page equals the page count', () => {
-    const fixture = createFixture({ default_page_count: 300 });
-    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
-    input.value = '300';
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    fixture.nativeElement.querySelector('button').click();
-
+  it('saves when page equals the page count', async () => {
+    const { mockEngagementService } = await setup({ default_page_count: 300 });
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '300' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
     expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 300);
   });
 
-  it('enables Save on open when resume_from_page equals the page count', () => {
-    const fixture = createFixture({ resume_from_page: 200, default_page_count: 200 });
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
-    expect(button.disabled).toBe(false);
+  it('enables Save on open when resume_from_page equals the page count', async () => {
+    await setup({ resume_from_page: 200, default_page_count: 200 });
+    expect(
+      (screen.getByRole('button', { name: 'Save progress for Dune' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(false);
   });
 
-  it('calls logProgress with the final page when resume_from_page equals the page count', () => {
-    const fixture = createFixture({ resume_from_page: 200, default_page_count: 200 });
-    fixture.nativeElement.querySelector('button').click();
+  it('calls logProgress with the final page when resume_from_page equals the page count', async () => {
+    const { mockEngagementService } = await setup({
+      resume_from_page: 200,
+      default_page_count: 200,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
     expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 200);
   });
 
-  it('renders the title as a mat-dialog-title element', () => {
-    const fixture = createFixture();
-    expect(fixture.nativeElement.querySelector('[mat-dialog-title]')).not.toBeNull();
-  });
-
-  it('closes the sheet without saving when cancel is clicked', () => {
-    const fixture = createFixture();
-    const buttons = Array.from(
-      fixture.nativeElement.querySelectorAll('button'),
-    ) as HTMLButtonElement[];
-    const cancelButton = buttons.find((b) => b.textContent?.trim() === 'Cancel')!;
-    cancelButton.click();
-
+  it('closes the sheet without saving when cancel is clicked', async () => {
+    const { mockDialogRef, mockEngagementService } = await setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(mockDialogRef.close).toHaveBeenCalledOnce();
     expect(mockEngagementService.logProgress).not.toHaveBeenCalled();
   });
 
-  it('does not submit when page count is unknown and no page is entered', () => {
-    const fixture = createFixture({ default_page_count: null, resume_from_page: 0 });
-    const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
-    input.value = '';
-    input.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    fixture.nativeElement.querySelector('button').click();
-
+  it('does not submit when page count is unknown and no page is entered', async () => {
+    const { mockEngagementService } = await setup({
+      default_page_count: null,
+      resume_from_page: 0,
+    });
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
     expect(mockEngagementService.logProgress).not.toHaveBeenCalled();
+  });
+
+  // --- Finish ---
+
+  it('calls markFinished with the engagement id, reloads, and closes on finish success', async () => {
+    const { mockDialogRef, mockEngagementService } = await setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Dune as finished' }));
+    expect(mockEngagementService.markFinished).toHaveBeenCalledWith('eng-1');
+    expect(mockEngagementService.reloadEngagements).toHaveBeenCalledOnce();
+    expect(mockDialogRef.close).toHaveBeenCalledOnce();
+  });
+
+  it('shows Finishing… and disables the button while the request is in flight', async () => {
+    const { resolve, promise } = Promise.withResolvers<void>();
+    await setup(
+      {},
+      {
+        markFinished: vi.fn(
+          () =>
+            new Observable((sub) => {
+              promise.then(() => sub.next({}));
+            }),
+        ),
+      },
+    );
+    const button = screen.getByRole('button', {
+      name: 'Mark Dune as finished',
+    }) as HTMLButtonElement;
+    fireEvent.click(button);
+    expect(button.textContent).toContain('Finishing…');
+    expect(button.disabled).toBe(true);
+    resolve();
+  });
+
+  it('shows an inline error and keeps the sheet open on finish failure', async () => {
+    const { mockDialogRef } = await setup(
+      {},
+      { markFinished: vi.fn(() => throwError(() => new Error('server error'))) },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Dune as finished' }));
+    expect(screen.getByRole('alert').textContent).toContain('Failed to finish');
+    expect(mockDialogRef.close).not.toHaveBeenCalled();
   });
 });
