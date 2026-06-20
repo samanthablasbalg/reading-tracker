@@ -58,6 +58,15 @@ export interface ProgressLogSheetData {
       >
         {{ saving() ? 'Saving…' : 'Save' }}
       </button>
+      <button
+        mat-button
+        style="width: 100%;"
+        [disabled]="saving() || finishing()"
+        (click)="finish()"
+        [attr.aria-label]="'Mark ' + data.title + ' as finished'"
+      >
+        {{ finishing() ? 'Finishing…' : 'I finished the book' }}
+      </button>
       <button mat-button style="width: 100%;" (click)="close()">Cancel</button>
     </div>
   `,
@@ -71,6 +80,7 @@ export class ProgressLogSheetComponent {
   private readonly engagementService = inject(EngagementService);
 
   protected readonly saving = signal(false);
+  protected readonly finishing = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly effectiveMin: number =
     this.data.default_page_count != null
@@ -106,6 +116,23 @@ export class ProgressLogSheetComponent {
       error: () => {
         this.saving.set(false);
         this.error.set('Failed to save. Please try again.');
+      },
+    });
+  }
+
+  protected finish(): void {
+    if (this.finishing() || this.saving()) return;
+    this.finishing.set(true);
+    this.error.set(null);
+
+    this.engagementService.markFinished(this.data.engagementId).subscribe({
+      next: () => {
+        this.engagementService.reloadEngagements();
+        this.close();
+      },
+      error: () => {
+        this.finishing.set(false);
+        this.error.set('Failed to finish. Please try again.');
       },
     });
   }
