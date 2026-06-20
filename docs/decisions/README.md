@@ -69,7 +69,7 @@ The concrete trigger that would reopen this (e.g. "if this goes multi-user").
 | [0011](0011-standalone-entries.md)                              | Standalone entries (reads off the book goal)             | **Accepted**                                                  |
 | [0012](0012-shared-vs-per-table-enums.md)                       | Shared vs per-table Postgres ENUM types                  | **Accepted**                                                  |
 | [0013](0013-author-identity-get-or-create.md)                   | Author identity: get-or-create by name                   | **Accepted**                                                  |
-| [0014](0014-dedicated-test-database.md)                         | Dedicated test database                                  | **Accepted**                                                   |
+| [0014](0014-dedicated-test-database.md)                         | Dedicated test database                                  | **Accepted**                                                  |
 | [0015](0015-google-books-access-via-backend-proxy.md)           | Google Books access via backend proxy                    | **Accepted**                                                  |
 | [0016](0016-engagement-state-changes.md)                        | Engagement state changes: REST resource, server-owned    | **Accepted**                                                  |
 | [0017](0017-orm-property-accessors.md)                          | ORM relationship traversal: property accessors on models | **Accepted**                                                  |
@@ -77,3 +77,4 @@ The concrete trigger that would reopen this (e.g. "if this goes multi-user").
 | [0019](0019-progress-logging-in-a-focused-sheet.md)             | Progress logging happens in a focused sheet              | **Accepted**                                                  |
 | [0020](0020-currently-reading-cover-led-rows-sorted-on-load.md) | Currently Reading: cover-led rows, sorted on load        | **Accepted**                                                  |
 | [0021](0021-editions-and-engagement-edition.md)                 | Editions own format; read binds via EngagementEdition    | **Accepted**                                                  |
+| [0022](0022-seed-three-editions-per-book.md)                    | Adding a book seeds three editions, enriched at use      | **Accepted**                                                  |

@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-06-16
 - Supersedes: [[0009-origin-per-read-isbn-provisional]]
+- Amended by: [[0022-seed-three-editions-per-book]]
 
 ## Context
 
