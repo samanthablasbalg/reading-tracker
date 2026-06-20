@@ -119,14 +119,13 @@ import {
                   />
                 }
               </div>
-              @if (showText()) {
-                <div class="text">
-                  <span class="title">{{ engagement.book.title }}</span>
-                  <span class="author">{{
-                    engagement.book.authors.map((a) => a.name).join(', ')
-                  }}</span>
-                </div>
-              }
+
+              <div class="text">
+                <span class="title">{{ engagement.book.title }}</span>
+                <span class="author">{{
+                  engagement.book.authors.map((a) => a.name).join(', ')
+                }}</span>
+              </div>
               @if (showBar()) {
                 <div class="progress-col">
                   @if (engagement.completion_pct !== null) {

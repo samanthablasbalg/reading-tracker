@@ -191,14 +191,14 @@ describe('CurrentlyReadingComponent', () => {
       expect(fixture.nativeElement.querySelector('mat-progress-spinner')).toBeTruthy();
     });
 
-    it('hides text and bar, shows spinner at narrow viewport', () => {
+    it('shows text and spinner, hides bar at narrow viewport', () => {
       mockBreakpointObserver.observe.mockReturnValue(of({ matches: false }));
 
       const fixture = TestBed.createComponent(CurrentlyReadingComponent);
       flushReadingList([{ ...mockEngagement, completion_pct: 47 }]);
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.querySelector('.text')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.text')).toBeTruthy();
       expect(fixture.nativeElement.querySelector('.progress-col')).toBeNull();
       expect(fixture.nativeElement.querySelector('mat-progress-spinner')).toBeTruthy();
     });
