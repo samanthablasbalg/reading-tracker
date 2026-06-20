@@ -7,8 +7,8 @@ from app.models.engagement import Engagement
 from app.models.enums import (
     BookAuthorRole,
     DatePrecision,
+    Format,
     LogUnit,
-    ReadingFormat,
     ReadingStatus,
 )
 from app.models.progress_log import ProgressLog
@@ -28,7 +28,7 @@ __all__ = [
     "Engagement",
     "LogUnit",
     "ProgressLog",
-    "ReadingFormat",
+    "Format",
     "ReadingStatus",
     "Review",
     "StandaloneEntry",

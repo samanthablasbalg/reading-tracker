@@ -10,7 +10,7 @@ from app.database import get_db
 from app.models.author import Author
 from app.models.book import Book, BookAuthor
 from app.models.edition import Edition
-from app.models.enums import BookAuthorRole, DatePrecision, ReadingFormat
+from app.models.enums import BookAuthorRole, DatePrecision, Format
 from app.schemas.book import (
     AuthorRead,
     BookCreate,
@@ -152,7 +152,7 @@ def import_book(
     db.add(
         Edition(
             book_id=book.id,
-            edition_format=ReadingFormat.print,
+            edition_format=Format.print,
             isbn=volume.isbn,
             page_count=volume.page_count,
             cover_url=volume.cover_url,

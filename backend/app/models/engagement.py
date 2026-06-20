@@ -12,7 +12,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 from app.models.enums import (
     DatePrecision,
-    ReadingFormat,
+    Format,
     ReadingStatus,
     date_precision_type,
 )
@@ -34,8 +34,8 @@ class Engagement(TimestampMixin, Base):
     status: Mapped[ReadingStatus] = mapped_column(
         SAEnum(ReadingStatus, name="reading_status")
     )
-    formats: Mapped[list[ReadingFormat]] = mapped_column(
-        ARRAY(SAEnum(ReadingFormat, name="reading_format")), default=list
+    formats: Mapped[list[Format]] = mapped_column(
+        ARRAY(SAEnum(Format, name="reading_format")), default=list
     )
     source_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("book_sources.id"))
     isbn: Mapped[str | None]

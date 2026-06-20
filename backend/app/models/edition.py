@@ -8,7 +8,7 @@ from sqlalchemy import ForeignKey, Index, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.models.enums import ReadingFormat
+from app.models.enums import Format
 from app.models.mixins import TimestampMixin
 
 if TYPE_CHECKING:
@@ -31,8 +31,8 @@ class Edition(TimestampMixin, Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     book_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("books.id"))
-    edition_format: Mapped[ReadingFormat] = mapped_column(
-        SAEnum(ReadingFormat, name="edition_format")
+    edition_format: Mapped[Format] = mapped_column(
+        SAEnum(Format, name="edition_format")
     )
     isbn: Mapped[str | None]
     page_count: Mapped[int | None]

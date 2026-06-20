@@ -26,7 +26,7 @@ class LogUnit(enum.StrEnum):
     minutes = "minutes"
 
 
-class ReadingFormat(enum.StrEnum):
+class Format(enum.StrEnum):
     print = "print"
     digital = "digital"
     audio = "audio"
