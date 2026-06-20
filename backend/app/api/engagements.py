@@ -29,6 +29,9 @@ _LOAD_OPTIONS = (
     .selectinload(Book.book_authors)
     .selectinload(BookAuthor.author),
     selectinload(Engagement.progress_logs),
+    selectinload(Engagement.engagement_editions).selectinload(
+        EngagementEdition.edition
+    ),
 )
 
 
@@ -62,7 +65,6 @@ def create_engagement(
         book_id=payload.book_id,
         status=ReadingStatus.reading,
         started_on=datetime.date.today(),
-        cover_url=book.default_cover_url,
     )
     db.add(engagement)
     db.commit()
