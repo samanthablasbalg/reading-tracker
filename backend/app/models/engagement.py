@@ -6,13 +6,12 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey
-from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.models.enums import (
     DatePrecision,
-    ReadingFormat,
+    Format,
     ReadingStatus,
     date_precision_type,
 )
@@ -20,7 +19,6 @@ from app.models.mixins import TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.book import Book
-    from app.models.book_source import BookSource
     from app.models.edition import EngagementEdition
     from app.models.progress_log import ProgressLog
     from app.models.review import Review
@@ -34,14 +32,6 @@ class Engagement(TimestampMixin, Base):
     status: Mapped[ReadingStatus] = mapped_column(
         SAEnum(ReadingStatus, name="reading_status")
     )
-    formats: Mapped[list[ReadingFormat]] = mapped_column(
-        ARRAY(SAEnum(ReadingFormat, name="reading_format")), default=list
-    )
-    source_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("book_sources.id"))
-    isbn: Mapped[str | None]
-    cover_url: Mapped[str | None]
-    custom_page_count: Mapped[int | None]
-    custom_audio_minutes: Mapped[int | None]
 
     interested_on: Mapped[datetime.date | None]
     interested_on_precision: Mapped[DatePrecision] = mapped_column(
@@ -65,7 +55,6 @@ class Engagement(TimestampMixin, Base):
     )
 
     book: Mapped[Book] = relationship(back_populates="engagements")
-    source: Mapped[BookSource | None] = relationship(back_populates="engagements")
     progress_logs: Mapped[list[ProgressLog]] = relationship(
         back_populates="engagement", cascade="all, delete-orphan"
     )
@@ -77,6 +66,17 @@ class Engagement(TimestampMixin, Base):
     )
 
     @property
+    def formats(self) -> list[Format]:
+        return [ee.edition.edition_format for ee in self.engagement_editions]
+
+    @property
+    def cover_url(self) -> str | None:
+        for ee in self.engagement_editions:
+            if ee.edition.cover_url:
+                return ee.edition.cover_url
+        return self.book.default_cover_url
+
+    @property
     def resume_from_page(self) -> int:
         if not self.progress_logs:
             return 0
@@ -85,11 +85,19 @@ class Engagement(TimestampMixin, Base):
 
     @property
     def completion_pct(self) -> int | None:
-        if not self.progress_logs or not self.book.default_page_count:
+        if not self.progress_logs:
             return None
         latest = max(self.progress_logs, key=lambda log: log.logged_at)
         if latest.page_end is None:
             return None
-        return max(
-            0, min(100, round(latest.page_end / self.book.default_page_count * 100))
-        )
+        denominator: int | None = None
+        for ee in self.engagement_editions:
+            candidate = ee.length_override or ee.edition.page_count
+            if candidate:
+                denominator = candidate
+                break
+        if denominator is None:
+            denominator = self.book.default_page_count or None
+        if not denominator:
+            return None
+        return max(0, min(100, round(latest.page_end / denominator * 100)))

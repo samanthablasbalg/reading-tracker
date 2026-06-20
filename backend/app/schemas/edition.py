@@ -6,12 +6,12 @@ from typing import Self
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from app.models.enums import ReadingFormat
+from app.models.enums import Format
 
 
 class EditionCreate(BaseModel):
     book_id: uuid.UUID
-    edition_format: ReadingFormat
+    edition_format: Format
     isbn: str | None = None
     page_count: int | None = None
     cover_url: str | None = None
@@ -26,7 +26,7 @@ class EditionUpdate(BaseModel):
 class EditionRead(BaseModel):
     id: uuid.UUID
     book_id: uuid.UUID
-    edition_format: ReadingFormat
+    edition_format: Format
     isbn: str | None
     page_count: int | None
     cover_url: str | None
@@ -38,7 +38,7 @@ class EditionRead(BaseModel):
 
 class EngagementEditionCreate(BaseModel):
     edition_id: uuid.UUID | None = None
-    edition_format: ReadingFormat | None = None
+    edition_format: Format | None = None
     origin_id: uuid.UUID | None = None
     length_override: int | None = None
 

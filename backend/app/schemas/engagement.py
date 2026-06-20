@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from app.models.enums import ReadingStatus
+from app.models.enums import Format, ReadingStatus
 from app.schemas.book import BookRead
 
 
@@ -21,6 +21,7 @@ class EngagementStatusUpdate(BaseModel):
 class EngagementRead(BaseModel):
     id: uuid.UUID
     book: BookRead
+    formats: list[Format]
     cover_url: str | None
     status: ReadingStatus
     started_on: datetime.date | None

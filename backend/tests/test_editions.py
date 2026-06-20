@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.edition import Edition
-from app.models.enums import ReadingFormat
+from app.models.enums import Format
 
 
 def _create_book(
@@ -189,7 +189,7 @@ def test_import_creates_print_edition_with_real_data(
 
     assert len(editions) == 1
     ed = editions[0]
-    assert ed.edition_format == ReadingFormat.print
+    assert ed.edition_format == Format.print
     assert ed.isbn == "9781526622426"
     assert ed.page_count == 272
     assert ed.cover_url == "https://example.com/cover.jpg"

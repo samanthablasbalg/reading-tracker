@@ -198,7 +198,7 @@ export class CurrentlyReadingComponent {
   );
 
   protected coverUrl(engagement: Engagement): string | null {
-    return engagement.cover_url ?? engagement.book.default_cover_url;
+    return engagement.cover_url;
   }
 
   protected markButtonLabel(engagementId: string): string {
