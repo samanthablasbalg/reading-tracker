@@ -5,14 +5,12 @@ import { Book } from './book.service';
 
 export type EngagementStatus = 'reading' | 'finished';
 
-export type EngagedBook = Pick<
-  Book,
-  'id' | 'title' | 'authors' | 'default_page_count' | 'default_cover_url'
->;
+export type EngagedBook = Pick<Book, 'id' | 'title' | 'authors' | 'default_page_count'>;
 
 export interface Engagement {
   id: string;
   book: EngagedBook;
+  formats: string[];
   cover_url: string | null;
   status: EngagementStatus;
   started_on: string | null;

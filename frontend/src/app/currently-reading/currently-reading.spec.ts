@@ -15,9 +15,9 @@ const mockEngagement = {
     id: 'book-1',
     title: 'Dune',
     authors: [{ id: 'auth-1', name: 'Frank Herbert' }],
-    default_cover_url: null as string | null,
     default_page_count: null as number | null,
   },
+  formats: [] as string[],
   cover_url: null as string | null,
   status: 'reading',
   started_on: '2026-06-01',
@@ -129,23 +129,7 @@ describe('CurrentlyReadingComponent', () => {
     expect(img.getAttribute('ng-img')).toBeTruthy();
   });
 
-  it('falls back to default_cover_url when cover_url is null', () => {
-    const fixture = TestBed.createComponent(CurrentlyReadingComponent);
-
-    flushReadingList([
-      {
-        ...mockEngagement,
-        cover_url: null,
-        book: { ...mockEngagement.book, default_cover_url: 'https://example.com/default.jpg' },
-      },
-    ]);
-    fixture.detectChanges();
-
-    const img = fixture.nativeElement.querySelector('img');
-    expect(img).toBeTruthy();
-  });
-
-  it('shows no cover image when both cover_url and default_cover_url are null', () => {
+  it('shows no cover image when cover_url is null', () => {
     const fixture = TestBed.createComponent(CurrentlyReadingComponent);
 
     flushReadingList();
