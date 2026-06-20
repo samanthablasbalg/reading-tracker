@@ -21,15 +21,6 @@ export class CurrentlyReadingPage {
   }
 
   /**
-   * Locates the "Mark as finished" button for a book's card, by aria-label.
-   * @param title - The book's title.
-   * @returns The mark-as-finished button locator.
-   */
-  getMarkAsFinishedButton(title: string): Locator {
-    return this.page.getByRole('button', { name: `Mark ${title} as finished` });
-  }
-
-  /**
    * Locates a book's progress indicator. Both the wide-viewport bar and the
    * narrower-viewport spinner expose the same `<title> progress: N%` accessible
    * name, so this matches regardless of layout.
@@ -50,11 +41,12 @@ export class CurrentlyReadingPage {
   }
 
   /**
-   * Marks a book as finished, removing it from currently-reading.
+   * Locates a book's card by its title.
    * @param title - The book's title.
+   * @returns The card locator.
    */
-  async markAsFinished(title: string): Promise<void> {
-    await this.getMarkAsFinishedButton(title).click();
+  getBookCard(title: string): Locator {
+    return this.page.getByRole('listitem', { name: title });
   }
 
   /**
