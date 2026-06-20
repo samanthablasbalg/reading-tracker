@@ -199,7 +199,7 @@ describe('ProgressLogSheetComponent', () => {
 
   // --- Finish ---
 
-  it('calls markFinished with the engagement id, reloads, and closes on finish success', async () => {
+  it('calls markFinished with the engagement id, reloads, and closes when page is unchanged', async () => {
     const { mockDialogRef, mockEngagementService } = await setup();
     fireEvent.click(screen.getByRole('button', { name: 'Mark Dune as finished' }));
     expect(mockEngagementService.markFinished).toHaveBeenCalledWith('eng-1');
@@ -207,7 +207,50 @@ describe('ProgressLogSheetComponent', () => {
     expect(mockDialogRef.close).toHaveBeenCalledOnce();
   });
 
-  it('shows Finishing… and disables the button while the request is in flight', async () => {
+  it('shows an inline error and keeps the sheet open on finish failure', async () => {
+    const { mockDialogRef } = await setup(
+      {},
+      { markFinished: vi.fn(() => throwError(() => new Error('server error'))) },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Dune as finished' }));
+    expect(screen.getByRole('alert').textContent).toContain('Failed to finish');
+    expect(mockDialogRef.close).not.toHaveBeenCalled();
+  });
+
+  // --- Fat-finger guard ---
+
+  it('shows a confirm prompt when the page input has been edited', async () => {
+    await setup();
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Dune as finished' }));
+    expect(screen.getByText(/finish and discard the page you entered \(100\)/i)).toBeTruthy();
+  });
+
+  it('does not show the confirm prompt when the page input is unchanged', async () => {
+    await setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Dune as finished' }));
+    expect(screen.queryByText(/finish and discard/i)).toBeNull();
+  });
+
+  it('goes back to the normal view with the input intact when Go back is clicked', async () => {
+    await setup();
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Dune as finished' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Go back' }));
+    expect(screen.queryByText(/finish and discard/i)).toBeNull();
+    expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('100');
+  });
+
+  it('calls markFinished and closes when Finish is clicked in the confirm prompt', async () => {
+    const { mockDialogRef, mockEngagementService } = await setup();
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Dune as finished' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm finish Dune' }));
+    expect(mockEngagementService.markFinished).toHaveBeenCalledWith('eng-1');
+    expect(mockDialogRef.close).toHaveBeenCalledOnce();
+  });
+
+  it('shows Finishing… and disables the confirm button while the request is in flight', async () => {
     const { resolve, promise } = Promise.withResolvers<void>();
     await setup(
       {},
@@ -220,21 +263,23 @@ describe('ProgressLogSheetComponent', () => {
         ),
       },
     );
-    const button = screen.getByRole('button', {
-      name: 'Mark Dune as finished',
-    }) as HTMLButtonElement;
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Dune as finished' }));
+    const button = screen.getByRole('button', { name: 'Confirm finish Dune' }) as HTMLButtonElement;
     fireEvent.click(button);
     expect(button.textContent).toContain('Finishing…');
     expect(button.disabled).toBe(true);
     resolve();
   });
 
-  it('shows an inline error and keeps the sheet open on finish failure', async () => {
+  it('shows an inline error in the confirm prompt on finish failure', async () => {
     const { mockDialogRef } = await setup(
       {},
       { markFinished: vi.fn(() => throwError(() => new Error('server error'))) },
     );
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
     fireEvent.click(screen.getByRole('button', { name: 'Mark Dune as finished' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm finish Dune' }));
     expect(screen.getByRole('alert').textContent).toContain('Failed to finish');
     expect(mockDialogRef.close).not.toHaveBeenCalled();
   });
