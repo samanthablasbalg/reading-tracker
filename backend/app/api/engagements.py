@@ -99,6 +99,18 @@ def update_engagement_status(
     engagement.status = new_status
     if new_status == ReadingStatus.finished:
         engagement.finished_on = datetime.date.today()
+        page_count = engagement.book.default_page_count
+        if page_count is not None and engagement.resume_from_page != page_count:
+            db.add(
+                ProgressLog(
+                    engagement_id=engagement.id,
+                    logged_at=datetime.datetime.now(datetime.UTC),
+                    unit=LogUnit.pages,
+                    page_start=engagement.resume_from_page,
+                    page_end=page_count,
+                    new_ground=True,
+                )
+            )
     elif new_status == ReadingStatus.reading:
         engagement.finished_on = None
 
