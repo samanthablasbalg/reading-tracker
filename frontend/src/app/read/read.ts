@@ -9,15 +9,22 @@ import { EngagementService } from '../engagement.service';
   imports: [MatListModule, DatePipe],
   template: `
     <mat-list>
-      @for (engagement of engagements(); track engagement.id) {
+      @for (engagement of [...finishedEngagements(), ...dnfEngagements()]; track engagement.id) {
         <mat-list-item>
           <span matListItemTitle>{{ engagement.book.title }}</span>
           <span matListItemLine>
             {{ engagement.book.authors.map((a) => a.name).join(', ') }}
           </span>
-          <span matListItemLine
-            >Finished {{ engagement.finished_on | date: 'mediumDate' : 'UTC' }}</span
-          >
+          @if (engagement.finished_on) {
+            <span matListItemLine>
+              Finished {{ engagement.finished_on | date: 'mediumDate' : 'UTC' }}</span
+            >
+          }
+          @if (engagement.abandoned_on) {
+            <span matListItemLine>
+              Gave up on {{ engagement.abandoned_on | date: 'mediumDate' : 'UTC' }}</span
+            >
+          }
         </mat-list-item>
       } @empty {
         <p>No finished books yet.</p>
@@ -28,7 +35,13 @@ import { EngagementService } from '../engagement.service';
 export class ReadComponent {
   private readonly engagementService = inject(EngagementService);
 
-  protected readonly engagements = toSignal(this.engagementService.engagements('finished'), {
+  protected readonly finishedEngagements = toSignal(
+    this.engagementService.engagements('finished'),
+    {
+      initialValue: [],
+    },
+  );
+  protected readonly dnfEngagements = toSignal(this.engagementService.engagements('dnf'), {
     initialValue: [],
   });
 }

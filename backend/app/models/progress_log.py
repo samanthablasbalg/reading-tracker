@@ -4,8 +4,8 @@ import datetime
 import uuid
 from typing import TYPE_CHECKING
 
+from sqlalchemy import DateTime, ForeignKey, Text
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -21,7 +21,7 @@ class ProgressLog(TimestampMixin, Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     engagement_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("engagements.id"))
-    logged_at: Mapped[datetime.datetime]
+    logged_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))
     unit: Mapped[LogUnit] = mapped_column(SAEnum(LogUnit, name="log_unit"))
     page_start: Mapped[int | None]
     page_end: Mapped[int | None]

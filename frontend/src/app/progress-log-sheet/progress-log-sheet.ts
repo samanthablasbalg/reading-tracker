@@ -49,27 +49,49 @@ export interface ProgressLogSheetData {
       @if (error()) {
         <p role="alert">{{ error() }}</p>
       }
-      @if (confirming()) {
-        <p style="text-align: center; margin: 0;">
-          Finish and discard the page you entered ({{ pageControl.value }})?
-        </p>
-        <button
-          mat-flat-button
-          style="width: 100%;"
-          [disabled]="finishing()"
-          (click)="onFinish()"
-          [attr.aria-label]="'Confirm finish ' + data.title"
-        >
-          {{ finishing() ? 'Finishing…' : 'Finish' }}
-        </button>
-        <button
-          mat-button
-          style="width: 100%;"
-          [disabled]="finishing()"
-          (click)="confirming.set(false)"
-        >
-          Go back
-        </button>
+      @if (confirmingFinish() || confirmingDnf()) {
+        @if (confirmingFinish()) {
+          <p style="text-align: center; margin: 0;">
+            Finish and discard the page you entered ({{ pageControl.value }})?
+          </p>
+          <button
+            mat-flat-button
+            style="width: 100%;"
+            [disabled]="finishing()"
+            (click)="onFinish()"
+            [attr.aria-label]="'Confirm finish ' + data.title"
+          >
+            {{ finishing() ? 'Finishing…' : 'Finish' }}
+          </button>
+          <button
+            mat-button
+            style="width: 100%;"
+            [disabled]="finishing()"
+            (click)="confirmingFinish.set(false)"
+          >
+            Go back
+          </button>
+        }
+        @if (confirmingDnf()) {
+          <p style="text-align: center; margin: 0;">Give up on {{ data.title }}?</p>
+          <button
+            mat-flat-button
+            style="width: 100%;"
+            [disabled]="dnfing()"
+            (click)="onDnf()"
+            [attr.aria-label]="'Confirm dnf ' + data.title"
+          >
+            {{ dnfing() ? 'DNFing…' : 'Give Up' }}
+          </button>
+          <button
+            mat-button
+            style="width: 100%;"
+            [disabled]="dnfing()"
+            (click)="confirmingDnf.set(false)"
+          >
+            Go back
+          </button>
+        }
       } @else {
         <button
           mat-flat-button
@@ -89,6 +111,15 @@ export interface ProgressLogSheetData {
         >
           I finished the book
         </button>
+        <button
+          mat-button
+          style="width: 100%;"
+          [disabled]="saving() || finishing()"
+          (click)="onDnf()"
+          [attr.aria-label]="'Mark ' + data.title + ' as DNF'"
+        >
+          I'm giving up on this book
+        </button>
         <button mat-button style="width: 100%;" (click)="close()">Cancel</button>
       }
     </div>
@@ -104,7 +135,9 @@ export class ProgressLogSheetComponent {
 
   protected readonly saving = signal(false);
   protected readonly finishing = signal(false);
-  protected readonly confirming = signal(false);
+  protected readonly dnfing = signal(false);
+  protected readonly confirmingFinish = signal(false);
+  protected readonly confirmingDnf = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly effectiveMin: number =
     this.data.default_page_count != null
@@ -146,8 +179,8 @@ export class ProgressLogSheetComponent {
 
   protected onFinish(): void {
     if (this.finishing() || this.saving()) return;
-    if (this.pageControl.value !== this.data.resume_from_page && !this.confirming()) {
-      this.confirming.set(true);
+    if (this.pageControl.value !== this.data.resume_from_page && !this.confirmingFinish()) {
+      this.confirmingFinish.set(true);
       return;
     }
     this.finishing.set(true);
@@ -161,6 +194,27 @@ export class ProgressLogSheetComponent {
       error: () => {
         this.finishing.set(false);
         this.error.set('Failed to finish. Please try again.');
+      },
+    });
+  }
+
+  protected onDnf(): void {
+    if (this.finishing() || this.saving()) return;
+    if (!this.confirmingDnf()) {
+      this.confirmingDnf.set(true);
+      return;
+    }
+    this.dnfing.set(true);
+    this.error.set(null);
+
+    this.engagementService.markDnf(this.data.engagementId).subscribe({
+      next: () => {
+        this.engagementService.reloadEngagements();
+        this.close();
+      },
+      error: () => {
+        this.dnfing.set(false);
+        this.error.set('Failed to DNF. Please try again.');
       },
     });
   }
