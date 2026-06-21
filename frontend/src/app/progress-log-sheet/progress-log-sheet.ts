@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -49,54 +49,11 @@ export interface ProgressLogSheetData {
       @if (error()) {
         <p role="alert">{{ error() }}</p>
       }
-      @if (confirmingFinish() || confirmingDnf()) {
-        @if (confirmingFinish()) {
-          <p style="text-align: center; margin: 0;">
-            Finish and discard the page you entered ({{ pageControl.value }})?
-          </p>
-          <button
-            mat-flat-button
-            style="width: 100%;"
-            [disabled]="finishing()"
-            (click)="onFinish()"
-            [attr.aria-label]="'Confirm finish ' + data.title"
-          >
-            {{ finishing() ? 'Finishing…' : 'Finish' }}
-          </button>
-          <button
-            mat-button
-            style="width: 100%;"
-            [disabled]="finishing()"
-            (click)="confirmingFinish.set(false)"
-          >
-            Go back
-          </button>
-        }
-        @if (confirmingDnf()) {
-          <p style="text-align: center; margin: 0;">Give up on {{ data.title }}?</p>
-          <button
-            mat-flat-button
-            style="width: 100%;"
-            [disabled]="dnfing()"
-            (click)="onDnf()"
-            [attr.aria-label]="'Confirm dnf ' + data.title"
-          >
-            {{ dnfing() ? 'DNFing…' : 'Give Up' }}
-          </button>
-          <button
-            mat-button
-            style="width: 100%;"
-            [disabled]="dnfing()"
-            (click)="confirmingDnf.set(false)"
-          >
-            Go back
-          </button>
-        }
-      } @else {
+      @if (mode() === 'idle') {
         <button
           mat-flat-button
           style="width: 100%;"
-          [disabled]="pageControl.invalid || saving()"
+          [disabled]="pageControl.invalid || submitting()"
           (click)="save()"
           [attr.aria-label]="'Save progress for ' + data.title"
         >
@@ -105,7 +62,7 @@ export interface ProgressLogSheetData {
         <button
           mat-button
           style="width: 100%;"
-          [disabled]="saving() || finishing()"
+          [disabled]="submitting()"
           (click)="onFinish()"
           [attr.aria-label]="'Mark ' + data.title + ' as finished'"
         >
@@ -114,13 +71,34 @@ export interface ProgressLogSheetData {
         <button
           mat-button
           style="width: 100%;"
-          [disabled]="saving() || finishing()"
+          [disabled]="submitting()"
           (click)="onDnf()"
           [attr.aria-label]="'Mark ' + data.title + ' as DNF'"
         >
           I'm giving up on this book
         </button>
         <button mat-button style="width: 100%;" (click)="close()">Cancel</button>
+      } @else {
+        <p style="text-align: center; margin: 0;">
+          {{ confirmText().prompt }}
+        </p>
+        <button
+          mat-flat-button
+          style="width: 100%;"
+          [disabled]="submitting()"
+          (click)="onConfirm()"
+          [attr.aria-label]="confirmText().ariaLabel"
+        >
+          {{ submitting() ? confirmText().submittingLabel : confirmText().label }}
+        </button>
+        <button
+          mat-button
+          style="width: 100%;"
+          [disabled]="submitting()"
+          (click)="mode.set('idle')"
+        >
+          Go back
+        </button>
       }
     </div>
   `,
@@ -134,11 +112,30 @@ export class ProgressLogSheetComponent {
   private readonly engagementService = inject(EngagementService);
 
   protected readonly saving = signal(false);
-  protected readonly finishing = signal(false);
-  protected readonly dnfing = signal(false);
-  protected readonly confirmingFinish = signal(false);
-  protected readonly confirmingDnf = signal(false);
+  protected readonly mode = signal<
+    'idle' | 'finishing' | 'dnfing' | 'confirmingFinish' | 'confirmingDnf'
+  >('idle');
   protected readonly error = signal<string | null>(null);
+  protected readonly submitting = computed(
+    () => this.mode() === 'finishing' || this.mode() === 'dnfing' || this.saving(),
+  );
+  protected readonly confirmText = computed(() => {
+    if (this.mode() === 'confirmingFinish' || this.mode() === 'finishing') {
+      return {
+        prompt: `Finish and discard the page you entered (${this.pageControl.value})?`,
+        label: 'Finish',
+        ariaLabel: 'Confirm finish ' + this.data.title,
+        submittingLabel: 'Finishing...',
+      };
+    } else {
+      return {
+        prompt: `Give up on ${this.data.title}?`,
+        label: 'Give Up',
+        ariaLabel: 'Confirm dnf ' + this.data.title,
+        submittingLabel: 'DNFing...',
+      };
+    }
+  });
   protected readonly effectiveMin: number =
     this.data.default_page_count != null
       ? Math.min(this.data.resume_from_page + 1, this.data.default_page_count)
@@ -152,6 +149,16 @@ export class ProgressLogSheetComponent {
         : []),
     ],
   });
+
+  constructor() {
+    effect(() => {
+      if (this.mode() === 'idle') {
+        this.pageControl.enable();
+      } else {
+        this.pageControl.disable();
+      }
+    });
+  }
 
   protected save(): void {
     if (this.pageControl.invalid || this.saving()) return;
@@ -178,12 +185,15 @@ export class ProgressLogSheetComponent {
   }
 
   protected onFinish(): void {
-    if (this.finishing() || this.saving()) return;
-    if (this.pageControl.value !== this.data.resume_from_page && !this.confirmingFinish()) {
-      this.confirmingFinish.set(true);
+    if (this.mode() === 'finishing' || this.saving()) return;
+    if (
+      this.pageControl.value !== this.data.resume_from_page &&
+      this.mode() !== 'confirmingFinish'
+    ) {
+      this.mode.set('confirmingFinish');
       return;
     }
-    this.finishing.set(true);
+    this.mode.set('finishing');
     this.error.set(null);
 
     this.engagementService.markFinished(this.data.engagementId).subscribe({
@@ -192,19 +202,19 @@ export class ProgressLogSheetComponent {
         this.close();
       },
       error: () => {
-        this.finishing.set(false);
+        this.mode.set('idle');
         this.error.set('Failed to finish. Please try again.');
       },
     });
   }
 
   protected onDnf(): void {
-    if (this.finishing() || this.saving()) return;
-    if (!this.confirmingDnf()) {
-      this.confirmingDnf.set(true);
+    if (this.mode() === 'dnfing' || this.saving()) return;
+    if (this.mode() !== 'confirmingDnf') {
+      this.mode.set('confirmingDnf');
       return;
     }
-    this.dnfing.set(true);
+    this.mode.set('dnfing');
     this.error.set(null);
 
     this.engagementService.markDnf(this.data.engagementId).subscribe({
@@ -213,10 +223,19 @@ export class ProgressLogSheetComponent {
         this.close();
       },
       error: () => {
-        this.dnfing.set(false);
+        this.mode.set('idle');
         this.error.set('Failed to DNF. Please try again.');
       },
     });
+  }
+
+  protected onConfirm(): void {
+    if (this.mode() === 'confirmingFinish') {
+      this.onFinish();
+    }
+    if (this.mode() === 'confirmingDnf') {
+      this.onDnf();
+    }
   }
 
   protected close(): void {
