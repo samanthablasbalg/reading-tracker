@@ -121,8 +121,11 @@ export class ProgressLogSheetComponent {
   );
   protected readonly confirmText = computed(() => {
     if (this.mode() === 'confirmingFinish' || this.mode() === 'finishing') {
+      const discarding = this.pageControl.value !== this.data.resume_from_page;
       return {
-        prompt: `Finish and discard the page you entered (${this.pageControl.value})?`,
+        prompt: discarding
+          ? `Finish and discard the page you entered (${this.pageControl.value})?`
+          : `Mark "${this.data.title}" as finished?`,
         label: 'Finish',
         ariaLabel: 'Confirm finish ' + this.data.title,
         submittingLabel: 'Finishing...',
@@ -161,7 +164,9 @@ export class ProgressLogSheetComponent {
   }
 
   protected save(): void {
-    if (this.pageControl.invalid || this.saving()) return;
+    if (this.pageControl.invalid || this.saving()) {
+      return;
+    }
     const page = this.pageControl.value as number;
     this.saving.set(true);
     this.error.set(null);
@@ -186,10 +191,7 @@ export class ProgressLogSheetComponent {
 
   protected onFinish(): void {
     if (this.mode() === 'finishing' || this.saving()) return;
-    if (
-      this.pageControl.value !== this.data.resume_from_page &&
-      this.mode() !== 'confirmingFinish'
-    ) {
+    if (this.mode() !== 'confirmingFinish') {
       this.mode.set('confirmingFinish');
       return;
     }
