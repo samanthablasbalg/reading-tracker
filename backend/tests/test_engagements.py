@@ -192,6 +192,88 @@ def test_patch_back_to_reading_conflicts_when_another_active_read_exists(
     assert response.status_code == 409
 
 
+# --- DNF transition ---
+
+
+def test_patch_to_dnf_sets_abandoned_on_from_last_log(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 100)
+    _set_logged_at(
+        db, engagement["id"], datetime.datetime(2026, 5, 15, tzinfo=datetime.UTC)
+    )
+
+    response = client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "dnf"
+    assert data["abandoned_on"] == "2026-05-15"
+
+
+def test_patch_to_dnf_sets_abandoned_on_to_today_when_no_logs(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+
+    response = client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "dnf"
+    assert data["abandoned_on"] == datetime.date.today().isoformat()
+
+
+def test_patch_to_dnf_does_not_create_progress_log(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 50)
+
+    client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+
+    logs = (
+        db.execute(
+            select(ProgressLog).where(
+                ProgressLog.engagement_id == uuid.UUID(engagement["id"])
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(logs) == 1
+
+
+def test_patch_to_dnf_preserves_completion_pct(client: TestClient, db: Session) -> None:
+    book = _create_book(client)
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_page_count = 300
+    db.commit()
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 150)
+
+    response = client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+    assert response.status_code == 200
+    assert response.json()["completion_pct"] == 50
+
+
+def test_patch_dnf_to_reading_clears_abandoned_on(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}", json={"status": "reading"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "reading"
+    assert data["abandoned_on"] is None
+
+
 # --- List views ---
 
 
@@ -225,13 +307,61 @@ def test_list_finished_excludes_reading(client: TestClient) -> None:
 
 
 def test_list_invalid_status_returns_422(client: TestClient) -> None:
-    response = client.get("/engagements?status=interested")
+    response = client.get("/engagements?status=bogus")
     assert response.status_code == 422
 
 
 def test_list_missing_status_returns_422(client: TestClient) -> None:
     response = client.get("/engagements")
     assert response.status_code == 422
+
+
+def test_list_multi_status_returns_all_matching(client: TestClient) -> None:
+    book_a = _create_book(client, title="Book A", author="Author A")
+    book_b = _create_book(client, title="Book B", author="Author B")
+    book_c = _create_book(client, title="Book C", author="Author C")
+    eng_a = _create_engagement(client, book_a["id"])
+    eng_b = _create_engagement(client, book_b["id"])
+    _create_engagement(client, book_c["id"])
+    client.patch(f"/engagements/{eng_a['id']}", json={"status": "finished"})
+    client.patch(f"/engagements/{eng_b['id']}", json={"status": "dnf"})
+
+    response = client.get("/engagements?status=finished&status=dnf")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 2
+    assert {e["book"]["title"] for e in data} == {"Book A", "Book B"}
+
+
+def test_list_multi_status_excludes_other_statuses(client: TestClient) -> None:
+    book_a = _create_book(client, title="Book A", author="Author A")
+    book_b = _create_book(client, title="Book B", author="Author B")
+    eng_a = _create_engagement(client, book_a["id"])
+    _create_engagement(client, book_b["id"])
+    client.patch(f"/engagements/{eng_a['id']}", json={"status": "finished"})
+
+    response = client.get("/engagements?status=finished&status=dnf")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["book"]["title"] == "Book A"
+
+
+def test_list_multi_status_sorts_by_most_recent_activity(
+    client: TestClient, db: Session
+) -> None:
+    book_a = _create_book(client, title="Book A", author="Author A")
+    book_b = _create_book(client, title="Book B", author="Author B")
+    eng_a = _create_engagement(client, book_a["id"])
+    eng_b = _create_engagement(client, book_b["id"])
+    client.patch(f"/engagements/{eng_a['id']}", json={"status": "finished"})
+    client.patch(f"/engagements/{eng_b['id']}", json={"status": "dnf"})
+
+    _set_updated_at(db, eng_a["id"], datetime.datetime(2026, 3, 1, tzinfo=datetime.UTC))
+    _set_updated_at(db, eng_b["id"], datetime.datetime(2026, 5, 1, tzinfo=datetime.UTC))
+
+    data = client.get("/engagements?status=finished&status=dnf").json()
+    assert [e["book"]["title"] for e in data] == ["Book B", "Book A"]
 
 
 def test_list_empty_returns_empty_list(client: TestClient) -> None:
