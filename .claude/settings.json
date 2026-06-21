@@ -10,5 +10,19 @@
       "Bash(* /tmp/*)",
       "Write(/tmp/*)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r \".tool_input.file_path // .tool_response.filePath // empty\"); [ -n \"$f\" ] || exit 0; PC=/Users/samanthablasbalg/repos/reading-tracker/backend/venv/bin/pre-commit; cd /Users/samanthablasbalg/repos/reading-tracker || exit 0; \"$PC\" run --files \"$f\" >/dev/null 2>&1 || { out=$(\"$PC\" run --files \"$f\" 2>&1) || { printf \"%s\\n\" \"$out\" >&2; exit 2; }; }",
+            "statusMessage": "pre-commit"
+          }
+        ]
+      }
+    ]
   }
 }
