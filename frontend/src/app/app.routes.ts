@@ -12,7 +12,7 @@ export const routes: Routes = [
     loadComponent: () => import('./catalog/catalog').then((m) => m.CatalogComponent),
   },
   {
-    path: 'read',
-    loadComponent: () => import('./read/read').then((m) => m.ReadComponent),
+    path: 'concluded',
+    loadComponent: () => import('./concluded/concluded').then((m) => m.ConcludedComponent),
   },
 ];
