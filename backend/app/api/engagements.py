@@ -117,7 +117,9 @@ def update_engagement_status(
         case ReadingStatus.dnf:
             if engagement.progress_logs:
                 latest = max(engagement.progress_logs, key=lambda log: log.logged_at)
-                engagement.abandoned_on = latest.logged_at.date()
+                engagement.abandoned_on = latest.logged_at.astimezone(
+                    datetime.UTC
+                ).date()
             else:
                 engagement.abandoned_on = datetime.date.today()
 
