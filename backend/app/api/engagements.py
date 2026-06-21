@@ -270,7 +270,7 @@ def delete_binding(
 
 @router.get("", response_model=list[EngagementRead])
 def list_engagements(
-    status_filter: list[ReadingStatus] = Query(..., alias="status"),
+    status: ReadingStatus = Query(..., alias="status"),
     db: Session = Depends(get_db),
 ) -> list[EngagementRead]:
     latest_log_sq = (
@@ -281,17 +281,19 @@ def list_engagements(
         .group_by(ProgressLog.engagement_id)
         .subquery()
     )
+    order_key = {
+        ReadingStatus.reading: func.greatest(
+            Engagement.updated_at, latest_log_sq.c.max_logged_at
+        ),
+        ReadingStatus.finished: Engagement.finished_on,
+        ReadingStatus.dnf: Engagement.abandoned_on,
+    }[status]
     engagements = (
         db.execute(
             select(Engagement)
-            .where(Engagement.status.in_(status_filter))
+            .where(Engagement.status == status)
             .outerjoin(latest_log_sq, Engagement.id == latest_log_sq.c.engagement_id)
-            .order_by(
-                func.greatest(
-                    Engagement.updated_at, latest_log_sq.c.max_logged_at
-                ).desc(),
-                Engagement.id.asc(),
-            )
+            .order_by(order_key.desc(), Engagement.id.asc())
             .options(*_LOAD_OPTIONS)
         )
         .scalars()

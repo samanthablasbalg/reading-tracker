@@ -316,54 +316,6 @@ def test_list_missing_status_returns_422(client: TestClient) -> None:
     assert response.status_code == 422
 
 
-def test_list_multi_status_returns_all_matching(client: TestClient) -> None:
-    book_a = _create_book(client, title="Book A", author="Author A")
-    book_b = _create_book(client, title="Book B", author="Author B")
-    book_c = _create_book(client, title="Book C", author="Author C")
-    eng_a = _create_engagement(client, book_a["id"])
-    eng_b = _create_engagement(client, book_b["id"])
-    _create_engagement(client, book_c["id"])
-    client.patch(f"/engagements/{eng_a['id']}", json={"status": "finished"})
-    client.patch(f"/engagements/{eng_b['id']}", json={"status": "dnf"})
-
-    response = client.get("/engagements?status=finished&status=dnf")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 2
-    assert {e["book"]["title"] for e in data} == {"Book A", "Book B"}
-
-
-def test_list_multi_status_excludes_other_statuses(client: TestClient) -> None:
-    book_a = _create_book(client, title="Book A", author="Author A")
-    book_b = _create_book(client, title="Book B", author="Author B")
-    eng_a = _create_engagement(client, book_a["id"])
-    _create_engagement(client, book_b["id"])
-    client.patch(f"/engagements/{eng_a['id']}", json={"status": "finished"})
-
-    response = client.get("/engagements?status=finished&status=dnf")
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data) == 1
-    assert data[0]["book"]["title"] == "Book A"
-
-
-def test_list_multi_status_sorts_by_most_recent_activity(
-    client: TestClient, db: Session
-) -> None:
-    book_a = _create_book(client, title="Book A", author="Author A")
-    book_b = _create_book(client, title="Book B", author="Author B")
-    eng_a = _create_engagement(client, book_a["id"])
-    eng_b = _create_engagement(client, book_b["id"])
-    client.patch(f"/engagements/{eng_a['id']}", json={"status": "finished"})
-    client.patch(f"/engagements/{eng_b['id']}", json={"status": "dnf"})
-
-    _set_updated_at(db, eng_a["id"], datetime.datetime(2026, 3, 1, tzinfo=datetime.UTC))
-    _set_updated_at(db, eng_b["id"], datetime.datetime(2026, 5, 1, tzinfo=datetime.UTC))
-
-    data = client.get("/engagements?status=finished&status=dnf").json()
-    assert [e["book"]["title"] for e in data] == ["Book B", "Book A"]
-
-
 def test_list_empty_returns_empty_list(client: TestClient) -> None:
     response = client.get("/engagements?status=reading")
     assert response.status_code == 200
@@ -605,6 +557,20 @@ def _set_logged_at(db: Session, engagement_id: str, when: datetime.datetime) -> 
     db.commit()
 
 
+def _set_finished_on(db: Session, engagement_id: str, when: datetime.date) -> None:
+    engagement = db.get(Engagement, uuid.UUID(engagement_id))
+    assert engagement is not None
+    engagement.finished_on = when
+    db.commit()
+
+
+def _set_abandoned_on(db: Session, engagement_id: str, when: datetime.date) -> None:
+    engagement = db.get(Engagement, uuid.UUID(engagement_id))
+    assert engagement is not None
+    engagement.abandoned_on = when
+    db.commit()
+
+
 def test_list_reading_orders_more_recently_marked_first(
     client: TestClient, db: Session
 ) -> None:
@@ -680,6 +646,49 @@ def test_list_reading_order_stable_for_identical_activity(
     first_order = [e["id"] for e in client.get("/engagements?status=reading").json()]
     second_order = [e["id"] for e in client.get("/engagements?status=reading").json()]
     assert first_order == second_order
+
+
+def test_list_finished_orders_by_finished_on_not_last_touch(
+    client: TestClient, db: Session
+) -> None:
+    # A finished later but was touched earlier; B finished earlier but was
+    # touched more recently (as a future review edit would). Order must follow
+    # finished_on, not last-touch.
+    book_a = _create_book(client, title="Book A", author="Author A")
+    book_b = _create_book(client, title="Book B", author="Author B")
+    eng_a = _create_engagement(client, book_a["id"])
+    eng_b = _create_engagement(client, book_b["id"])
+    client.patch(f"/engagements/{eng_a['id']}", json={"status": "finished"})
+    client.patch(f"/engagements/{eng_b['id']}", json={"status": "finished"})
+
+    _set_finished_on(db, eng_a["id"], datetime.date(2026, 5, 1))
+    _set_updated_at(db, eng_a["id"], datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC))
+    _set_finished_on(db, eng_b["id"], datetime.date(2026, 3, 1))
+    _set_updated_at(db, eng_b["id"], datetime.datetime(2026, 6, 1, tzinfo=datetime.UTC))
+
+    data = client.get("/engagements?status=finished").json()
+    assert [e["book"]["title"] for e in data] == ["Book A", "Book B"]
+
+
+def test_list_dnf_orders_by_abandoned_on_not_last_touch(
+    client: TestClient, db: Session
+) -> None:
+    # abandoned_on is backdated to the last progress date; last-touch is when
+    # give-up was clicked. Order must follow abandoned_on.
+    book_a = _create_book(client, title="Book A", author="Author A")
+    book_b = _create_book(client, title="Book B", author="Author B")
+    eng_a = _create_engagement(client, book_a["id"])
+    eng_b = _create_engagement(client, book_b["id"])
+    client.patch(f"/engagements/{eng_a['id']}", json={"status": "dnf"})
+    client.patch(f"/engagements/{eng_b['id']}", json={"status": "dnf"})
+
+    _set_abandoned_on(db, eng_a["id"], datetime.date(2026, 5, 1))
+    _set_updated_at(db, eng_a["id"], datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC))
+    _set_abandoned_on(db, eng_b["id"], datetime.date(2026, 3, 1))
+    _set_updated_at(db, eng_b["id"], datetime.datetime(2026, 6, 1, tzinfo=datetime.UTC))
+
+    data = client.get("/engagements?status=dnf").json()
+    assert [e["book"]["title"] for e in data] == ["Book A", "Book B"]
 
 
 # --- Derived cover ---
