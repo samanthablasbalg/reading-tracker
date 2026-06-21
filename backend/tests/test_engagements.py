@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.book import Book
+from app.models.edition import EngagementEdition
 from app.models.engagement import Engagement
 from app.models.progress_log import ProgressLog
 
@@ -20,11 +21,27 @@ def _create_book(
 ) -> dict[str, Any]:
     response = client.post("/books", json={"title": title, "author": author})
     assert response.status_code == 201
+    book = cast(dict[str, Any], response.json())
+    client.post("/editions", json={"book_id": book["id"], "edition_format": "print"})
+    client.post("/editions", json={"book_id": book["id"], "edition_format": "digital"})
+    client.post("/editions", json={"book_id": book["id"], "edition_format": "audio"})
+    return book
+
+
+def _create_bare_book(
+    client: TestClient,
+    title: str = "Piranesi",
+    author: str = "Susanna Clarke",
+) -> dict[str, Any]:
+    response = client.post("/books", json={"title": title, "author": author})
+    assert response.status_code == 201
     return cast(dict[str, Any], response.json())
 
 
 def _create_engagement(client: TestClient, book_id: str) -> dict[str, Any]:
-    response = client.post("/engagements", json={"book_id": book_id})
+    response = client.post(
+        "/engagements", json={"book_id": book_id, "edition_format": "print"}
+    )
     assert response.status_code == 201
     return cast(dict[str, Any], response.json())
 
@@ -73,7 +90,9 @@ def _bind_edition(
 
 def test_create_engagement_returns_201(client: TestClient) -> None:
     book = _create_book(client)
-    response = client.post("/engagements", json={"book_id": book["id"]})
+    response = client.post(
+        "/engagements", json={"book_id": book["id"], "edition_format": "print"}
+    )
     assert response.status_code == 201
     data = response.json()
     assert data["status"] == "reading"
@@ -81,10 +100,52 @@ def test_create_engagement_returns_201(client: TestClient) -> None:
     assert data["finished_on"] is None
     assert data["book"]["title"] == "Piranesi"
     assert data["book"]["authors"][0]["name"] == "Susanna Clarke"
+    assert data["formats"] == ["print"]
+
+
+def test_create_engagement_binds_chosen_non_print_format(client: TestClient) -> None:
+    book = _create_book(client)
+    response = client.post(
+        "/engagements", json={"book_id": book["id"], "edition_format": "audio"}
+    )
+    assert response.status_code == 201
+    assert response.json()["formats"] == ["audio"]
+
+
+def test_create_engagement_missing_edition_format_returns_422(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    response = client.post("/engagements", json={"book_id": book["id"]})
+    assert response.status_code == 422
+
+
+def test_create_engagement_no_edition_of_format_returns_404(client: TestClient) -> None:
+    response = client.post(
+        "/books", json={"title": "Piranesi", "author": "Susanna Clarke"}
+    )
+    book_id = response.json()["id"]
+    response = client.post(
+        "/engagements", json={"book_id": book_id, "edition_format": "print"}
+    )
+    assert response.status_code == 404
+
+
+def test_create_engagement_multiple_editions_of_format_returns_409(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    _create_edition(client, book["id"], isbn="9781526622426")
+    response = client.post(
+        "/engagements", json={"book_id": book["id"], "edition_format": "print"}
+    )
+    assert response.status_code == 409
 
 
 def test_create_engagement_unknown_book_returns_404(client: TestClient) -> None:
-    response = client.post("/engagements", json={"book_id": str(uuid.uuid4())})
+    response = client.post(
+        "/engagements", json={"book_id": str(uuid.uuid4()), "edition_format": "print"}
+    )
     assert response.status_code == 404
 
 
@@ -93,7 +154,9 @@ def test_create_engagement_duplicate_active_read_returns_409(
 ) -> None:
     book = _create_book(client)
     _create_engagement(client, book["id"])
-    response = client.post("/engagements", json={"book_id": book["id"]})
+    response = client.post(
+        "/engagements", json={"book_id": book["id"], "edition_format": "print"}
+    )
     assert response.status_code == 409
 
 
@@ -101,7 +164,9 @@ def test_create_engagement_on_finished_book_succeeds(client: TestClient) -> None
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
     client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
-    response = client.post("/engagements", json={"book_id": book["id"]})
+    response = client.post(
+        "/engagements", json={"book_id": book["id"], "edition_format": "print"}
+    )
     assert response.status_code == 201
     assert response.json()["status"] == "reading"
 
@@ -695,83 +760,52 @@ def test_list_dnf_orders_by_abandoned_on_not_last_touch(
 
 
 def test_cover_url_derived_from_bound_edition(client: TestClient) -> None:
-    book = _create_book(client)
+    book = _create_bare_book(client)
+    _create_edition(client, book["id"], cover_url="https://covers.example/ed.jpg")
     engagement = _create_engagement(client, book["id"])
-    edition = _create_edition(
-        client, book["id"], cover_url="https://covers.example/ed.jpg"
-    )
-    _bind_edition(client, engagement["id"], edition["id"])
 
-    data = client.get("/engagements?status=reading").json()
-    assert data[0]["cover_url"] == "https://covers.example/ed.jpg"
+    assert engagement["cover_url"] == "https://covers.example/ed.jpg"
 
 
 def test_cover_url_falls_back_to_book_default_when_edition_has_no_cover(
     client: TestClient, db: Session
 ) -> None:
-    book = _create_book(client)
+    book = _create_bare_book(client)
     book_obj = db.get(Book, uuid.UUID(book["id"]))
     assert book_obj is not None
     book_obj.default_cover_url = "https://covers.example/default.jpg"
     db.commit()
 
-    engagement = _create_engagement(client, book["id"])
-    edition = _create_edition(client, book["id"])
-    _bind_edition(client, engagement["id"], edition["id"])
-
-    data = client.get("/engagements?status=reading").json()
-    assert data[0]["cover_url"] == "https://covers.example/default.jpg"
-
-
-def test_cover_url_falls_back_to_book_default_without_any_binding(
-    client: TestClient, db: Session
-) -> None:
-    book = _create_book(client)
-    book_obj = db.get(Book, uuid.UUID(book["id"]))
-    assert book_obj is not None
-    book_obj.default_cover_url = "https://covers.example/default.jpg"
-    db.commit()
-
+    _create_edition(client, book["id"])
     engagement = _create_engagement(client, book["id"])
 
     assert engagement["cover_url"] == "https://covers.example/default.jpg"
 
 
-def test_cover_url_is_null_when_no_binding_and_no_book_default(
-    client: TestClient,
-) -> None:
-    book = _create_book(client)
-    engagement = _create_engagement(client, book["id"])
-    assert engagement["cover_url"] is None
-
-
 def test_cover_url_is_null_when_edition_has_no_cover_and_book_has_no_default(
     client: TestClient,
 ) -> None:
-    book = _create_book(client)
+    book = _create_bare_book(client)
+    _create_edition(client, book["id"])
     engagement = _create_engagement(client, book["id"])
-    edition = _create_edition(client, book["id"])
-    _bind_edition(client, engagement["id"], edition["id"])
 
-    data = client.get("/engagements?status=reading").json()
-    assert data[0]["cover_url"] is None
+    assert engagement["cover_url"] is None
 
 
 # --- Derived formats ---
 
 
-def test_formats_is_empty_without_bindings(client: TestClient) -> None:
+def test_formats_reflects_chosen_format_at_creation(client: TestClient) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
-    assert engagement["formats"] == []
+    assert engagement["formats"] == ["print"]
 
 
 def test_formats_derived_from_bound_editions(client: TestClient) -> None:
-    book = _create_book(client)
-    engagement = _create_engagement(client, book["id"])
-    print_ed = _create_edition(client, book["id"])
+    book = _create_bare_book(client)
+    _create_edition(client, book["id"])
     digital_ed = _create_edition(client, book["id"], edition_format="digital")
-    _bind_edition(client, engagement["id"], print_ed["id"])
+    engagement = _create_engagement(client, book["id"])
     _bind_edition(client, engagement["id"], digital_ed["id"])
 
     data = client.get("/engagements?status=reading").json()
@@ -781,11 +815,21 @@ def test_formats_derived_from_bound_editions(client: TestClient) -> None:
 # --- completion_pct via binding ---
 
 
-def test_completion_pct_uses_binding_length_override(client: TestClient) -> None:
-    book = _create_book(client)
+def test_completion_pct_uses_binding_length_override(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_bare_book(client)
+    _create_edition(client, book["id"], page_count=400)
     engagement = _create_engagement(client, book["id"])
-    edition = _create_edition(client, book["id"], page_count=400)
-    _bind_edition(client, engagement["id"], edition["id"], length_override=200)
+
+    binding = db.execute(
+        select(EngagementEdition).where(
+            EngagementEdition.engagement_id == uuid.UUID(engagement["id"])
+        )
+    ).scalar_one()
+    binding.length_override = 200
+    db.commit()
+
     _log_progress(client, engagement["id"], 100)
 
     data = client.get("/engagements?status=reading").json()
@@ -795,10 +839,9 @@ def test_completion_pct_uses_binding_length_override(client: TestClient) -> None
 def test_completion_pct_uses_edition_page_count_when_no_override(
     client: TestClient,
 ) -> None:
-    book = _create_book(client)
+    book = _create_bare_book(client)
+    _create_edition(client, book["id"], page_count=400)
     engagement = _create_engagement(client, book["id"])
-    edition = _create_edition(client, book["id"], page_count=400)
-    _bind_edition(client, engagement["id"], edition["id"])
     _log_progress(client, engagement["id"], 200)
 
     data = client.get("/engagements?status=reading").json()
@@ -808,15 +851,23 @@ def test_completion_pct_uses_edition_page_count_when_no_override(
 def test_completion_pct_binding_takes_precedence_over_book_page_count(
     client: TestClient, db: Session
 ) -> None:
-    book = _create_book(client)
+    book = _create_bare_book(client)
     book_obj = db.get(Book, uuid.UUID(book["id"]))
     assert book_obj is not None
     book_obj.default_page_count = 400
     db.commit()
 
+    _create_edition(client, book["id"])
     engagement = _create_engagement(client, book["id"])
-    edition = _create_edition(client, book["id"])
-    _bind_edition(client, engagement["id"], edition["id"], length_override=200)
+
+    binding = db.execute(
+        select(EngagementEdition).where(
+            EngagementEdition.engagement_id == uuid.UUID(engagement["id"])
+        )
+    ).scalar_one()
+    binding.length_override = 200
+    db.commit()
+
     _log_progress(client, engagement["id"], 100)
 
     data = client.get("/engagements?status=reading").json()
