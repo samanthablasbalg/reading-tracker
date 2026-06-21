@@ -12,6 +12,7 @@ from app.schemas.book import BookRead
 
 class EngagementCreate(BaseModel):
     book_id: uuid.UUID
+    edition_format: Format
 
 
 class EngagementStatusUpdate(BaseModel):

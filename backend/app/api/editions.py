@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -28,7 +29,11 @@ def create_edition(
         cover_url=payload.cover_url,
     )
     db.add(edition)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT) from None
     db.refresh(edition)
     return EditionRead.model_validate(edition)
 

@@ -66,6 +66,34 @@ def create_engagement(
         started_on=datetime.date.today(),
     )
     db.add(engagement)
+    db.flush()
+
+    candidates = (
+        db.execute(
+            select(Edition).where(
+                Edition.book_id == payload.book_id,
+                Edition.edition_format == payload.edition_format,
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if len(candidates) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No {payload.edition_format} edition exists for this book",
+        )
+    if len(candidates) > 1:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"This book has more than one {payload.edition_format} edition, so"
+                " the app can't tell which one to start reading. Choosing a specific"
+                " edition when starting a read isn't supported yet."
+            ),
+        )
+    db.add(EngagementEdition(engagement_id=engagement.id, edition_id=candidates[0].id))
+
     db.commit()
 
     return EngagementRead.model_validate(_fetch(engagement.id, db))
