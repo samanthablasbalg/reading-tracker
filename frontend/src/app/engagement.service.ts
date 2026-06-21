@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Book } from './book.service';
 
-export type EngagementStatus = 'reading' | 'finished';
+export type EngagementStatus = 'reading' | 'finished' | 'dnf';
 
 export type EngagedBook = Pick<Book, 'id' | 'title' | 'authors' | 'default_page_count'>;
 
@@ -15,6 +15,7 @@ export interface Engagement {
   status: EngagementStatus;
   started_on: string | null;
   finished_on: string | null;
+  abandoned_on: string | null;
   resume_from_page: number;
   completion_pct: number | null;
 }
@@ -60,6 +61,10 @@ export class EngagementService {
 
   markFinished(engagementId: string): Observable<Engagement> {
     return this.http.patch<Engagement>(`/api/engagements/${engagementId}`, { status: 'finished' });
+  }
+
+  markDnf(engagementId: string): Observable<Engagement> {
+    return this.http.patch<Engagement>(`/api/engagements/${engagementId}`, { status: 'dnf' });
   }
 
   logProgress(engagementId: string, currentPage: number): Observable<unknown> {
