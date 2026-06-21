@@ -15,7 +15,7 @@ class EngagementCreate(BaseModel):
 
 
 class EngagementStatusUpdate(BaseModel):
-    status: Literal["reading", "finished"]
+    status: Literal["reading", "finished", "dnf"]
 
 
 class EngagementRead(BaseModel):
@@ -26,6 +26,7 @@ class EngagementRead(BaseModel):
     status: ReadingStatus
     started_on: datetime.date | None
     finished_on: datetime.date | None
+    abandoned_on: datetime.date | None
     resume_from_page: int
     completion_pct: int | None
     created_at: datetime.datetime
