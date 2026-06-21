@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -97,22 +96,30 @@ def update_engagement_status(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
     engagement.status = new_status
-    if new_status == ReadingStatus.finished:
-        engagement.finished_on = datetime.date.today()
-        page_count = engagement.book.default_page_count
-        if page_count is not None and engagement.resume_from_page != page_count:
-            db.add(
-                ProgressLog(
-                    engagement_id=engagement.id,
-                    logged_at=datetime.datetime.now(datetime.UTC),
-                    unit=LogUnit.pages,
-                    page_start=engagement.resume_from_page,
-                    page_end=page_count,
-                    new_ground=True,
+    match new_status:
+        case ReadingStatus.reading:
+            engagement.finished_on = None
+            engagement.abandoned_on = None
+        case ReadingStatus.finished:
+            engagement.finished_on = datetime.date.today()
+            page_count = engagement.book.default_page_count
+            if page_count is not None and engagement.resume_from_page != page_count:
+                db.add(
+                    ProgressLog(
+                        engagement_id=engagement.id,
+                        logged_at=datetime.datetime.now(datetime.UTC),
+                        unit=LogUnit.pages,
+                        page_start=engagement.resume_from_page,
+                        page_end=page_count,
+                        new_ground=True,
+                    )
                 )
-            )
-    elif new_status == ReadingStatus.reading:
-        engagement.finished_on = None
+        case ReadingStatus.dnf:
+            if engagement.progress_logs:
+                latest = max(engagement.progress_logs, key=lambda log: log.logged_at)
+                engagement.abandoned_on = latest.logged_at.date()
+            else:
+                engagement.abandoned_on = datetime.date.today()
 
     db.commit()
 
@@ -261,7 +268,7 @@ def delete_binding(
 
 @router.get("", response_model=list[EngagementRead])
 def list_engagements(
-    status_filter: Literal["reading", "finished"] = Query(..., alias="status"),
+    status_filter: list[ReadingStatus] = Query(..., alias="status"),
     db: Session = Depends(get_db),
 ) -> list[EngagementRead]:
     latest_log_sq = (
@@ -275,7 +282,7 @@ def list_engagements(
     engagements = (
         db.execute(
             select(Engagement)
-            .where(Engagement.status == status_filter)
+            .where(Engagement.status.in_(status_filter))
             .outerjoin(latest_log_sq, Engagement.id == latest_log_sq.c.engagement_id)
             .order_by(
                 func.greatest(
