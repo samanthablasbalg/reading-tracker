@@ -11,7 +11,7 @@ from app.database import get_db
 from app.models.book import Book, BookAuthor
 from app.models.edition import Edition, EngagementEdition
 from app.models.engagement import Engagement
-from app.models.enums import LogUnit, ReadingStatus
+from app.models.enums import Format, LogUnit, ReadingStatus
 from app.models.progress_log import ProgressLog
 from app.schemas.edition import EngagementEditionCreate, EngagementEditionRead
 from app.schemas.engagement import (
@@ -171,19 +171,43 @@ def log_progress(
     if engagement.status != ReadingStatus.reading:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
-    page_start = engagement.resume_from_page
-    if payload.current_page <= page_start:
+    is_audio = Format.audio in engagement.formats
+    unit = LogUnit.minutes if is_audio else LogUnit.pages
+    position = payload.current_minute if is_audio else payload.current_page
+    resume = engagement.resume_from_minute if is_audio else engagement.resume_from_page
+
+    if position is None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+    if position <= resume:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
     log = ProgressLog(
         engagement_id=engagement_id,
         logged_at=datetime.datetime.now(datetime.UTC),
-        unit=LogUnit.pages,
-        page_start=page_start,
-        page_end=payload.current_page,
+        unit=unit,
+        minute_start=resume if is_audio else None,
+        minute_end=position if is_audio else None,
+        page_start=None if is_audio else resume,
+        page_end=None if is_audio else position,
         new_ground=True,
     )
     db.add(log)
+
+    if is_audio and payload.audio_length_minutes is not None:
+        length = payload.audio_length_minutes
+        if engagement.book.default_audio_minutes is None:
+            engagement.book.default_audio_minutes = length
+        audio_ee = next(
+            (
+                ee
+                for ee in engagement.engagement_editions
+                if ee.edition.edition_format == Format.audio
+            ),
+            None,
+        )
+        if audio_ee is not None and audio_ee.edition.audio_minutes is None:
+            audio_ee.edition.audio_minutes = length
+
     db.commit()
     db.refresh(log)
 
