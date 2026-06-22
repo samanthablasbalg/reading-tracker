@@ -5,7 +5,10 @@ import { Book } from './book.service';
 
 export type EngagementStatus = 'reading' | 'finished' | 'dnf';
 
-export type EngagedBook = Pick<Book, 'id' | 'title' | 'authors' | 'default_page_count'>;
+export type EngagedBook = Pick<
+  Book,
+  'id' | 'title' | 'authors' | 'default_page_count' | 'default_audio_minutes'
+>;
 
 export interface Engagement {
   id: string;
@@ -17,6 +20,7 @@ export interface Engagement {
   finished_on: string | null;
   abandoned_on: string | null;
   resume_from_page: number;
+  resume_from_minute: number;
   completion_pct: number | null;
 }
 
@@ -70,9 +74,10 @@ export class EngagementService {
     return this.http.patch<Engagement>(`/api/engagements/${engagementId}`, { status: 'dnf' });
   }
 
-  logProgress(engagementId: string, currentPage: number): Observable<unknown> {
-    return this.http.post<unknown>(`/api/engagements/${engagementId}/progress-logs`, {
-      current_page: currentPage,
-    });
+  logProgress(
+    engagementId: string,
+    payload: { current_page: number } | { current_minute: number; audio_length_minutes?: number },
+  ): Observable<unknown> {
+    return this.http.post<unknown>(`/api/engagements/${engagementId}/progress-logs`, payload);
   }
 }

@@ -171,7 +171,7 @@ export class ProgressLogSheetComponent {
     this.saving.set(true);
     this.error.set(null);
 
-    this.engagementService.logProgress(this.data.engagementId, page).subscribe({
+    this.engagementService.logProgress(this.data.engagementId, { current_page: page }).subscribe({
       next: () => {
         const completion_pct = this.data.default_page_count
           ? Math.min(100, Math.round((page / this.data.default_page_count) * 100))

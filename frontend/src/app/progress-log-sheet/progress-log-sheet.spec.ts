@@ -84,7 +84,7 @@ describe('ProgressLogSheetComponent', () => {
     const { mockEngagementService } = await setup();
     fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
-    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 100);
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', { current_page: 100 });
   });
 
   it('patches the engagement in place and closes on save success', async () => {
@@ -161,7 +161,7 @@ describe('ProgressLogSheetComponent', () => {
     const { mockEngagementService } = await setup({ default_page_count: 300 });
     fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '300' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
-    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 300);
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', { current_page: 300 });
   });
 
   it('enables Save on open when resume_from_page equals the page count', async () => {
@@ -178,7 +178,7 @@ describe('ProgressLogSheetComponent', () => {
       default_page_count: 200,
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
-    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 200);
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', { current_page: 200 });
   });
 
   it('closes the sheet without saving when cancel is clicked', async () => {
