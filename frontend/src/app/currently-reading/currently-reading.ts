@@ -147,7 +147,8 @@ import { formatIcon } from '../format-icon';
                   @if (engagement.formats[0]) {
                     <mat-icon
                       class="format-icon"
-                      [attr.aria-label]="'Format: ' + engagement.formats[0]"
+                      aria-hidden="false"
+                      [aria-label]="'Format: ' + engagement.formats[0]"
                       >{{ formatIcon(engagement.formats[0]) }}</mat-icon
                     >
                   }

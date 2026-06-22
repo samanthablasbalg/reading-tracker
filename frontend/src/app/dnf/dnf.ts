@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgOptimizedImage } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { MatDivider } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { EngagementService } from '../engagement.service';
@@ -8,7 +9,7 @@ import { formatIcon } from '../format-icon';
 
 @Component({
   selector: 'app-dnf',
-  imports: [MatListModule, MatIconModule, DatePipe],
+  imports: [MatListModule, MatIconModule, MatDivider, NgOptimizedImage, DatePipe],
   styles: [
     `
       .format-icon {
@@ -23,13 +24,23 @@ import { formatIcon } from '../format-icon';
     <mat-list>
       @for (engagement of dnfEngagements(); track engagement.id) {
         <mat-list-item>
+          @if (engagement.cover_url) {
+            <img
+              matListItemAvatar
+              [ngSrc]="engagement.cover_url"
+              width="40"
+              height="40"
+              [alt]="engagement.book.title + ' cover'"
+            />
+          }
           <span matListItemTitle>{{ engagement.book.title }}</span>
           <span matListItemLine>
             {{ engagement.book.authors.map((a) => a.name).join(', ') }}
             @if (engagement.formats[0]) {
               <mat-icon
                 class="format-icon"
-                [attr.aria-label]="'Format: ' + engagement.formats[0]"
+                aria-hidden="false"
+                [aria-label]="'Format: ' + engagement.formats[0]"
                 >{{ formatIcon(engagement.formats[0]) }}</mat-icon
               >
             }
@@ -39,6 +50,9 @@ import { formatIcon } from '../format-icon';
             {{ engagement.completion_pct }}%
           </span>
         </mat-list-item>
+        @if (!$last) {
+          <mat-divider />
+        }
       } @empty {
         <p>No DNFed books yet.</p>
       }
