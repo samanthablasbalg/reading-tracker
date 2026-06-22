@@ -95,21 +95,39 @@ class Engagement(TimestampMixin, Base):
         latest = max(minute_logs, key=lambda log: log.logged_at)
         return latest.minute_end if latest.minute_end is not None else 0
 
+    def _resolve_length(self, fmt: Format) -> int | None:
+        for ee in self.engagement_editions:
+            if ee.edition.edition_format == fmt:
+                candidate = ee.length_override or (
+                    ee.edition.audio_minutes
+                    if fmt == Format.audio
+                    else ee.edition.page_count
+                )
+                if candidate:
+                    return candidate
+        if fmt == Format.audio:
+            return self.book.default_audio_minutes or None
+        return self.book.default_page_count or None
+
     @property
     def completion_pct(self) -> int | None:
         if not self.progress_logs:
             return None
-        latest = max(self.progress_logs, key=lambda log: log.logged_at)
-        if latest.page_end is None:
-            return None
-        denominator: int | None = None
-        for ee in self.engagement_editions:
-            candidate = ee.length_override or ee.edition.page_count
-            if candidate:
-                denominator = candidate
-                break
-        if denominator is None:
-            denominator = self.book.default_page_count or None
+        if Format.audio in self.formats:
+            minute_logs = [
+                log for log in self.progress_logs if log.minute_end is not None
+            ]
+            if not minute_logs:
+                return None
+            latest = max(minute_logs, key=lambda log: log.logged_at)
+            position = latest.minute_end if latest.minute_end is not None else 0
+            denominator = self._resolve_length(Format.audio)
+        else:
+            latest = max(self.progress_logs, key=lambda log: log.logged_at)
+            if latest.page_end is None:
+                return None
+            position = latest.page_end
+            denominator = self._resolve_length(Format.print)
         if not denominator:
             return None
-        return max(0, min(100, round(latest.page_end / denominator * 100)))
+        return max(0, min(100, round(position / denominator * 100)))
