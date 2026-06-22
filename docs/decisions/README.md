@@ -78,3 +78,4 @@ The concrete trigger that would reopen this (e.g. "if this goes multi-user").
 | [0020](0020-currently-reading-cover-led-rows-sorted-on-load.md) | Currently Reading: cover-led rows, sorted on load        | **Accepted**                                                  |
 | [0021](0021-editions-and-engagement-edition.md)                 | Editions own format; read binds via EngagementEdition    | **Accepted**                                                  |
 | [0022](0022-seed-three-editions-per-book.md)                    | Adding a book seeds three editions, enriched at use      | **Accepted**                                                  |
+| [0023](0023-per-user-data-isolation-via-rls.md)                 | Per-user data isolation via Postgres row-level security  | **Accepted**                                                  |
