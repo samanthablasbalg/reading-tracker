@@ -177,7 +177,7 @@ def log_progress(
     resume = engagement.resume_from_minute if is_audio else engagement.resume_from_page
 
     if position is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
     if position <= resume:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 

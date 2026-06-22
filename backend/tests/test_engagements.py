@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.book import Book
-from app.models.edition import EngagementEdition
+from app.models.edition import Edition, EngagementEdition
 from app.models.engagement import Engagement
 from app.models.progress_log import ProgressLog
 
@@ -954,3 +954,235 @@ def test_finish_with_no_page_count_creates_no_log(
         .all()
     )
     assert len(logs) == 1
+
+
+# --- Audio progress logging ---
+
+
+def _create_audio_engagement(client: TestClient, book_id: str) -> dict[str, Any]:
+    response = client.post(
+        "/engagements", json={"book_id": book_id, "edition_format": "audio"}
+    )
+    assert response.status_code == 201
+    return cast(dict[str, Any], response.json())
+
+
+def _log_audio_progress(
+    client: TestClient,
+    engagement_id: str,
+    current_minute: int,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    response = client.post(
+        f"/engagements/{engagement_id}/progress-logs",
+        json={"current_minute": current_minute, **kwargs},
+    )
+    assert response.status_code == 201
+    return cast(dict[str, Any], response.json())
+
+
+def test_audio_log_returns_201_with_minutes_fields(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_audio_engagement(client, book["id"])
+
+    log = _log_audio_progress(client, engagement["id"], 75)
+
+    assert log["unit"] == "minutes"
+    assert log["minute_start"] == 0
+    assert log["minute_end"] == 75
+    assert log["page_start"] is None
+    assert log["page_end"] is None
+    assert log["new_ground"] is True
+
+
+def test_audio_log_derives_minute_start_from_last_log(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_audio_engagement(client, book["id"])
+    _log_audio_progress(client, engagement["id"], 75)
+
+    second = _log_audio_progress(client, engagement["id"], 150)
+
+    assert second["minute_start"] == 75
+    assert second["minute_end"] == 150
+
+
+def test_audio_engagement_resume_from_minute_is_zero_before_logging(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    engagement = _create_audio_engagement(client, book["id"])
+
+    assert engagement["resume_from_minute"] == 0
+
+
+def test_audio_engagement_resume_from_minute_reflects_latest_log(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    engagement = _create_audio_engagement(client, book["id"])
+    _log_audio_progress(client, engagement["id"], 75)
+    _log_audio_progress(client, engagement["id"], 150)
+
+    response = client.get("/engagements?status=reading")
+    assert response.json()[0]["resume_from_minute"] == 150
+
+
+def test_audio_log_advance_guard_equal_returns_409(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_audio_engagement(client, book["id"])
+    _log_audio_progress(client, engagement["id"], 75)
+
+    response = client.post(
+        f"/engagements/{engagement['id']}/progress-logs",
+        json={"current_minute": 75},
+    )
+    assert response.status_code == 409
+
+
+def test_audio_log_advance_guard_less_than_returns_409(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_audio_engagement(client, book["id"])
+    _log_audio_progress(client, engagement["id"], 75)
+
+    response = client.post(
+        f"/engagements/{engagement['id']}/progress-logs",
+        json={"current_minute": 50},
+    )
+    assert response.status_code == 409
+
+
+def test_audio_engagement_requires_current_minute(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_audio_engagement(client, book["id"])
+
+    response = client.post(
+        f"/engagements/{engagement['id']}/progress-logs",
+        json={"current_page": 100},
+    )
+    assert response.status_code == 422
+
+
+def test_print_engagement_requires_current_page(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+
+    response = client.post(
+        f"/engagements/{engagement['id']}/progress-logs",
+        json={"current_minute": 75},
+    )
+    assert response.status_code == 422
+
+
+def test_length_capture_writes_book_default_audio_minutes(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_audio_engagement(client, book["id"])
+
+    _log_audio_progress(client, engagement["id"], 75, audio_length_minutes=480)
+
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    assert book_obj.default_audio_minutes == 480
+
+
+def test_length_capture_writes_edition_audio_minutes(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_audio_engagement(client, book["id"])
+
+    _log_audio_progress(client, engagement["id"], 75, audio_length_minutes=480)
+
+    edition = db.execute(
+        select(Edition).where(
+            Edition.book_id == uuid.UUID(book["id"]),
+            Edition.edition_format == "audio",
+        )
+    ).scalar_one()
+    assert edition.audio_minutes == 480
+
+
+def test_length_capture_does_not_overwrite_existing_length(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_audio_minutes = 300
+    db.commit()
+    engagement = _create_audio_engagement(client, book["id"])
+
+    _log_audio_progress(client, engagement["id"], 75, audio_length_minutes=480)
+
+    db.refresh(book_obj)
+    assert book_obj.default_audio_minutes == 300
+
+
+def test_audio_completion_pct_uses_captured_length(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_audio_engagement(client, book["id"])
+    _log_audio_progress(client, engagement["id"], 240, audio_length_minutes=480)
+
+    response = client.get("/engagements?status=reading")
+    assert response.json()[0]["completion_pct"] == 50
+
+
+def test_audio_completion_pct_uses_edition_audio_minutes(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    edition = db.execute(
+        select(Edition).where(
+            Edition.book_id == uuid.UUID(book["id"]),
+            Edition.edition_format == "audio",
+        )
+    ).scalar_one()
+    edition.audio_minutes = 480
+    db.commit()
+    engagement = _create_audio_engagement(client, book["id"])
+    _log_audio_progress(client, engagement["id"], 240)
+
+    response = client.get("/engagements?status=reading")
+    assert response.json()[0]["completion_pct"] == 50
+
+
+def test_audio_completion_pct_falls_back_to_book_default_audio_minutes(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_audio_minutes = 480
+    db.commit()
+    engagement = _create_audio_engagement(client, book["id"])
+    _log_audio_progress(client, engagement["id"], 240)
+
+    response = client.get("/engagements?status=reading")
+    assert response.json()[0]["completion_pct"] == 50
+
+
+def test_audio_completion_pct_null_when_no_length_set(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_audio_engagement(client, book["id"])
+    _log_audio_progress(client, engagement["id"], 75)
+
+    response = client.get("/engagements?status=reading")
+    assert response.json()[0]["completion_pct"] is None
+
+
+def test_audio_completion_pct_null_before_logging(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_audio_engagement(client, book["id"])
+
+    assert engagement["completion_pct"] is None
+
+
+def test_resume_from_page_unaffected_by_minute_logs(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 100)
+
+    response = client.get("/engagements?status=reading")
+    assert response.json()[0]["resume_from_page"] == 100
+    assert response.json()[0]["resume_from_minute"] == 0

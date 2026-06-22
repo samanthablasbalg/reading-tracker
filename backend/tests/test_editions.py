@@ -109,6 +109,18 @@ def test_create_edition_returns_201(client: TestClient) -> None:
     assert "created_at" in data
 
 
+def test_create_audio_edition_persists_audio_minutes(client: TestClient) -> None:
+    book = _create_book(client)
+    response = client.post(
+        "/editions",
+        json={"book_id": book["id"], "edition_format": "audio", "audio_minutes": 480},
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["audio_minutes"] == 480
+    assert data["page_count"] is None
+
+
 def test_create_edition_unknown_book_returns_404(client: TestClient) -> None:
     response = client.post(
         "/editions",
