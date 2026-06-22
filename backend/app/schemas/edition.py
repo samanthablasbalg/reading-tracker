@@ -14,12 +14,14 @@ class EditionCreate(BaseModel):
     edition_format: Format
     isbn: str | None = None
     page_count: int | None = None
+    audio_minutes: int | None = None
     cover_url: str | None = None
 
 
 class EditionUpdate(BaseModel):
     isbn: str | None = None
     page_count: int | None = None
+    audio_minutes: int | None = None
     cover_url: str | None = None
 
 
@@ -29,6 +31,7 @@ class EditionRead(BaseModel):
     edition_format: Format
     isbn: str | None
     page_count: int | None
+    audio_minutes: int | None
     cover_url: str | None
     created_at: datetime.datetime
     updated_at: datetime.datetime
