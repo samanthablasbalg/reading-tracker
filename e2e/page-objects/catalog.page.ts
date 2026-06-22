@@ -1,4 +1,5 @@
 import { Locator, Page } from '@playwright/test';
+import { FormatPickSheetPage, PickableFormat } from './format-pick-sheet.page';
 
 // A search result as returned by GET /api/books/search.
 export interface SearchCandidate {
@@ -72,11 +73,14 @@ export class CatalogPage {
   }
 
   /**
-   * Marks a library book as currently reading.
+   * Marks a library book as currently reading in the given format.
+   * Clicks the button to open the format picker, then picks the format.
    * @param title - The library book's title.
+   * @param format - The format to start reading in (defaults to Print).
    */
-  async markAsReading(title: string): Promise<void> {
+  async markAsReading(title: string, format: PickableFormat = 'Print'): Promise<void> {
     await this.getMarkAsReadingButton(title).click();
+    await new FormatPickSheetPage(this.page).pick(title, format);
   }
 
   /**
