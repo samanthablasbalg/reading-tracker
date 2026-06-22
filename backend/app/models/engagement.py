@@ -88,6 +88,14 @@ class Engagement(TimestampMixin, Base):
         return latest.page_end if latest.page_end is not None else 0
 
     @property
+    def resume_from_minute(self) -> int:
+        minute_logs = [log for log in self.progress_logs if log.minute_end is not None]
+        if not minute_logs:
+            return 0
+        latest = max(minute_logs, key=lambda log: log.logged_at)
+        return latest.minute_end if latest.minute_end is not None else 0
+
+    @property
     def completion_pct(self) -> int | None:
         if not self.progress_logs:
             return None
