@@ -16,8 +16,9 @@ import { EngagementService } from '../engagement.service';
             {{ engagement.book.authors.map((a) => a.name).join(', ') }}
           </span>
           <span matListItemLine>
-            Gave up on {{ engagement.abandoned_on | date: 'mediumDate' : 'UTC' }}</span
-          >
+            Gave up on {{ engagement.abandoned_on | date: 'mediumDate' : 'UTC' }} at
+            {{ engagement.completion_pct }}%
+          </span>
         </mat-list-item>
       } @empty {
         <p>No DNFed books yet.</p>
