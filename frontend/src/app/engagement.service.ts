@@ -55,8 +55,11 @@ export class EngagementService {
     }
   }
 
-  markReading(bookId: string): Observable<Engagement> {
-    return this.http.post<Engagement>('/api/engagements', { book_id: bookId });
+  markReading(bookId: string, format = 'print'): Observable<Engagement> {
+    return this.http.post<Engagement>('/api/engagements', {
+      book_id: bookId,
+      edition_format: format,
+    });
   }
 
   markFinished(engagementId: string): Observable<Engagement> {

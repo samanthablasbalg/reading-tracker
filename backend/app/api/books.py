@@ -158,6 +158,21 @@ def import_book(
             cover_url=volume.cover_url,
         )
     )
+    db.add(
+        Edition(
+            book_id=book.id,
+            edition_format=Format.digital,
+            cover_url=volume.cover_url,
+            page_count=volume.page_count,
+        )
+    )
+    db.add(
+        Edition(
+            book_id=book.id,
+            edition_format=Format.audio,
+            cover_url=volume.cover_url,
+        )
+    )
 
     db.commit()
 

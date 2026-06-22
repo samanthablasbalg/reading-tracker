@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import uuid
 from collections.abc import Callable
 from typing import Any
 
@@ -12,6 +13,8 @@ from sqlalchemy.orm import Session
 
 from app.models.author import Author
 from app.models.book import Book
+from app.models.edition import Edition
+from app.models.enums import Format
 from tests.conftest import engine
 
 
@@ -214,6 +217,47 @@ def test_import_reuses_existing_author(
     with Session(engine) as db:
         authors = db.execute(select(Author)).scalars().all()
     assert len(authors) == 1
+
+
+def test_import_seeds_three_editions(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, db: Session
+) -> None:
+    volume = _fake_volume(
+        authors=["Susanna Clarke"],
+        page_count=272,
+        cover_url="https://example.com/cover.jpg",
+    )
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json=volume)
+
+    _patch_google(monkeypatch, handler)
+
+    response = client.post("/books/import", json={"google_books_id": "abc123"})
+    assert response.status_code == 201
+    book_id = uuid.UUID(response.json()["id"])
+
+    editions = (
+        db.execute(select(Edition).where(Edition.book_id == book_id)).scalars().all()
+    )
+    assert len(editions) == 3
+
+    by_format = {e.edition_format: e for e in editions}
+    assert set(by_format.keys()) == {Format.print, Format.digital, Format.audio}
+
+    print_ed = by_format[Format.print]
+    assert print_ed.page_count == 272
+    assert print_ed.cover_url == "https://example.com/cover.jpg"
+
+    digital_ed = by_format[Format.digital]
+    assert digital_ed.page_count == 272
+    assert digital_ed.cover_url == "https://example.com/cover.jpg"
+    assert digital_ed.isbn is None
+
+    audio_ed = by_format[Format.audio]
+    assert audio_ed.page_count is None
+    assert audio_ed.cover_url == "https://example.com/cover.jpg"
+    assert audio_ed.isbn is None
 
 
 def test_import_upstream_failure_returns_502(

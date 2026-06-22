@@ -6,9 +6,16 @@ import { MatDividerModule } from '@angular/material/divider';
 @Component({
   selector: 'app-concluded',
   imports: [ReadComponent, DNFComponent, MatDividerModule],
+  styles: [
+    `
+      .section-divider {
+        --mat-divider-width: 3px;
+      }
+    `,
+  ],
   template: `<h2 mat-dialog-title>Finished Books</h2>
     <app-read />
-    <mat-divider></mat-divider>
+    <mat-divider class="section-divider"></mat-divider>
     <h2 mat-dialog-title>DNFed Books</h2>
     <app-dnf />`,
 })

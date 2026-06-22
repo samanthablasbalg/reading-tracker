@@ -6,6 +6,7 @@ import { ReadComponent } from './read';
 const mockEngagement = {
   id: 'eng-1',
   book: { id: 'book-1', title: 'Dune', authors: [{ id: 'auth-1', name: 'Frank Herbert' }] },
+  formats: [] as string[],
   status: 'finished',
   started_on: '2026-05-01',
   finished_on: '2026-06-01' as string | null,
@@ -64,6 +65,51 @@ describe('ReadComponent', () => {
     expect(fixture.nativeElement.querySelector('mat-list-item').textContent).not.toContain(
       'Finished',
     );
+  });
+
+  describe('format icon', () => {
+    it('renders menu_book for a print engagement', () => {
+      const fixture = TestBed.createComponent(ReadComponent);
+
+      flushFinishedList([{ ...mockEngagement, formats: ['print'] }]);
+      fixture.detectChanges();
+
+      const icon = fixture.nativeElement.querySelector('mat-icon');
+      expect(icon).toBeTruthy();
+      expect(icon.textContent.trim()).toBe('menu_book');
+      expect(icon.getAttribute('aria-label')).toBe('Format: print');
+    });
+
+    it('renders tablet_mac for a digital engagement', () => {
+      const fixture = TestBed.createComponent(ReadComponent);
+
+      flushFinishedList([{ ...mockEngagement, formats: ['digital'] }]);
+      fixture.detectChanges();
+
+      const icon = fixture.nativeElement.querySelector('mat-icon');
+      expect(icon.textContent.trim()).toBe('tablet_mac');
+      expect(icon.getAttribute('aria-label')).toBe('Format: digital');
+    });
+
+    it('renders headphones for an audio engagement', () => {
+      const fixture = TestBed.createComponent(ReadComponent);
+
+      flushFinishedList([{ ...mockEngagement, formats: ['audio'] }]);
+      fixture.detectChanges();
+
+      const icon = fixture.nativeElement.querySelector('mat-icon');
+      expect(icon.textContent.trim()).toBe('headphones');
+      expect(icon.getAttribute('aria-label')).toBe('Format: audio');
+    });
+
+    it('renders no icon when formats is empty', () => {
+      const fixture = TestBed.createComponent(ReadComponent);
+
+      flushFinishedList([{ ...mockEngagement, formats: [] }]);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('mat-icon')).toBeNull();
+    });
   });
 
   it('joins multiple authors with a comma', () => {

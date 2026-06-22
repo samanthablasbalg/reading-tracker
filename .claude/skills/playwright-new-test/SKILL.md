@@ -26,8 +26,9 @@ Playwright test for the reading tracker app.
 - **Conventions are auto-loaded** from `.claude/rules/playwright-e2e.md` (it loads whenever you
   touch `e2e/**`). This file is the _procedure_; that rule is the _standards_ — follow both, and
   don't restate the rule's contents here.
-- **Always tear down** the background `--debug=cli` run and `playwright-cli close` before you finish
-  or hand back.
+- **Always tear down by calling `npx playwright-cli --s=<session> resume` when you are done
+  driving.** This unblocks `page.pause()`, the test completes, the browser closes, and the process
+  exits — all automatically. Never use `close`, `kill`, `pkill`, or `TaskStop`.
 - **Stop and ask — don't spin.** If the _environment_ is broken — the app is a blank screen or
   won't boot — STOP immediately and tell the user exactly what you saw. Do NOT
   re-attach, re-snapshot, retry, or keep driving. A broken app is the user's to fix, not yours to
@@ -105,11 +106,13 @@ npx playwright-cli --raw generate-locator e15   # robust locator for the POM
 ```
 
 Confirm every candidate locator against the snapshot. The seed ends in `page.pause()` so the page
-stays open after `resume` — without it the test would finish and close the session before you can
-drive it (don't remove it). It runs on plain `@playwright/test` and doesn't truncate, so it lands on
-whatever is already in the e2e DB; add what you need through the UI or `ApiClient`. **When done:
-`npx playwright-cli close` and stop the tracked background task — never `pkill`/`kill`, never leave
-a paused test behind.**
+stays open after the first `resume` — without it the test would finish and close the session before
+you can drive it (don't remove it). It runs on plain `@playwright/test` and doesn't truncate, so it
+lands on whatever is already in the e2e DB; add what you need through the UI or `ApiClient`.
+
+**When done driving, call `npx playwright-cli --s=<session> resume` one more time.** This unblocks
+`page.pause()`, the test completes naturally, the browser closes, and the background process exits
+on its own (exit code 0). No `close`, no `kill`, no `TaskStop` needed.
 
 ## Step 4 — Improve a11y when a locator is weak
 

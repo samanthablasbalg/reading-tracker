@@ -1,66 +1,71 @@
-import { Component, inject, signal } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
+import { Component, inject } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
+import { MatDivider } from '@angular/material/divider';
 import { MatListModule } from '@angular/material/list';
-import { BookService } from '../book.service';
-import { EngagementService } from '../engagement.service';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { Book, BookService } from '../book.service';
+import {
+  FormatPickSheetComponent,
+  FormatPickSheetData,
+} from '../format-pick-sheet/format-pick-sheet';
 
 @Component({
   selector: 'app-book-list',
-  imports: [MatListModule, MatButtonModule],
+  imports: [NgOptimizedImage, MatListModule, MatButtonModule, MatDivider],
   template: `
     <mat-list>
       @for (book of books(); track book.id) {
         <mat-list-item>
+          @if (book.default_cover_url) {
+            <img
+              matListItemAvatar
+              [ngSrc]="book.default_cover_url"
+              width="40"
+              height="40"
+              [alt]="book.title + ' cover'"
+            />
+          }
           <span matListItemTitle>{{ book.title }}</span>
           <span matListItemLine>{{ book.authors.map((a) => a.name).join(', ') }}</span>
           <button
             mat-stroked-button
             matListItemMeta
-            [disabled]="markingId() === book.id"
             [attr.aria-label]="'Mark ' + book.title + ' as reading'"
-            (click)="markReading(book.id)"
+            (click)="openFormatPicker(book)"
           >
-            {{ markButtonLabel(book.id) }}
+            Mark as reading
           </button>
         </mat-list-item>
+        @if (!$last) {
+          <mat-divider />
+        }
       }
     </mat-list>
   `,
 })
 export class BookListComponent {
   private readonly bookService = inject(BookService);
-  private readonly engagementService = inject(EngagementService);
+  private readonly bottomSheet = inject(MatBottomSheet);
+  private readonly dialog = inject(MatDialog);
+  private readonly breakpointObserver = inject(BreakpointObserver);
 
   protected readonly books = toSignal(this.bookService.books$, { initialValue: [] });
-  protected readonly markingId = signal<string | null>(null);
-  protected readonly markErrorId = signal<string | null>(null);
-  protected readonly markErrorStatus = signal<number | null>(null);
 
-  protected markButtonLabel(bookId: string): string {
-    if (this.markingId() === bookId) return 'Marking…';
-    if (this.markErrorId() === bookId) {
-      return this.markErrorStatus() === 409 ? 'Already reading' : 'Error';
+  protected openFormatPicker(book: Book): void {
+    const data: FormatPickSheetData = {
+      bookId: book.id,
+      title: book.title,
+      cover_url: book.default_cover_url,
+    };
+
+    if (this.breakpointObserver.isMatched('(max-width: 599px)')) {
+      this.bottomSheet.open(FormatPickSheetComponent, { data });
+    } else {
+      this.dialog.open(FormatPickSheetComponent, { data });
     }
-    return 'Mark as reading';
-  }
-
-  protected markReading(bookId: string): void {
-    this.markingId.set(bookId);
-    this.markErrorId.set(null);
-    this.markErrorStatus.set(null);
-
-    this.engagementService.markReading(bookId).subscribe({
-      next: () => {
-        this.markingId.set(null);
-        this.engagementService.reloadEngagements();
-      },
-      error: (err: HttpErrorResponse) => {
-        this.markingId.set(null);
-        this.markErrorId.set(bookId);
-        this.markErrorStatus.set(err.status);
-      },
-    });
   }
 }

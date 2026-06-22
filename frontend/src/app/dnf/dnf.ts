@@ -1,25 +1,58 @@
 import { Component, inject } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgOptimizedImage } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { MatDivider } from '@angular/material/divider';
+import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { EngagementService } from '../engagement.service';
+import { formatIcon } from '../format-icon';
 
 @Component({
   selector: 'app-dnf',
-  imports: [MatListModule, DatePipe],
+  imports: [MatListModule, MatIconModule, MatDivider, NgOptimizedImage, DatePipe],
+  styles: [
+    `
+      .format-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        vertical-align: middle;
+      }
+    `,
+  ],
   template: `
     <mat-list>
       @for (engagement of dnfEngagements(); track engagement.id) {
         <mat-list-item>
+          @if (engagement.cover_url) {
+            <img
+              matListItemAvatar
+              [ngSrc]="engagement.cover_url"
+              width="40"
+              height="40"
+              [alt]="engagement.book.title + ' cover'"
+            />
+          }
           <span matListItemTitle>{{ engagement.book.title }}</span>
           <span matListItemLine>
             {{ engagement.book.authors.map((a) => a.name).join(', ') }}
+            @if (engagement.formats[0]) {
+              <mat-icon
+                class="format-icon"
+                aria-hidden="false"
+                [aria-label]="'Format: ' + engagement.formats[0]"
+                >{{ formatIcon(engagement.formats[0]) }}</mat-icon
+              >
+            }
           </span>
           <span matListItemLine>
             Gave up on {{ engagement.abandoned_on | date: 'mediumDate' : 'UTC' }} at
             {{ engagement.completion_pct }}%
           </span>
         </mat-list-item>
+        @if (!$last) {
+          <mat-divider />
+        }
       } @empty {
         <p>No DNFed books yet.</p>
       }
@@ -27,6 +60,8 @@ import { EngagementService } from '../engagement.service';
   `,
 })
 export class DNFComponent {
+  protected readonly formatIcon = formatIcon;
+
   private readonly engagementService = inject(EngagementService);
 
   protected readonly dnfEngagements = toSignal(this.engagementService.engagements('dnf'), {

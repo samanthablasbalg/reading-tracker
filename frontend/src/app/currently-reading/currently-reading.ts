@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
@@ -14,6 +15,7 @@ import {
   ProgressLogSheetComponent,
   ProgressLogSheetData,
 } from '../progress-log-sheet/progress-log-sheet';
+import { formatIcon } from '../format-icon';
 
 @Component({
   selector: 'app-currently-reading',
@@ -21,6 +23,7 @@ import {
     NgOptimizedImage,
     MatCardModule,
     MatButtonModule,
+    MatIconModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
   ],
@@ -65,12 +68,27 @@ import {
         white-space: nowrap;
       }
 
+      .author-row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+      }
+
       .author {
         font-size: 0.875rem;
         color: var(--mat-sys-on-surface-variant);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .format-icon {
+        font-size: 14px;
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        color: var(--mat-sys-on-surface-variant);
       }
 
       .progress-col {
@@ -122,9 +140,19 @@ import {
 
               <div class="text">
                 <span class="title">{{ engagement.book.title }}</span>
-                <span class="author">{{
-                  engagement.book.authors.map((a) => a.name).join(', ')
-                }}</span>
+                <div class="author-row">
+                  <span class="author">{{
+                    engagement.book.authors.map((a) => a.name).join(', ')
+                  }}</span>
+                  @if (engagement.formats[0]) {
+                    <mat-icon
+                      class="format-icon"
+                      aria-hidden="false"
+                      [aria-label]="'Format: ' + engagement.formats[0]"
+                      >{{ formatIcon(engagement.formats[0]) }}</mat-icon
+                    >
+                  }
+                </div>
               </div>
               @if (showBar()) {
                 <div class="progress-col">
@@ -168,6 +196,8 @@ import {
   `,
 })
 export class CurrentlyReadingComponent {
+  protected readonly formatIcon = formatIcon;
+
   private readonly engagementService = inject(EngagementService);
   private readonly bottomSheet = inject(MatBottomSheet);
   private readonly dialog = inject(MatDialog);

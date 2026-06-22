@@ -20,6 +20,11 @@ export class ApiClient {
       data: { title, author, ...(pageCount != null && { page_count: pageCount }) },
     });
     const { id } = (await response.json()) as { id: string };
+    for (const edition_format of ['print', 'digital', 'audio']) {
+      await this.request.post(`${BACKEND_URL}/editions`, {
+        data: { book_id: id, edition_format },
+      });
+    }
     return id;
   }
 
@@ -28,9 +33,9 @@ export class ApiClient {
    * @param bookId - The book to start reading.
    * @returns The new engagement's id.
    */
-  async markAsReading(bookId: string): Promise<string> {
+  async markAsReading(bookId: string, editionFormat = 'print'): Promise<string> {
     const response = await this.request.post(`${BACKEND_URL}/engagements`, {
-      data: { book_id: bookId },
+      data: { book_id: bookId, edition_format: editionFormat },
     });
     const { id } = (await response.json()) as { id: string };
     return id;

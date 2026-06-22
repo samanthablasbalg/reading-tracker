@@ -50,6 +50,16 @@ export class CurrentlyReadingPage {
   }
 
   /**
+   * Locates the format icon on a book's card.
+   * @param title - The book's title.
+   * @param format - The expected format (e.g. 'audio', 'print', 'digital').
+   * @returns The icon locator.
+   */
+  getFormatIcon(title: string, format: string): Locator {
+    return this.getBookCard(title).getByRole('img', { name: `Format: ${format}` });
+  }
+
+  /**
    * Returns the book titles in their current DOM order, derived from the
    * aria-label on each listitem card.
    */

@@ -85,6 +85,51 @@ describe('DNFComponent', () => {
     );
   });
 
+  describe('format icon', () => {
+    it('renders menu_book for a print engagement', () => {
+      const fixture = TestBed.createComponent(DNFComponent);
+
+      flushDnfList([{ ...mockDnf, formats: ['print'] }]);
+      fixture.detectChanges();
+
+      const icon = fixture.nativeElement.querySelector('mat-icon');
+      expect(icon).toBeTruthy();
+      expect(icon.textContent.trim()).toBe('menu_book');
+      expect(icon.getAttribute('aria-label')).toBe('Format: print');
+    });
+
+    it('renders tablet_mac for a digital engagement', () => {
+      const fixture = TestBed.createComponent(DNFComponent);
+
+      flushDnfList([{ ...mockDnf, formats: ['digital'] }]);
+      fixture.detectChanges();
+
+      const icon = fixture.nativeElement.querySelector('mat-icon');
+      expect(icon.textContent.trim()).toBe('tablet_mac');
+      expect(icon.getAttribute('aria-label')).toBe('Format: digital');
+    });
+
+    it('renders headphones for an audio engagement', () => {
+      const fixture = TestBed.createComponent(DNFComponent);
+
+      flushDnfList([{ ...mockDnf, formats: ['audio'] }]);
+      fixture.detectChanges();
+
+      const icon = fixture.nativeElement.querySelector('mat-icon');
+      expect(icon.textContent.trim()).toBe('headphones');
+      expect(icon.getAttribute('aria-label')).toBe('Format: audio');
+    });
+
+    it('renders no icon when formats is empty', () => {
+      const fixture = TestBed.createComponent(DNFComponent);
+
+      flushDnfList([{ ...mockDnf, formats: [] }]);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('mat-icon')).toBeNull();
+    });
+  });
+
   it('renders the give-up date', () => {
     const fixture = TestBed.createComponent(DNFComponent);
 
