@@ -8,7 +8,7 @@ const mockEngagement = {
   book: { id: 'book-1', title: 'Dune', authors: [{ id: 'auth-1', name: 'Frank Herbert' }] },
   status: 'finished',
   started_on: '2026-05-01',
-  finished_on: '2026-06-01',
+  finished_on: '2026-06-01' as string | null,
 };
 
 describe('ReadComponent', () => {
@@ -52,6 +52,18 @@ describe('ReadComponent', () => {
     expect(item.textContent).toContain('Dune');
     expect(item.textContent).toContain('Frank Herbert');
     expect(item.textContent).toContain('Finished');
+    expect(item.textContent).toContain('Jun 1, 2026');
+  });
+
+  it('omits the finished line when finished_on is null', () => {
+    const fixture = TestBed.createComponent(ReadComponent);
+
+    flushFinishedList([{ ...mockEngagement, finished_on: null }]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('mat-list-item').textContent).not.toContain(
+      'Finished',
+    );
   });
 
   it('joins multiple authors with a comma', () => {

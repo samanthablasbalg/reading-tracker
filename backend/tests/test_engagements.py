@@ -192,6 +192,88 @@ def test_patch_back_to_reading_conflicts_when_another_active_read_exists(
     assert response.status_code == 409
 
 
+# --- DNF transition ---
+
+
+def test_patch_to_dnf_sets_abandoned_on_from_last_log(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 100)
+    _set_logged_at(
+        db, engagement["id"], datetime.datetime(2026, 5, 15, tzinfo=datetime.UTC)
+    )
+
+    response = client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "dnf"
+    assert data["abandoned_on"] == "2026-05-15"
+
+
+def test_patch_to_dnf_sets_abandoned_on_to_today_when_no_logs(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+
+    response = client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "dnf"
+    assert data["abandoned_on"] == datetime.date.today().isoformat()
+
+
+def test_patch_to_dnf_does_not_create_progress_log(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 50)
+
+    client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+
+    logs = (
+        db.execute(
+            select(ProgressLog).where(
+                ProgressLog.engagement_id == uuid.UUID(engagement["id"])
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(logs) == 1
+
+
+def test_patch_to_dnf_preserves_completion_pct(client: TestClient, db: Session) -> None:
+    book = _create_book(client)
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_page_count = 300
+    db.commit()
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 150)
+
+    response = client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+    assert response.status_code == 200
+    assert response.json()["completion_pct"] == 50
+
+
+def test_patch_dnf_to_reading_clears_abandoned_on(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}", json={"status": "reading"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "reading"
+    assert data["abandoned_on"] is None
+
+
 # --- List views ---
 
 
@@ -225,7 +307,7 @@ def test_list_finished_excludes_reading(client: TestClient) -> None:
 
 
 def test_list_invalid_status_returns_422(client: TestClient) -> None:
-    response = client.get("/engagements?status=interested")
+    response = client.get("/engagements?status=bogus")
     assert response.status_code == 422
 
 
@@ -475,6 +557,20 @@ def _set_logged_at(db: Session, engagement_id: str, when: datetime.datetime) -> 
     db.commit()
 
 
+def _set_finished_on(db: Session, engagement_id: str, when: datetime.date) -> None:
+    engagement = db.get(Engagement, uuid.UUID(engagement_id))
+    assert engagement is not None
+    engagement.finished_on = when
+    db.commit()
+
+
+def _set_abandoned_on(db: Session, engagement_id: str, when: datetime.date) -> None:
+    engagement = db.get(Engagement, uuid.UUID(engagement_id))
+    assert engagement is not None
+    engagement.abandoned_on = when
+    db.commit()
+
+
 def test_list_reading_orders_more_recently_marked_first(
     client: TestClient, db: Session
 ) -> None:
@@ -550,6 +646,49 @@ def test_list_reading_order_stable_for_identical_activity(
     first_order = [e["id"] for e in client.get("/engagements?status=reading").json()]
     second_order = [e["id"] for e in client.get("/engagements?status=reading").json()]
     assert first_order == second_order
+
+
+def test_list_finished_orders_by_finished_on_not_last_touch(
+    client: TestClient, db: Session
+) -> None:
+    # A finished later but was touched earlier; B finished earlier but was
+    # touched more recently (as a future review edit would). Order must follow
+    # finished_on, not last-touch.
+    book_a = _create_book(client, title="Book A", author="Author A")
+    book_b = _create_book(client, title="Book B", author="Author B")
+    eng_a = _create_engagement(client, book_a["id"])
+    eng_b = _create_engagement(client, book_b["id"])
+    client.patch(f"/engagements/{eng_a['id']}", json={"status": "finished"})
+    client.patch(f"/engagements/{eng_b['id']}", json={"status": "finished"})
+
+    _set_finished_on(db, eng_a["id"], datetime.date(2026, 5, 1))
+    _set_updated_at(db, eng_a["id"], datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC))
+    _set_finished_on(db, eng_b["id"], datetime.date(2026, 3, 1))
+    _set_updated_at(db, eng_b["id"], datetime.datetime(2026, 6, 1, tzinfo=datetime.UTC))
+
+    data = client.get("/engagements?status=finished").json()
+    assert [e["book"]["title"] for e in data] == ["Book A", "Book B"]
+
+
+def test_list_dnf_orders_by_abandoned_on_not_last_touch(
+    client: TestClient, db: Session
+) -> None:
+    # abandoned_on is backdated to the last progress date; last-touch is when
+    # give-up was clicked. Order must follow abandoned_on.
+    book_a = _create_book(client, title="Book A", author="Author A")
+    book_b = _create_book(client, title="Book B", author="Author B")
+    eng_a = _create_engagement(client, book_a["id"])
+    eng_b = _create_engagement(client, book_b["id"])
+    client.patch(f"/engagements/{eng_a['id']}", json={"status": "dnf"})
+    client.patch(f"/engagements/{eng_b['id']}", json={"status": "dnf"})
+
+    _set_abandoned_on(db, eng_a["id"], datetime.date(2026, 5, 1))
+    _set_updated_at(db, eng_a["id"], datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC))
+    _set_abandoned_on(db, eng_b["id"], datetime.date(2026, 3, 1))
+    _set_updated_at(db, eng_b["id"], datetime.datetime(2026, 6, 1, tzinfo=datetime.UTC))
+
+    data = client.get("/engagements?status=dnf").json()
+    assert [e["book"]["title"] for e in data] == ["Book A", "Book B"]
 
 
 # --- Derived cover ---

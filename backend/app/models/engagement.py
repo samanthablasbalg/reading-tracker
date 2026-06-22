@@ -53,6 +53,10 @@ class Engagement(TimestampMixin, Base):
     finished_on_precision: Mapped[DatePrecision] = mapped_column(
         date_precision_type, default=DatePrecision.day
     )
+    abandoned_on: Mapped[datetime.date | None]
+    abandoned_on_precision: Mapped[DatePrecision] = mapped_column(
+        date_precision_type, default=DatePrecision.day
+    )
 
     book: Mapped[Book] = relationship(back_populates="engagements")
     progress_logs: Mapped[list[ProgressLog]] = relationship(

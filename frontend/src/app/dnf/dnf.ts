@@ -5,35 +5,31 @@ import { MatListModule } from '@angular/material/list';
 import { EngagementService } from '../engagement.service';
 
 @Component({
-  selector: 'app-read',
+  selector: 'app-dnf',
   imports: [MatListModule, DatePipe],
   template: `
     <mat-list>
-      @for (engagement of finishedEngagements(); track engagement.id) {
+      @for (engagement of dnfEngagements(); track engagement.id) {
         <mat-list-item>
           <span matListItemTitle>{{ engagement.book.title }}</span>
           <span matListItemLine>
             {{ engagement.book.authors.map((a) => a.name).join(', ') }}
           </span>
-          @if (engagement.finished_on) {
-            <span matListItemLine>
-              Finished {{ engagement.finished_on | date: 'mediumDate' : 'UTC' }}</span
-            >
-          }
+          <span matListItemLine>
+            Gave up on {{ engagement.abandoned_on | date: 'mediumDate' : 'UTC' }} at
+            {{ engagement.completion_pct }}%
+          </span>
         </mat-list-item>
       } @empty {
-        <p>No finished books yet.</p>
+        <p>No DNFed books yet.</p>
       }
     </mat-list>
   `,
 })
-export class ReadComponent {
+export class DNFComponent {
   private readonly engagementService = inject(EngagementService);
 
-  protected readonly finishedEngagements = toSignal(
-    this.engagementService.engagements('finished'),
-    {
-      initialValue: [],
-    },
-  );
+  protected readonly dnfEngagements = toSignal(this.engagementService.engagements('dnf'), {
+    initialValue: [],
+  });
 }

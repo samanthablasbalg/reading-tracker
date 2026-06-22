@@ -8,6 +8,8 @@ export class ProgressLogSheetPage {
   readonly cancelButton: Locator;
   readonly confirmationMessage: Locator;
   readonly finishButton: Locator;
+  readonly giveUpButton: Locator;
+  readonly giveUpConfirmationMessage: Locator;
 
   /** @param page - The Playwright page the sheet is open on. */
   constructor(public readonly page: Page) {
@@ -15,6 +17,8 @@ export class ProgressLogSheetPage {
     this.cancelButton = page.getByRole('button', { name: 'Cancel' });
     this.confirmationMessage = page.getByText('Finish and discard the page you entered');
     this.finishButton = page.getByRole('button', { name: /finish/i });
+    this.giveUpButton = page.getByRole('button', { name: /dnf/i });
+    this.giveUpConfirmationMessage = page.getByText('Give up on');
   }
 
   /**

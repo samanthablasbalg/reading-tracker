@@ -73,13 +73,17 @@ test('Marking a book finished moves it from Currently reading to Read', async ({
     await sheet.finishButton.click();
   });
 
+  await test.step('Confirm the finish', async () => {
+    await sheet.finishButton.click();
+  });
+
   await test.step('Verify it left Currently reading', async () => {
     await expect(currentlyReading.getBookCard('Dune')).toHaveCount(0);
   });
 
   await test.step('Verify it appears under Read', async () => {
     await read.goto();
-    await expect(read.getBookEntry('Dune')).toBeVisible();
+    await expect(read.getFinishedEntry('Dune')).toBeVisible();
   });
 });
 
@@ -125,6 +129,41 @@ test('Marking a book finished after entering text causes confirmation flow', asy
 
   await test.step('Verify it appears under Read', async () => {
     await read.goto();
-    await expect(read.getBookEntry('Dune')).toBeVisible();
+    await expect(read.getFinishedEntry('Dune')).toBeVisible();
+  });
+});
+
+test('Giving up on a book moves it from Currently reading to the DNF section', async ({
+  page,
+  apiClient,
+}) => {
+  const currentlyReading = new CurrentlyReadingPage(page);
+  const sheet = new ProgressLogSheetPage(page);
+  const read = new ReadPage(page);
+
+  await test.step('Seed a book being read with progress', async () => {
+    const duneId = await apiClient.createBook('Dune', 'Frank Herbert', 412);
+    const duneEngId = await apiClient.markAsReading(duneId);
+    await apiClient.logProgress(duneEngId, 100);
+  });
+
+  await test.step('Open the sheet and choose to give up', async () => {
+    await currentlyReading.goto();
+    await currentlyReading.openLogSheet('Dune');
+    await sheet.giveUpButton.click();
+    await expect(sheet.giveUpConfirmationMessage).toBeVisible();
+  });
+
+  await test.step('Confirm the give-up', async () => {
+    await sheet.giveUpButton.click();
+  });
+
+  await test.step('Verify it left Currently reading', async () => {
+    await expect(currentlyReading.getBookCard('Dune')).toHaveCount(0);
+  });
+
+  await test.step('Verify it appears under the DNF section', async () => {
+    await read.goto();
+    await expect(read.getDnfEntry('Dune')).toBeVisible();
   });
 });
