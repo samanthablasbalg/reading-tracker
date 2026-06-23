@@ -88,15 +88,6 @@ function hhmmMaxValidator(max: number): ValidatorFn {
             <mat-error>Cannot exceed {{ formatHhmm(data.default_audio_minutes!) }}</mat-error>
           }
         </mat-form-field>
-        @if (data.default_audio_minutes === null) {
-          <mat-form-field style="width: 100%;">
-            <mat-label>Total length</mat-label>
-            <input matInput [formControl]="lengthControl" placeholder="HH:MM" />
-            @if (lengthControl.hasError('hhmm')) {
-              <mat-error>Enter a time in HH:MM format</mat-error>
-            }
-          </mat-form-field>
-        }
       } @else {
         <mat-form-field style="width: 100%;">
           <mat-label>Current page</mat-label>
@@ -238,19 +229,9 @@ export class ProgressLogSheetComponent {
       : [],
   );
 
-  protected readonly lengthControl = new FormControl<string | null>(
-    null,
-    this.isAudio && this.data.default_audio_minutes === null
-      ? [Validators.required, hhmmFormatValidator()]
-      : [],
-  );
-
   protected get saveDisabled(): boolean {
     if (this.isAudio) {
-      return (
-        this.minuteControl.invalid ||
-        (this.data.default_audio_minutes === null && this.lengthControl.invalid)
-      );
+      return this.minuteControl.invalid;
     }
     return this.pageControl.invalid;
   }
@@ -260,11 +241,9 @@ export class ProgressLogSheetComponent {
       if (this.mode() === 'idle') {
         this.pageControl.enable();
         this.minuteControl.enable();
-        this.lengthControl.enable();
       } else {
         this.pageControl.disable();
         this.minuteControl.disable();
-        this.lengthControl.disable();
       }
     });
   }
