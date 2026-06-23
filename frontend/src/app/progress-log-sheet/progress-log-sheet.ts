@@ -274,53 +274,34 @@ export class ProgressLogSheetComponent {
     this.saving.set(true);
     this.error.set(null);
 
-    if (this.isAudio) {
-      const minute = parseHhmm(this.minuteControl.value)!;
-      const capturedLength = parseHhmm(this.lengthControl.value);
-      const payload =
-        capturedLength !== null
-          ? { current_minute: minute, audio_length_minutes: capturedLength }
-          : { current_minute: minute };
+    const updateValue = this.isAudio
+      ? parseHhmm(this.minuteControl.value)
+      : (this.pageControl.value as number);
 
-      this.engagementService.logProgress(this.data.engagementId, payload).subscribe({
-        next: () => {
-          if (capturedLength !== null) {
-            this.engagementService.reloadEngagements();
-          } else {
-            const completion_pct = this.data.default_audio_minutes
-              ? Math.min(100, Math.round((minute / this.data.default_audio_minutes) * 100))
-              : null;
-            this.engagementService.patchEngagementInPlace(this.data.engagementId, {
-              resume_from_minute: minute,
-              completion_pct,
-            });
-          }
-          this.close();
-        },
-        error: () => {
-          this.saving.set(false);
-          this.error.set('Failed to save. Please try again.');
-        },
-      });
-    } else {
-      const page = this.pageControl.value as number;
-      this.engagementService.logProgress(this.data.engagementId, { current_page: page }).subscribe({
-        next: () => {
-          const completion_pct = this.data.default_page_count
-            ? Math.min(100, Math.round((page / this.data.default_page_count) * 100))
-            : null;
-          this.engagementService.patchEngagementInPlace(this.data.engagementId, {
-            resume_from_page: page,
-            completion_pct,
-          });
-          this.close();
-        },
-        error: () => {
-          this.saving.set(false);
-          this.error.set('Failed to save. Please try again.');
-        },
-      });
-    }
+    const defaultValue = this.isAudio
+      ? this.data.default_audio_minutes
+      : this.data.default_page_count;
+
+    const payload = this.isAudio ? { current_minute: updateValue } : { current_page: updateValue };
+
+    const resumeFromProperty = this.isAudio ? 'resume_from_minute' : 'resume_from_page';
+
+    this.engagementService.logProgress(this.data.engagementId, payload).subscribe({
+      next: () => {
+        const completion_pct = defaultValue
+          ? Math.min(100, Math.round((updateValue / defaultValue) * 100))
+          : null;
+        this.engagementService.patchEngagementInPlace(this.data.engagementId, {
+          [resumeFromProperty]: updateValue,
+          completion_pct,
+        });
+        this.close();
+      },
+      error: () => {
+        this.saving.set(false);
+        this.error.set('Failed to save. Please try again.');
+      },
+    });
   }
 
   protected onFinish(): void {
