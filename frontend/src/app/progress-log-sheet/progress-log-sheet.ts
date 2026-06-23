@@ -216,17 +216,17 @@ export class ProgressLogSheetComponent {
   });
 
   protected readonly minuteControl = new FormControl<string | null>(
-    this.isAudio ? formatHhmm(this.data.resume_from_minute) : null,
-    this.isAudio
-      ? [
-          Validators.required,
-          hhmmFormatValidator(),
-          hhmmMinValidator(this.data.resume_from_minute),
-          ...(this.data.default_audio_minutes !== null
-            ? [hhmmMaxValidator(this.data.default_audio_minutes)]
-            : []),
-        ]
-      : [],
+    formatHhmm(this.data.resume_from_minute),
+    {
+      validators: [
+        Validators.required,
+        hhmmFormatValidator(),
+        hhmmMinValidator(this.data.resume_from_minute),
+        ...(this.data.default_audio_minutes !== null
+          ? [hhmmMaxValidator(this.data.default_audio_minutes)]
+          : []),
+      ],
+    },
   );
 
   protected get saveDisabled(): boolean {
