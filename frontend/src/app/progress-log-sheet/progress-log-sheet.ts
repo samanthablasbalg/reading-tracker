@@ -167,6 +167,11 @@ export class ProgressLogSheetComponent {
 
   protected readonly formatHhmm = formatHhmm;
   protected readonly isAudio = this.data.formats.includes('audio');
+  protected readonly defaultValue = this.isAudio
+    ? this.data.default_audio_minutes
+    : this.data.default_page_count;
+  protected readonly currentValueProperty = this.isAudio ? 'current_minute' : 'current_page';
+  protected readonly resumeFromProperty = this.isAudio ? 'resume_from_minute' : 'resume_from_page';
 
   protected readonly saving = signal(false);
   protected readonly mode = signal<
@@ -257,30 +262,24 @@ export class ProgressLogSheetComponent {
       ? parseHhmm(this.minuteControl.value)
       : (this.pageControl.value as number);
 
-    const defaultValue = this.isAudio
-      ? this.data.default_audio_minutes
-      : this.data.default_page_count;
-
-    const payload = this.isAudio ? { current_minute: updateValue } : { current_page: updateValue };
-
-    const resumeFromProperty = this.isAudio ? 'resume_from_minute' : 'resume_from_page';
-
-    this.engagementService.logProgress(this.data.engagementId, payload).subscribe({
-      next: () => {
-        const completion_pct = defaultValue
-          ? Math.min(100, Math.round((updateValue / defaultValue) * 100))
-          : null;
-        this.engagementService.patchEngagementInPlace(this.data.engagementId, {
-          [resumeFromProperty]: updateValue,
-          completion_pct,
-        });
-        this.close();
-      },
-      error: () => {
-        this.saving.set(false);
-        this.error.set('Failed to save. Please try again.');
-      },
-    });
+    this.engagementService
+      .logProgress(this.data.engagementId, { [this.currentValueProperty]: updateValue })
+      .subscribe({
+        next: () => {
+          const completion_pct = this.defaultValue
+            ? Math.min(100, Math.round((updateValue / this.defaultValue) * 100))
+            : null;
+          this.engagementService.patchEngagementInPlace(this.data.engagementId, {
+            [this.resumeFromProperty]: updateValue,
+            completion_pct,
+          });
+          this.close();
+        },
+        error: () => {
+          this.saving.set(false);
+          this.error.set('Failed to save. Please try again.');
+        },
+      });
   }
 
   protected onFinish(): void {

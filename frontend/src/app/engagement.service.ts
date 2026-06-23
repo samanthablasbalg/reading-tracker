@@ -76,7 +76,7 @@ export class EngagementService {
 
   logProgress(
     engagementId: string,
-    payload: { current_page: number } | { current_minute: number; audio_length_minutes?: number },
+    payload: Record<string, number>,
   ): Observable<unknown> {
     return this.http.post<unknown>(`/api/engagements/${engagementId}/progress-logs`, payload);
   }
