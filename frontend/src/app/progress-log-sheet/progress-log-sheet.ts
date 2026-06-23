@@ -244,11 +244,9 @@ export class ProgressLogSheetComponent {
   constructor() {
     effect(() => {
       if (this.mode() === 'idle') {
-        this.pageControl.enable();
-        this.minuteControl.enable();
+        this.isAudio ? this.minuteControl.enable() : this.pageControl.enable();
       } else {
-        this.pageControl.disable();
-        this.minuteControl.disable();
+        this.isAudio ? this.minuteControl.disable() : this.pageControl.disable();
       }
     });
   }
