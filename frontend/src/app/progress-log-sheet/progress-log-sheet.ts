@@ -172,6 +172,7 @@ export class ProgressLogSheetComponent {
     : this.data.default_page_count;
   protected readonly currentValueProperty = this.isAudio ? 'current_minute' : 'current_page';
   protected readonly resumeFromProperty = this.isAudio ? 'resume_from_minute' : 'resume_from_page';
+  protected readonly entryText = this.isAudio ? 'timestamp' : 'page';
 
   protected readonly saving = signal(false);
   protected readonly mode = signal<
@@ -189,7 +190,7 @@ export class ProgressLogSheetComponent {
       const enteredValue = this.isAudio ? this.minuteControl.value : this.pageControl.value;
       return {
         prompt: discarding
-          ? `Finish and discard the position you entered (${enteredValue})?`
+          ? `Finish and discard the ${this.entryText} you entered (${enteredValue})?`
           : `Mark "${this.data.title}" as finished?`,
         label: 'Finish',
         ariaLabel: 'Confirm finish ' + this.data.title,
@@ -244,9 +245,17 @@ export class ProgressLogSheetComponent {
   constructor() {
     effect(() => {
       if (this.mode() === 'idle') {
-        this.isAudio ? this.minuteControl.enable() : this.pageControl.enable();
+        if (this.isAudio) {
+          this.minuteControl.enable();
+        } else {
+          this.pageControl.enable();
+        }
       } else {
-        this.isAudio ? this.minuteControl.disable() : this.pageControl.disable();
+        if (this.isAudio) {
+          this.minuteControl.disable();
+        } else {
+          this.pageControl.disable();
+        }
       }
     });
   }
@@ -257,7 +266,7 @@ export class ProgressLogSheetComponent {
     this.error.set(null);
 
     const updateValue = this.isAudio
-      ? parseHhmm(this.minuteControl.value)
+      ? parseHhmm(this.minuteControl.value)!
       : (this.pageControl.value as number);
 
     this.engagementService

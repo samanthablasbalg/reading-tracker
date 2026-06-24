@@ -224,8 +224,11 @@ export class CurrentlyReadingComponent {
       engagementId: engagement.id,
       title: engagement.book.title,
       cover_url: this.coverUrl(engagement),
+      formats: engagement.formats,
       resume_from_page: engagement.resume_from_page,
+      resume_from_minute: engagement.resume_from_minute,
       default_page_count: engagement.book.default_page_count,
+      default_audio_minutes: engagement.book.default_audio_minutes,
     };
 
     if (this.breakpointObserver.isMatched('(max-width: 599px)')) {
