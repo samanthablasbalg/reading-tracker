@@ -13,6 +13,7 @@ from app.schemas.book import BookRead
 class EngagementCreate(BaseModel):
     book_id: uuid.UUID
     edition_format: Format
+    audio_length_minutes: int | None = None
 
 
 class EngagementStatusUpdate(BaseModel):

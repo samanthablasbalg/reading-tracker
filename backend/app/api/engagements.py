@@ -92,7 +92,15 @@ def create_engagement(
                 " edition when starting a read isn't supported yet."
             ),
         )
-    db.add(EngagementEdition(engagement_id=engagement.id, edition_id=candidates[0].id))
+    edition = candidates[0]
+    db.add(EngagementEdition(engagement_id=engagement.id, edition_id=edition.id))
+
+    if payload.audio_length_minutes is not None:
+        length = payload.audio_length_minutes
+        if book.default_audio_minutes is None:
+            book.default_audio_minutes = length
+        if edition.audio_minutes is None:
+            edition.audio_minutes = length
 
     db.commit()
 

@@ -59,10 +59,15 @@ export class EngagementService {
     }
   }
 
-  markReading(bookId: string, format = 'print'): Observable<Engagement> {
+  markReading(
+    bookId: string,
+    format = 'print',
+    audioLengthMinutes?: number,
+  ): Observable<Engagement> {
     return this.http.post<Engagement>('/api/engagements', {
       book_id: bookId,
       edition_format: format,
+      ...(audioLengthMinutes != null && { audio_length_minutes: audioLengthMinutes }),
     });
   }
 
@@ -74,10 +79,7 @@ export class EngagementService {
     return this.http.patch<Engagement>(`/api/engagements/${engagementId}`, { status: 'dnf' });
   }
 
-  logProgress(
-    engagementId: string,
-    payload: Record<string, number>,
-  ): Observable<unknown> {
+  logProgress(engagementId: string, payload: Record<string, number>): Observable<unknown> {
     return this.http.post<unknown>(`/api/engagements/${engagementId}/progress-logs`, payload);
   }
 }
