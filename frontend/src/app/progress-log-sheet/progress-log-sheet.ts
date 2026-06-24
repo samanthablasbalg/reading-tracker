@@ -1,11 +1,18 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
-import { FormControl, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
+import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogTitle } from '@angular/material/dialog';
 import { MatBottomSheetRef, MAT_BOTTOM_SHEET_DATA } from '@angular/material/bottom-sheet';
 import { EngagementService } from '../engagement.service';
+import {
+  parseHhmm,
+  formatHhmm,
+  hhmmFormatValidator,
+  hhmmMinValidator,
+  hhmmMaxValidator,
+} from '../hhmm';
 
 export interface ProgressLogSheetData {
   engagementId: string;
@@ -16,41 +23,6 @@ export interface ProgressLogSheetData {
   resume_from_minute: number;
   default_page_count: number | null;
   default_audio_minutes: number | null;
-}
-
-function parseHhmm(value: string | null | undefined): number | null {
-  if (!value) return null;
-  const match = value.match(/^(\d+):([0-5]\d)$/);
-  return match ? parseInt(match[1]) * 60 + parseInt(match[2]) : null;
-}
-
-function formatHhmm(totalMinutes: number): string {
-  const h = Math.floor(totalMinutes / 60);
-  const m = totalMinutes % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-}
-
-function hhmmFormatValidator(): ValidatorFn {
-  return (control) => {
-    if (!control.value) return null;
-    return /^\d+:[0-5]\d$/.test(control.value) ? null : { hhmm: true };
-  };
-}
-
-function hhmmMinValidator(minExclusive: number): ValidatorFn {
-  return (control) => {
-    const minutes = parseHhmm(control.value);
-    if (minutes === null) return null;
-    return minutes > minExclusive ? null : { min: true };
-  };
-}
-
-function hhmmMaxValidator(max: number): ValidatorFn {
-  return (control) => {
-    const minutes = parseHhmm(control.value);
-    if (minutes === null) return null;
-    return minutes <= max ? null : { max: true };
-  };
 }
 
 @Component({

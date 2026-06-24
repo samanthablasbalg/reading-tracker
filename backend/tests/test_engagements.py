@@ -160,6 +160,17 @@ def test_create_engagement_duplicate_active_read_returns_409(
     assert response.status_code == 409
 
 
+def test_create_engagement_same_book_different_format_succeeds(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    _create_engagement(client, book["id"])
+    response = client.post(
+        "/engagements", json={"book_id": book["id"], "edition_format": "audio"}
+    )
+    assert response.status_code == 201
+
+
 def test_create_engagement_on_finished_book_succeeds(client: TestClient) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])

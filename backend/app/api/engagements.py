@@ -52,9 +52,13 @@ def create_engagement(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     duplicate = db.execute(
-        select(Engagement).where(
+        select(Engagement)
+        .join(EngagementEdition)
+        .join(Edition)
+        .where(
             Engagement.book_id == payload.book_id,
             Engagement.status == ReadingStatus.reading,
+            Edition.edition_format == payload.edition_format,
         )
     ).scalar_one_or_none()
     if duplicate is not None:
