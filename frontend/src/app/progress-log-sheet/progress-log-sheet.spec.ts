@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/angular';
 import { Observable, of, throwError } from 'rxjs';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { ANIMATION_MODULE_TYPE } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ProgressLogSheetComponent, ProgressLogSheetData } from './progress-log-sheet';
 import { EngagementService } from '../engagement.service';
@@ -37,7 +37,7 @@ async function setup(
 
   await render(ProgressLogSheetComponent, {
     providers: [
-      provideNoopAnimations(),
+      { provide: ANIMATION_MODULE_TYPE, useValue: 'NoopAnimations' },
       { provide: MAT_DIALOG_DATA, useValue: { ...baseData, ...dataOverrides } },
       { provide: MatDialogRef, useValue: mockDialogRef },
       { provide: EngagementService, useValue: mockEngagementService },

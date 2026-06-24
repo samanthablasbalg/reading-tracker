@@ -967,6 +967,109 @@ def test_finish_with_no_page_count_creates_no_log(
     assert len(logs) == 1
 
 
+def test_finish_audio_creates_final_minutes_log(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_audio_minutes = 480
+    db.commit()
+    engagement = _create_audio_engagement(client, book["id"])
+    _log_audio_progress(client, engagement["id"], 240)
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}", json={"status": "finished"}
+    )
+    assert response.status_code == 200
+    assert response.json()["completion_pct"] == 100
+
+    logs = (
+        db.execute(
+            select(ProgressLog).where(
+                ProgressLog.engagement_id == uuid.UUID(engagement["id"])
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(logs) == 2
+    final_log = max(logs, key=lambda log: log.logged_at)
+    assert final_log.unit.value == "minutes"
+    assert final_log.minute_start == 240
+    assert final_log.minute_end == 480
+
+
+def test_finish_audio_does_not_duplicate_log_when_already_at_length(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_audio_minutes = 480
+    db.commit()
+    engagement = _create_audio_engagement(client, book["id"])
+    _log_audio_progress(client, engagement["id"], 480)
+
+    client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
+
+    logs = (
+        db.execute(
+            select(ProgressLog).where(
+                ProgressLog.engagement_id == uuid.UUID(engagement["id"])
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(logs) == 1
+
+
+def test_finish_audio_with_no_length_creates_no_log(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_audio_engagement(client, book["id"])
+    _log_audio_progress(client, engagement["id"], 240)
+
+    client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
+
+    logs = (
+        db.execute(
+            select(ProgressLog).where(
+                ProgressLog.engagement_id == uuid.UUID(engagement["id"])
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(logs) == 1
+
+
+def test_finish_audio_does_not_create_page_log(client: TestClient, db: Session) -> None:
+    book = _create_book(client)
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_page_count = 300
+    book_obj.default_audio_minutes = 480
+    db.commit()
+    engagement = _create_audio_engagement(client, book["id"])
+    _log_audio_progress(client, engagement["id"], 240)
+
+    client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
+
+    logs = (
+        db.execute(
+            select(ProgressLog).where(
+                ProgressLog.engagement_id == uuid.UUID(engagement["id"])
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert all(log.unit.value == "minutes" for log in logs)
+
+
 # --- Audio progress logging ---
 
 

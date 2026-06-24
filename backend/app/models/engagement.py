@@ -80,54 +80,59 @@ class Engagement(TimestampMixin, Base):
                 return ee.edition.cover_url
         return self.book.default_cover_url
 
+    def _latest_page_end(self) -> int | None:
+        page_logs = [log for log in self.progress_logs if log.page_end is not None]
+        if not page_logs:
+            return None
+        return max(page_logs, key=lambda log: log.logged_at).page_end
+
     @property
     def resume_from_page(self) -> int:
-        if not self.progress_logs:
-            return 0
-        latest = max(self.progress_logs, key=lambda log: log.logged_at)
-        return latest.page_end if latest.page_end is not None else 0
+        end = self._latest_page_end()
+        return end if end is not None else 0
+
+    def _latest_minute_end(self) -> int | None:
+        minute_logs = [log for log in self.progress_logs if log.minute_end is not None]
+        if not minute_logs:
+            return None
+        return max(minute_logs, key=lambda log: log.logged_at).minute_end
 
     @property
     def resume_from_minute(self) -> int:
-        minute_logs = [log for log in self.progress_logs if log.minute_end is not None]
-        if not minute_logs:
-            return 0
-        latest = max(minute_logs, key=lambda log: log.logged_at)
-        return latest.minute_end if latest.minute_end is not None else 0
+        end = self._latest_minute_end()
+        return end if end is not None else 0
 
     def _resolve_length(self, fmt: Format) -> int | None:
         for ee in self.engagement_editions:
             if ee.edition.edition_format == fmt:
-                candidate = ee.length_override or (
+                if ee.length_override is not None:
+                    return ee.length_override
+                candidate = (
                     ee.edition.audio_minutes
                     if fmt == Format.audio
                     else ee.edition.page_count
                 )
-                if candidate:
+                if candidate is not None:
                     return candidate
         if fmt == Format.audio:
-            return self.book.default_audio_minutes or None
-        return self.book.default_page_count or None
+            return self.book.default_audio_minutes
+        return self.book.default_page_count
 
     @property
     def completion_pct(self) -> int | None:
         if not self.progress_logs:
             return None
         if Format.audio in self.formats:
-            minute_logs = [
-                log for log in self.progress_logs if log.minute_end is not None
-            ]
-            if not minute_logs:
+            position = self._latest_minute_end()
+            if position is None:
                 return None
-            latest = max(minute_logs, key=lambda log: log.logged_at)
-            position = latest.minute_end if latest.minute_end is not None else 0
             denominator = self._resolve_length(Format.audio)
         else:
-            latest = max(self.progress_logs, key=lambda log: log.logged_at)
-            if latest.page_end is None:
+            position = self._latest_page_end()
+            if position is None:
                 return None
-            position = latest.page_end
-            denominator = self._resolve_length(Format.print)
+            fmt = next((f for f in self.formats if f != Format.audio), Format.print)
+            denominator = self._resolve_length(fmt)
         if not denominator:
             return None
         return max(0, min(100, round(position / denominator * 100)))

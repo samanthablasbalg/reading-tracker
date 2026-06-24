@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/angular';
 import { of, throwError } from 'rxjs';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { ANIMATION_MODULE_TYPE } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FormatPickSheetComponent, FormatPickSheetData } from './format-pick-sheet';
 import { EngagementService } from '../engagement.service';
@@ -27,7 +27,7 @@ async function setup(
 
   await render(FormatPickSheetComponent, {
     providers: [
-      provideNoopAnimations(),
+      { provide: ANIMATION_MODULE_TYPE, useValue: 'NoopAnimations' },
       { provide: MAT_DIALOG_DATA, useValue: { ...baseData, ...dataOverrides } },
       { provide: MatDialogRef, useValue: mockDialogRef },
       { provide: EngagementService, useValue: mockEngagementService },
