@@ -13,6 +13,7 @@ from app.models.edition import Edition, EngagementEdition
 from app.models.engagement import Engagement
 from app.models.enums import Format, LogUnit, ReadingStatus
 from app.models.progress_log import ProgressLog
+from app.models.review import Review
 from app.schemas.edition import EngagementEditionCreate, EngagementEditionRead
 from app.schemas.engagement import (
     EngagementCreate,
@@ -20,6 +21,7 @@ from app.schemas.engagement import (
     EngagementStatusUpdate,
 )
 from app.schemas.progress_log import ProgressLogCreate, ProgressLogRead
+from app.schemas.review import ReviewUpsert
 
 router = APIRouter(prefix="/engagements", tags=["engagements"])
 
@@ -31,6 +33,7 @@ _LOAD_OPTIONS = (
     selectinload(Engagement.engagement_editions).selectinload(
         EngagementEdition.edition
     ),
+    selectinload(Engagement.review),
 )
 
 
@@ -349,6 +352,36 @@ def delete_binding(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     db.delete(binding)
     db.commit()
+
+
+@router.put("/{engagement_id}/review", response_model=EngagementRead)
+def upsert_review(
+    engagement_id: uuid.UUID,
+    payload: ReviewUpsert,
+    db: Session = Depends(get_db),
+) -> EngagementRead:
+    engagement = _fetch(engagement_id, db)
+
+    if engagement.status not in (ReadingStatus.finished, ReadingStatus.dnf):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT)
+
+    now = datetime.datetime.now(datetime.UTC)
+    if engagement.review is None:
+        db.add(
+            Review(
+                engagement_id=engagement.id,
+                rating=payload.rating,
+                body=payload.body,
+                written_at=now,
+            )
+        )
+    else:
+        engagement.review.rating = payload.rating
+        engagement.review.body = payload.body
+        engagement.review.written_at = now
+
+    db.commit()
+    return EngagementRead.model_validate(_fetch(engagement_id, db))
 
 
 @router.get("", response_model=list[EngagementRead])

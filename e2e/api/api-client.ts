@@ -75,4 +75,40 @@ export class ApiClient {
       data: { current_minute: currentMinute },
     });
   }
+
+  /**
+   * Marks an engagement as finished.
+   * @param engagementId - The engagement to finish.
+   */
+  async markAsFinished(engagementId: string): Promise<void> {
+    await this.request.patch(`${BACKEND_URL}/engagements/${engagementId}`, {
+      data: { status: 'finished' },
+    });
+  }
+
+  /**
+   * Marks an engagement as DNF (did not finish).
+   * @param engagementId - The engagement to DNF.
+   */
+  async markAsDnf(engagementId: string): Promise<void> {
+    await this.request.patch(`${BACKEND_URL}/engagements/${engagementId}`, {
+      data: { status: 'dnf' },
+    });
+  }
+
+  /**
+   * Creates or updates the review for a finished or DNF engagement.
+   * @param engagementId - The engagement to review.
+   * @param rating - Star rating (1.00–5.00 in 0.25 steps), or null for no rating.
+   * @param body - Review text, or null.
+   */
+  async upsertReview(
+    engagementId: string,
+    rating: number | null,
+    body: string | null
+  ): Promise<void> {
+    await this.request.put(`${BACKEND_URL}/engagements/${engagementId}/review`, {
+      data: { rating, body },
+    });
+  }
 }

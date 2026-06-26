@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.models.enums import Format, ReadingStatus
 from app.schemas.book import BookRead
+from app.schemas.review import ReviewRead
 
 
 class EngagementCreate(BaseModel):
@@ -32,6 +33,7 @@ class EngagementRead(BaseModel):
     resume_from_page: int
     resume_from_minute: int
     completion_pct: int | None
+    review: ReviewRead | None
     created_at: datetime.datetime
     updated_at: datetime.datetime
 

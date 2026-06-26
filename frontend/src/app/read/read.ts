@@ -1,15 +1,20 @@
 import { Component, inject } from '@angular/core';
 import { DatePipe, NgOptimizedImage } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatDivider } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
-import { EngagementService } from '../engagement.service';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { Engagement, EngagementService, Review } from '../engagement.service';
 import { formatIcon } from '../format-icon';
+import { ReviewSheetComponent, ReviewSheetData } from '../review-sheet/review-sheet';
 
 @Component({
   selector: 'app-read',
-  imports: [MatListModule, MatIconModule, MatDivider, NgOptimizedImage, DatePipe],
+  imports: [MatListModule, MatIconModule, MatDivider, NgOptimizedImage, DatePipe, MatButtonModule],
   styles: [
     `
       .format-icon {
@@ -50,6 +55,24 @@ import { formatIcon } from '../format-icon';
               Finished {{ engagement.finished_on | date: 'mediumDate' : 'UTC' }}</span
             >
           }
+          @if (reviewSummary(engagement.review); as summary) {
+            <span
+              matListItemLine
+              [attr.aria-label]="'Review summary for ' + engagement.book.title"
+              >{{ summary }}</span
+            >
+          }
+          <span matListItemMeta>
+            <button
+              mat-button
+              (click)="openReviewSheet(engagement)"
+              [attr.aria-label]="
+                (engagement.review ? 'Edit' : 'Add') + ' review for ' + engagement.book.title
+              "
+            >
+              {{ engagement.review ? 'Edit review' : 'Add review' }}
+            </button>
+          </span>
         </mat-list-item>
         @if (!$last) {
           <mat-divider />
@@ -64,6 +87,9 @@ export class ReadComponent {
   protected readonly formatIcon = formatIcon;
 
   private readonly engagementService = inject(EngagementService);
+  private readonly bottomSheet = inject(MatBottomSheet);
+  private readonly dialog = inject(MatDialog);
+  private readonly breakpointObserver = inject(BreakpointObserver);
 
   protected readonly finishedEngagements = toSignal(
     this.engagementService.engagements('finished'),
@@ -71,4 +97,26 @@ export class ReadComponent {
       initialValue: [],
     },
   );
+
+  protected reviewSummary(review: Review | null): string | null {
+    if (!review) return null;
+    return (
+      [review.rating ? `${review.rating} ★` : null, review.body].filter(Boolean).join(' · ') || null
+    );
+  }
+
+  protected openReviewSheet(engagement: Engagement): void {
+    const data: ReviewSheetData = {
+      engagementId: engagement.id,
+      title: engagement.book.title,
+      cover_url: engagement.cover_url,
+      review: engagement.review,
+    };
+
+    if (this.breakpointObserver.isMatched('(max-width: 599px)')) {
+      this.bottomSheet.open(ReviewSheetComponent, { data });
+    } else {
+      this.dialog.open(ReviewSheetComponent, { data });
+    }
+  }
 }
