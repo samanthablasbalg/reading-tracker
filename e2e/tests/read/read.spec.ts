@@ -101,10 +101,13 @@ test('Editing an existing review replaces the displayed summary', async ({
     await read.getEditReviewButton('Babel').click();
   });
 
-  await test.step('Change rating to 5.00 and clear the body', async () => {
+  await test.step('Change rating to 5.00, clear the body, and save', async () => {
     await sheet.getWholeSelect('Babel').selectOption('5');
-    await sheet.getReviewTextarea('Babel').clear();
-    await sheet.getSaveButton('Babel').click();
+    await sheet.getReviewTextarea('Babel').fill('');
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes('/api/engagements') && r.status() === 200),
+      sheet.getSaveButton('Babel').click(),
+    ]);
   });
 
   await test.step('Verify summary updated to the new rating only', async () => {
