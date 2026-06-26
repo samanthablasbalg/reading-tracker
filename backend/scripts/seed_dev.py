@@ -44,7 +44,10 @@ def reset() -> None:
     print("Resetting database...")
     with psycopg2.connect(DATABASE_URL) as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
+            cur.execute(
+                "SELECT tablename FROM pg_tables"
+                " WHERE schemaname = 'public' AND tablename <> 'alembic_version'"
+            )
             tables = ", ".join(row[0] for row in cur.fetchall())
             if tables:
                 cur.execute(f"TRUNCATE {tables} CASCADE")
