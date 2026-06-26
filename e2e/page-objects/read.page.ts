@@ -32,4 +32,16 @@ export class ReadPage {
   getDnfEntry(title: string): Locator {
     return this.dnfSection.getByText(title, { exact: true });
   }
+
+  getAddReviewButton(title: string): Locator {
+    return this.page.getByRole('button', { name: `Add review for ${title}` });
+  }
+
+  getEditReviewButton(title: string): Locator {
+    return this.page.getByRole('button', { name: `Edit review for ${title}` });
+  }
+
+  getReviewSummary(title: string): Locator {
+    return this.page.getByLabel(`Review summary for ${title}`);
+  }
 }
