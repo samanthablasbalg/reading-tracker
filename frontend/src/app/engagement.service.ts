@@ -10,6 +10,11 @@ export type EngagedBook = Pick<
   'id' | 'title' | 'authors' | 'default_page_count' | 'default_audio_minutes'
 >;
 
+export interface Review {
+  rating: string;
+  body: string | null;
+}
+
 export interface Engagement {
   id: string;
   book: EngagedBook;
@@ -22,6 +27,7 @@ export interface Engagement {
   resume_from_page: number;
   resume_from_minute: number;
   completion_pct: number | null;
+  review: Review | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -81,5 +87,9 @@ export class EngagementService {
 
   logProgress(engagementId: string, payload: Record<string, number>): Observable<unknown> {
     return this.http.post<unknown>(`/api/engagements/${engagementId}/progress-logs`, payload);
+  }
+
+  upsertReview(engagementId: string, rating: number, body: string | null): Observable<Engagement> {
+    return this.http.put<Engagement>(`/api/engagements/${engagementId}/review`, { rating, body });
   }
 }
