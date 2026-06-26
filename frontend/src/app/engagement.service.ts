@@ -11,7 +11,7 @@ export type EngagedBook = Pick<
 >;
 
 export interface Review {
-  rating: string;
+  rating: string | null;
   body: string | null;
 }
 
@@ -89,7 +89,11 @@ export class EngagementService {
     return this.http.post<unknown>(`/api/engagements/${engagementId}/progress-logs`, payload);
   }
 
-  upsertReview(engagementId: string, rating: number, body: string | null): Observable<Engagement> {
+  upsertReview(
+    engagementId: string,
+    rating: number | null,
+    body: string | null,
+  ): Observable<Engagement> {
     return this.http.put<Engagement>(`/api/engagements/${engagementId}/review`, { rating, body });
   }
 }

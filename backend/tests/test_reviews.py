@@ -150,3 +150,32 @@ def test_engagement_review_is_null_before_rating(client: TestClient) -> None:
     data = client.get("/engagements?status=finished").json()
     assert data[0]["id"] == engagement["id"]
     assert data[0]["review"] is None
+
+
+def test_upsert_review_with_null_rating_and_body_only(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _finish_engagement(client, book["id"])
+
+    response = client.put(
+        f"/engagements/{engagement['id']}/review",
+        json={"body": "Really enjoyed this one."},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["review"]["rating"] is None
+    assert data["review"]["body"] == "Really enjoyed this one."
+
+
+def test_upsert_review_clears_rating_when_updated_to_null(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _finish_engagement(client, book["id"])
+    client.put(f"/engagements/{engagement['id']}/review", json={"rating": 4.0})
+
+    response = client.put(
+        f"/engagements/{engagement['id']}/review",
+        json={"body": "Changed my mind, no star rating."},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["review"]["rating"] is None
+    assert data["review"]["body"] == "Changed my mind, no star rating."
