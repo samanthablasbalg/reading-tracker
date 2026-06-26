@@ -56,7 +56,11 @@ import { ReviewSheetComponent, ReviewSheetData } from '../review-sheet/review-sh
             >
           }
           @if (reviewSummary(engagement.review); as summary) {
-            <span matListItemLine>{{ summary }}</span>
+            <span
+              matListItemLine
+              [attr.aria-label]="'Review summary for ' + engagement.book.title"
+              >{{ summary }}</span
+            >
           }
           <span matListItemMeta>
             <button
