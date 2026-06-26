@@ -77,10 +77,15 @@ export class CatalogPage {
    * Clicks the button to open the format picker, then picks the format.
    * @param title - The library book's title.
    * @param format - The format to start reading in (defaults to Print).
+   * @param audioLengthHhmm - Required for Audio when the book has no stored length.
    */
-  async markAsReading(title: string, format: PickableFormat = 'Print'): Promise<void> {
+  async markAsReading(
+    title: string,
+    format: PickableFormat = 'Print',
+    audioLengthHhmm?: string,
+  ): Promise<void> {
     await this.getMarkAsReadingButton(title).click();
-    await new FormatPickSheetPage(this.page).pick(title, format);
+    await new FormatPickSheetPage(this.page).pick(title, format, audioLengthHhmm);
   }
 
   /**

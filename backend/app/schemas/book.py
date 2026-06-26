@@ -46,6 +46,7 @@ class BookRead(BaseModel):
     google_books_id: str | None
     default_cover_url: str | None
     default_page_count: int | None
+    default_audio_minutes: int | None
     original_language: str | None
     genres: list[str]
     publication_date: datetime.date | None

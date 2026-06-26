@@ -11,7 +11,7 @@ from app.database import get_db
 from app.models.book import Book, BookAuthor
 from app.models.edition import Edition, EngagementEdition
 from app.models.engagement import Engagement
-from app.models.enums import LogUnit, ReadingStatus
+from app.models.enums import Format, LogUnit, ReadingStatus
 from app.models.progress_log import ProgressLog
 from app.schemas.edition import EngagementEditionCreate, EngagementEditionRead
 from app.schemas.engagement import (
@@ -34,6 +34,13 @@ _LOAD_OPTIONS = (
 )
 
 
+def _capture_audio_length(book: Book, edition: Edition, length: int) -> None:
+    if book.default_audio_minutes is None:
+        book.default_audio_minutes = length
+    if edition.audio_minutes is None:
+        edition.audio_minutes = length
+
+
 def _fetch(engagement_id: uuid.UUID, db: Session) -> Engagement:
     engagement = db.execute(
         select(Engagement).where(Engagement.id == engagement_id).options(*_LOAD_OPTIONS)
@@ -52,9 +59,13 @@ def create_engagement(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     duplicate = db.execute(
-        select(Engagement).where(
+        select(Engagement)
+        .join(EngagementEdition)
+        .join(Edition)
+        .where(
             Engagement.book_id == payload.book_id,
             Engagement.status == ReadingStatus.reading,
+            Edition.edition_format == payload.edition_format,
         )
     ).scalar_one_or_none()
     if duplicate is not None:
@@ -92,7 +103,11 @@ def create_engagement(
                 " edition when starting a read isn't supported yet."
             ),
         )
-    db.add(EngagementEdition(engagement_id=engagement.id, edition_id=candidates[0].id))
+    edition = candidates[0]
+    db.add(EngagementEdition(engagement_id=engagement.id, edition_id=edition.id))
+
+    if payload.audio_length_minutes is not None:
+        _capture_audio_length(book, edition, payload.audio_length_minutes)
 
     db.commit()
 
@@ -130,18 +145,35 @@ def update_engagement_status(
             engagement.abandoned_on = None
         case ReadingStatus.finished:
             engagement.finished_on = datetime.date.today()
-            page_count = engagement.book.default_page_count
-            if page_count is not None and engagement.resume_from_page != page_count:
-                db.add(
-                    ProgressLog(
-                        engagement_id=engagement.id,
-                        logged_at=datetime.datetime.now(datetime.UTC),
-                        unit=LogUnit.pages,
-                        page_start=engagement.resume_from_page,
-                        page_end=page_count,
-                        new_ground=True,
+            if Format.audio not in engagement.formats:
+                page_count = engagement.book.default_page_count
+                if page_count is not None and engagement.resume_from_page != page_count:
+                    db.add(
+                        ProgressLog(
+                            engagement_id=engagement.id,
+                            logged_at=datetime.datetime.now(datetime.UTC),
+                            unit=LogUnit.pages,
+                            page_start=engagement.resume_from_page,
+                            page_end=page_count,
+                            new_ground=True,
+                        )
                     )
-                )
+            else:
+                audio_length = engagement._resolve_length(Format.audio)
+                if (
+                    audio_length is not None
+                    and engagement.resume_from_minute != audio_length
+                ):
+                    db.add(
+                        ProgressLog(
+                            engagement_id=engagement.id,
+                            logged_at=datetime.datetime.now(datetime.UTC),
+                            unit=LogUnit.minutes,
+                            minute_start=engagement.resume_from_minute,
+                            minute_end=audio_length,
+                            new_ground=True,
+                        )
+                    )
         case ReadingStatus.dnf:
             if engagement.progress_logs:
                 latest = max(engagement.progress_logs, key=lambda log: log.logged_at)
@@ -171,19 +203,42 @@ def log_progress(
     if engagement.status != ReadingStatus.reading:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
-    page_start = engagement.resume_from_page
-    if payload.current_page <= page_start:
+    is_audio = Format.audio in engagement.formats
+    unit = LogUnit.minutes if is_audio else LogUnit.pages
+    position = payload.current_minute if is_audio else payload.current_page
+    resume = engagement.resume_from_minute if is_audio else engagement.resume_from_page
+
+    if position is None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
+    if position <= resume:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
     log = ProgressLog(
         engagement_id=engagement_id,
         logged_at=datetime.datetime.now(datetime.UTC),
-        unit=LogUnit.pages,
-        page_start=page_start,
-        page_end=payload.current_page,
+        unit=unit,
+        minute_start=resume if is_audio else None,
+        minute_end=position if is_audio else None,
+        page_start=None if is_audio else resume,
+        page_end=None if is_audio else position,
         new_ground=True,
     )
     db.add(log)
+
+    if is_audio and payload.audio_length_minutes is not None:
+        audio_ee = next(
+            (
+                ee
+                for ee in engagement.engagement_editions
+                if ee.edition.edition_format == Format.audio
+            ),
+            None,
+        )
+        if audio_ee is not None:
+            _capture_audio_length(
+                engagement.book, audio_ee.edition, payload.audio_length_minutes
+            )
+
     db.commit()
     db.refresh(log)
 

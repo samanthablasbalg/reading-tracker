@@ -21,13 +21,7 @@ def create_edition(
     if db.get(Book, payload.book_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    edition = Edition(
-        book_id=payload.book_id,
-        edition_format=payload.edition_format,
-        isbn=payload.isbn,
-        page_count=payload.page_count,
-        cover_url=payload.cover_url,
-    )
+    edition = Edition(**payload.model_dump())
     db.add(edition)
     try:
         db.commit()

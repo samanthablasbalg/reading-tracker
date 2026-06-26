@@ -17,6 +17,28 @@ Playwright test for the reading tracker app.
 
 ## How this skill works (read first)
 
+- **NEVER touch the backend with raw HTTP. No `curl`, `wget`, `fetch`, `httpie`, or any hand-rolled
+  request — in ANY step, for ANY reason.** Spec data setup goes through `ApiClient` only (Step 5),
+  and `ApiClient` exists *only* inside a test's fixture context — it is NOT available while driving.
+  The live driving session (Step 3) runs against books **already seeded in the e2e DB on purpose**,
+  so this skill runs with minimal intervention. You almost never need to create anything; if you
+  think you do, you're wrong — `snapshot` and look at what's there. If something is genuinely
+  missing, STOP and ask the user. Reaching around the harness with `curl` is the single most
+  forbidden move in this skill.
+- **NEVER manipulate a database out-of-band.** No `alembic stamp` / `alembic downgrade`, no raw
+  `psql`/SQL DDL (`ALTER` / `DROP` / `CREATE` / `ADD COLUMN`), no hand-editing of `alembic_version`
+  or the schema — against ANY database, and *especially* the e2e DB. The e2e database is owned
+  entirely by `db.setup` (it resets the schema and rebuilds it from the models on every run);
+  reaching around it is exactly what corrupted this database once before — a `stamp`ed-but-never-
+  applied migration that read as "up to date" while the column was missing, and it cost a full
+  session to diagnose. If the schema looks wrong, the fix is to let `db.setup` rebuild it (or fix
+  `db.setup` itself) — never a manual command. Read-only inspection (`\d`, `SELECT`) is fine;
+  mutation never is.
+- **The user's live instructions ALWAYS override this procedure.** If they say stop / hold / wait /
+  don't, you halt ALL tool use immediately — no "but this next step is fine," no carve-outs, no
+  finishing the action you'd already decided on. This skill's "don't over-ask" guidance below is
+  about not pestering for permission to *write the test*; it is never license to ignore a direct
+  command. When in doubt, you have already taken too many actions — stop and read.
 - **You run in the main conversation loop.** Do NOT spawn sub-agents — the user needs to see
   progress and step in. Work the steps yourself, in order.
 - **CLI-first.** Drive the browser with `npx playwright-cli` through the seed test; it **prints the
@@ -73,6 +95,12 @@ is too vague to build a scenario, clarify inline.
 - Open an existing Page Object **only if one already exists for this feature** (to extend it). Don't
   read unrelated tests/POMs.
 
+> **HARD GATE — no code, no plan, no confirmation request.** After Step 2 your next action is
+> launching the seed (Step 3). Do not write POM or spec code. Do not present a plan and ask the
+> user to confirm it. The user invoking this skill is already the confirmation. Candidate locators
+> from source are unconfirmed until a live `playwright-cli snapshot` validates them — writing tests
+> from source locators is the mistake this gate exists to prevent.
+
 ## Step 3 — Drive the live app (CLI-first)
 
 You don't need to start the app — the config's `webServer` brings it up on `http://localhost:4201`
@@ -108,7 +136,11 @@ npx playwright-cli --raw generate-locator e15   # robust locator for the POM
 Confirm every candidate locator against the snapshot. The seed ends in `page.pause()` so the page
 stays open after the first `resume` — without it the test would finish and close the session before
 you can drive it (don't remove it). It runs on plain `@playwright/test` and doesn't truncate, so it
-lands on whatever is already in the e2e DB; add what you need through the UI or `ApiClient`.
+lands on the books **already seeded in the e2e DB** — these exist for exactly this purpose. Drive
+against them: `snapshot` first to see what's there. Do NOT create or seed data during driving by any
+means — not `curl`/HTTP, and not through the app UI either (adding a book hits the live Google Books
+API). If the scenario needs something the seeded DB doesn't already have, **STOP and ask the user.**
+Full stop — never conjure the data yourself.
 
 **When done driving, call `npx playwright-cli --s=<session> resume` one more time.** This unblocks
 `page.pause()`, the test completes naturally, the browser closes, and the background process exits

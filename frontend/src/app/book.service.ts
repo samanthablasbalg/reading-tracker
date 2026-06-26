@@ -14,6 +14,7 @@ export interface Book {
   google_books_id: string | null;
   default_cover_url: string | null;
   default_page_count: number | null;
+  default_audio_minutes: number | null;
   original_language: string | null;
   genres: string[];
   publication_date: string | null;

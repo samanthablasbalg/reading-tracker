@@ -12,6 +12,8 @@ const mockBook = {
   title: 'Dune',
   authors: [{ id: 'auth-1', name: 'Frank Herbert' }],
   default_cover_url: 'https://example.com/dune.jpg',
+  default_page_count: 412,
+  default_audio_minutes: null as number | null,
 };
 
 describe('BookListComponent', () => {
@@ -105,7 +107,12 @@ describe('BookListComponent', () => {
     fixture.nativeElement.querySelector('button[mat-stroked-button]').click();
 
     expect(bottomSheet.open).toHaveBeenCalledWith(FormatPickSheetComponent, {
-      data: { bookId: 'book-1', title: 'Dune', cover_url: 'https://example.com/dune.jpg' },
+      data: {
+        bookId: 'book-1',
+        title: 'Dune',
+        cover_url: 'https://example.com/dune.jpg',
+        default_audio_minutes: null,
+      },
     });
   });
 
@@ -120,7 +127,12 @@ describe('BookListComponent', () => {
     fixture.nativeElement.querySelector('button[mat-stroked-button]').click();
 
     expect(dialog.open).toHaveBeenCalledWith(FormatPickSheetComponent, {
-      data: { bookId: 'book-1', title: 'Dune', cover_url: 'https://example.com/dune.jpg' },
+      data: {
+        bookId: 'book-1',
+        title: 'Dune',
+        cover_url: 'https://example.com/dune.jpg',
+        default_audio_minutes: null,
+      },
     });
   });
 });

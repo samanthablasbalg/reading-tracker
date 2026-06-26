@@ -6,13 +6,23 @@ import { MatInputModule } from '@angular/material/input';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogTitle } from '@angular/material/dialog';
 import { MatBottomSheetRef, MAT_BOTTOM_SHEET_DATA } from '@angular/material/bottom-sheet';
 import { EngagementService } from '../engagement.service';
+import {
+  parseHhmm,
+  formatHhmm,
+  hhmmFormatValidator,
+  hhmmMinValidator,
+  hhmmMaxValidator,
+} from '../hhmm';
 
 export interface ProgressLogSheetData {
   engagementId: string;
   title: string;
   cover_url: string | null;
+  formats: string[];
   resume_from_page: number;
+  resume_from_minute: number;
   default_page_count: number | null;
+  default_audio_minutes: number | null;
 }
 
 @Component({
@@ -36,16 +46,32 @@ export interface ProgressLogSheetData {
         />
       }
       <h2 mat-dialog-title style="margin: 0; text-align: center;">{{ data.title }}</h2>
-      <mat-form-field style="width: 100%;">
-        <mat-label>Current page</mat-label>
-        <input matInput type="number" [attr.min]="effectiveMin" [formControl]="pageControl" />
-        @if (pageControl.hasError('min')) {
-          <mat-error>Must be greater than page {{ data.resume_from_page }}</mat-error>
-        }
-        @if (pageControl.hasError('max')) {
-          <mat-error>Cannot exceed {{ data.default_page_count }} pages</mat-error>
-        }
-      </mat-form-field>
+      @if (isAudio) {
+        <mat-form-field style="width: 100%;">
+          <mat-label>Current position</mat-label>
+          <input matInput [formControl]="minuteControl" placeholder="HH:MM" />
+          @if (minuteControl.hasError('hhmm')) {
+            <mat-error>Enter a time in HH:MM format</mat-error>
+          }
+          @if (minuteControl.hasError('min')) {
+            <mat-error>Must be after {{ formatHhmm(data.resume_from_minute) }}</mat-error>
+          }
+          @if (minuteControl.hasError('max')) {
+            <mat-error>Cannot exceed {{ formatHhmm(data.default_audio_minutes!) }}</mat-error>
+          }
+        </mat-form-field>
+      } @else {
+        <mat-form-field style="width: 100%;">
+          <mat-label>Current page</mat-label>
+          <input matInput type="number" [attr.min]="effectiveMin" [formControl]="pageControl" />
+          @if (pageControl.hasError('min')) {
+            <mat-error>Must be greater than page {{ data.resume_from_page }}</mat-error>
+          }
+          @if (pageControl.hasError('max')) {
+            <mat-error>Cannot exceed {{ data.default_page_count }} pages</mat-error>
+          }
+        </mat-form-field>
+      }
       @if (error()) {
         <p role="alert">{{ error() }}</p>
       }
@@ -53,7 +79,7 @@ export interface ProgressLogSheetData {
         <button
           mat-flat-button
           style="width: 100%;"
-          [disabled]="pageControl.invalid || submitting()"
+          [disabled]="saveDisabled || submitting()"
           (click)="save()"
           [attr.aria-label]="'Save progress for ' + data.title"
         >
@@ -111,6 +137,15 @@ export class ProgressLogSheetComponent {
     inject<ProgressLogSheetData>(MAT_BOTTOM_SHEET_DATA);
   private readonly engagementService = inject(EngagementService);
 
+  protected readonly formatHhmm = formatHhmm;
+  protected readonly isAudio = this.data.formats.includes('audio');
+  protected readonly defaultValue = this.isAudio
+    ? this.data.default_audio_minutes
+    : this.data.default_page_count;
+  protected readonly currentValueProperty = this.isAudio ? 'current_minute' : 'current_page';
+  protected readonly resumeFromProperty = this.isAudio ? 'resume_from_minute' : 'resume_from_page';
+  protected readonly entryText = this.isAudio ? 'timestamp' : 'page';
+
   protected readonly saving = signal(false);
   protected readonly mode = signal<
     'idle' | 'finishing' | 'dnfing' | 'confirmingFinish' | 'confirmingDnf'
@@ -121,10 +156,13 @@ export class ProgressLogSheetComponent {
   );
   protected readonly confirmText = computed(() => {
     if (this.mode() === 'confirmingFinish' || this.mode() === 'finishing') {
-      const discarding = this.pageControl.value !== this.data.resume_from_page;
+      const discarding = this.isAudio
+        ? this.minuteControl.value !== formatHhmm(this.data.resume_from_minute)
+        : this.pageControl.value !== this.data.resume_from_page;
+      const enteredValue = this.isAudio ? this.minuteControl.value : this.pageControl.value;
       return {
         prompt: discarding
-          ? `Finish and discard the page you entered (${this.pageControl.value})?`
+          ? `Finish and discard the ${this.entryText} you entered (${enteredValue})?`
           : `Mark "${this.data.title}" as finished?`,
         label: 'Finish',
         ariaLabel: 'Confirm finish ' + this.data.title,
@@ -139,10 +177,12 @@ export class ProgressLogSheetComponent {
       };
     }
   });
+
   protected readonly effectiveMin: number =
     this.data.default_page_count != null
       ? Math.min(this.data.resume_from_page + 1, this.data.default_page_count)
       : this.data.resume_from_page + 1;
+
   protected readonly pageControl = new FormControl<number | null>(this.data.resume_from_page, {
     validators: [
       Validators.required,
@@ -153,40 +193,72 @@ export class ProgressLogSheetComponent {
     ],
   });
 
+  protected readonly minuteControl = new FormControl<string | null>(
+    formatHhmm(this.data.resume_from_minute),
+    {
+      validators: [
+        Validators.required,
+        hhmmFormatValidator(),
+        hhmmMinValidator(this.data.resume_from_minute),
+        ...(this.data.default_audio_minutes !== null
+          ? [hhmmMaxValidator(this.data.default_audio_minutes)]
+          : []),
+      ],
+    },
+  );
+
+  protected get saveDisabled(): boolean {
+    if (this.isAudio) {
+      return this.minuteControl.invalid;
+    }
+    return this.pageControl.invalid;
+  }
+
   constructor() {
     effect(() => {
       if (this.mode() === 'idle') {
-        this.pageControl.enable();
+        if (this.isAudio) {
+          this.minuteControl.enable();
+        } else {
+          this.pageControl.enable();
+        }
       } else {
-        this.pageControl.disable();
+        if (this.isAudio) {
+          this.minuteControl.disable();
+        } else {
+          this.pageControl.disable();
+        }
       }
     });
   }
 
   protected save(): void {
-    if (this.pageControl.invalid || this.saving()) {
-      return;
-    }
-    const page = this.pageControl.value as number;
+    if (this.saveDisabled || this.saving()) return;
     this.saving.set(true);
     this.error.set(null);
 
-    this.engagementService.logProgress(this.data.engagementId, page).subscribe({
-      next: () => {
-        const completion_pct = this.data.default_page_count
-          ? Math.min(100, Math.round((page / this.data.default_page_count) * 100))
-          : null;
-        this.engagementService.patchEngagementInPlace(this.data.engagementId, {
-          resume_from_page: page,
-          completion_pct,
-        });
-        this.close();
-      },
-      error: () => {
-        this.saving.set(false);
-        this.error.set('Failed to save. Please try again.');
-      },
-    });
+    const updateValue = this.isAudio
+      ? parseHhmm(this.minuteControl.value)!
+      : (this.pageControl.value as number);
+
+    this.engagementService
+      .logProgress(this.data.engagementId, { [this.currentValueProperty]: updateValue })
+      .subscribe({
+        next: () => {
+          const completion_pct = this.defaultValue
+            ? Math.min(100, Math.round((updateValue / this.defaultValue) * 100))
+            : null;
+          this.engagementService.patchEngagementInPlace(this.data.engagementId, {
+            [this.resumeFromProperty]: updateValue,
+            completion_pct,
+          });
+          this.close();
+        },
+        error: () => {
+          this.saving.set(false);
+          this.error.set('Failed to save. Please try again.');
+        },
+      });
   }
 
   protected onFinish(): void {

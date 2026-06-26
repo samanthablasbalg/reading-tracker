@@ -133,6 +133,72 @@ test('Marking a book finished after entering text causes confirmation flow', asy
   });
 });
 
+test('Audio log sheet shows HH:MM input instead of a page input', async ({ page, apiClient }) => {
+  const currentlyReading = new CurrentlyReadingPage(page);
+  const sheet = new ProgressLogSheetPage(page);
+
+  await test.step('Seed an audio read', async () => {
+    const bookId = await apiClient.createBook('The Hobbit', 'J.R.R. Tolkien');
+    await apiClient.markAsReading(bookId, 'audio');
+  });
+
+  await test.step('Navigate and open the log sheet', async () => {
+    await currentlyReading.goto();
+    await currentlyReading.openLogSheet('The Hobbit');
+  });
+
+  await test.step('Verify the HH:MM input is shown and the page input is absent', async () => {
+    await expect(sheet.minuteInput).toBeVisible();
+    await expect(sheet.pageInput).toHaveCount(0);
+  });
+});
+
+test('Logging audio progress advances the completion percentage', async ({ page, apiClient }) => {
+  const currentlyReading = new CurrentlyReadingPage(page);
+  const sheet = new ProgressLogSheetPage(page);
+
+  await test.step('Seed an audio read with a 2-hour length', async () => {
+    const bookId = await apiClient.createBook('The Hobbit', 'J.R.R. Tolkien');
+    await apiClient.markAsReading(bookId, 'audio', 120);
+  });
+
+  await test.step('Navigate and open the log sheet', async () => {
+    await currentlyReading.goto();
+    await currentlyReading.openLogSheet('The Hobbit');
+  });
+
+  await test.step('Log 01:00 of progress', async () => {
+    await sheet.enterMinute('01:00');
+    await sheet.save('The Hobbit');
+  });
+
+  await test.step('Verify completion percentage is 50%', async () => {
+    await expect(currentlyReading.getProgressBar('The Hobbit')).toHaveAccessibleName(
+      'The Hobbit progress: 50%',
+    );
+  });
+});
+
+test('Audio log sheet pre-fills with the last logged minute', async ({ page, apiClient }) => {
+  const currentlyReading = new CurrentlyReadingPage(page);
+  const sheet = new ProgressLogSheetPage(page);
+
+  await test.step('Seed an audio read with progress logged to minute 75', async () => {
+    const bookId = await apiClient.createBook('The Hobbit', 'J.R.R. Tolkien');
+    const engId = await apiClient.markAsReading(bookId, 'audio', 180);
+    await apiClient.logAudioProgress(engId, 75);
+  });
+
+  await test.step('Navigate and open the log sheet', async () => {
+    await currentlyReading.goto();
+    await currentlyReading.openLogSheet('The Hobbit');
+  });
+
+  await test.step('Verify the sheet pre-fills with 01:15', async () => {
+    await expect(sheet.minuteInput).toHaveValue('01:15');
+  });
+});
+
 test('Giving up on a book moves it from Currently reading to the DNF section', async ({
   page,
   apiClient,

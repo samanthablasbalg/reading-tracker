@@ -31,11 +31,22 @@ export class ApiClient {
   /**
    * Starts a reading engagement for a book.
    * @param bookId - The book to start reading.
+   * @param editionFormat - The format of the edition to read.
+   * @param audioLengthMinutes - Optional total length in minutes; used to set the audio length for
+   *   audio reads so completion % can be computed.
    * @returns The new engagement's id.
    */
-  async markAsReading(bookId: string, editionFormat = 'print'): Promise<string> {
+  async markAsReading(
+    bookId: string,
+    editionFormat = 'print',
+    audioLengthMinutes?: number,
+  ): Promise<string> {
     const response = await this.request.post(`${BACKEND_URL}/engagements`, {
-      data: { book_id: bookId, edition_format: editionFormat },
+      data: {
+        book_id: bookId,
+        edition_format: editionFormat,
+        ...(audioLengthMinutes != null && { audio_length_minutes: audioLengthMinutes }),
+      },
     });
     const { id } = (await response.json()) as { id: string };
     return id;
@@ -50,6 +61,18 @@ export class ApiClient {
   async logProgress(engagementId: string, currentPage: number): Promise<void> {
     await this.request.post(`${BACKEND_URL}/engagements/${engagementId}/progress-logs`, {
       data: { current_page: currentPage },
+    });
+  }
+
+  /**
+   * Logs audio progress on an engagement. The minute must advance past the current
+   * resume point, or the backend rejects it.
+   * @param engagementId - The engagement to log against.
+   * @param currentMinute - The minute position reached.
+   */
+  async logAudioProgress(engagementId: string, currentMinute: number): Promise<void> {
+    await this.request.post(`${BACKEND_URL}/engagements/${engagementId}/progress-logs`, {
+      data: { current_minute: currentMinute },
     });
   }
 }

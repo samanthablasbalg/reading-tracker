@@ -60,6 +60,7 @@ export class BookListComponent {
       bookId: book.id,
       title: book.title,
       cover_url: book.default_cover_url,
+      default_audio_minutes: book.default_audio_minutes,
     };
 
     if (this.breakpointObserver.isMatched('(max-width: 599px)')) {

@@ -96,7 +96,7 @@ test('Starting a book as audio shows the audio icon on the Currently Reading row
 
   await test.step('Start the book as audio from the catalog', async () => {
     await catalog.goto();
-    await catalog.markAsReading('Piranesi', 'Audio');
+    await catalog.markAsReading('Piranesi', 'Audio', '10:00');
   });
 
   await test.step('Verify the audio icon appears on the Currently Reading row', async () => {

@@ -12,7 +12,6 @@ from app.models.book import Book, BookAuthor
 from app.models.edition import Edition
 from app.models.enums import BookAuthorRole, DatePrecision, Format
 from app.schemas.book import (
-    AuthorRead,
     BookCreate,
     BookImportRequest,
     BookRead,
@@ -50,20 +49,7 @@ def _get_or_create_author(name: str, db: Session) -> Author:
 
 
 def _to_book_read(book: Book) -> BookRead:
-    return BookRead(
-        id=book.id,
-        title=book.title,
-        authors=[AuthorRead.model_validate(ba.author) for ba in book.book_authors],
-        google_books_id=book.google_books_id,
-        default_cover_url=book.default_cover_url,
-        default_page_count=book.default_page_count,
-        original_language=book.original_language,
-        genres=book.genres,
-        publication_date=book.publication_date,
-        publication_date_precision=book.publication_date_precision,
-        created_at=book.created_at,
-        updated_at=book.updated_at,
-    )
+    return BookRead.model_validate(book)
 
 
 @router.post("", response_model=BookRead, status_code=status.HTTP_201_CREATED)

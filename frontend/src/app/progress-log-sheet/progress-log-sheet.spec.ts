@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/angular';
 import { Observable, of, throwError } from 'rxjs';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { ANIMATION_MODULE_TYPE } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ProgressLogSheetComponent, ProgressLogSheetData } from './progress-log-sheet';
 import { EngagementService } from '../engagement.service';
@@ -9,8 +9,11 @@ const baseData: ProgressLogSheetData = {
   engagementId: 'eng-1',
   title: 'Dune',
   cover_url: null,
+  formats: ['print'],
   resume_from_page: 50,
+  resume_from_minute: 0,
   default_page_count: 412,
+  default_audio_minutes: null,
 };
 
 type MockEngagementService = Pick<
@@ -34,7 +37,7 @@ async function setup(
 
   await render(ProgressLogSheetComponent, {
     providers: [
-      provideNoopAnimations(),
+      { provide: ANIMATION_MODULE_TYPE, useValue: 'NoopAnimations' },
       { provide: MAT_DIALOG_DATA, useValue: { ...baseData, ...dataOverrides } },
       { provide: MatDialogRef, useValue: mockDialogRef },
       { provide: EngagementService, useValue: mockEngagementService },
@@ -84,7 +87,7 @@ describe('ProgressLogSheetComponent', () => {
     const { mockEngagementService } = await setup();
     fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
-    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 100);
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', { current_page: 100 });
   });
 
   it('patches the engagement in place and closes on save success', async () => {
@@ -161,7 +164,7 @@ describe('ProgressLogSheetComponent', () => {
     const { mockEngagementService } = await setup({ default_page_count: 300 });
     fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '300' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
-    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 300);
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', { current_page: 300 });
   });
 
   it('enables Save on open when resume_from_page equals the page count', async () => {
@@ -178,7 +181,7 @@ describe('ProgressLogSheetComponent', () => {
       default_page_count: 200,
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
-    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', 200);
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', { current_page: 200 });
   });
 
   it('closes the sheet without saving when cancel is clicked', async () => {
@@ -330,5 +333,101 @@ describe('ProgressLogSheetComponent', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm dnf Dune' }));
     expect(screen.getByRole('alert').textContent).toContain('Failed to DNF');
     expect(mockDialogRef.close).not.toHaveBeenCalled();
+  });
+
+  // --- Audio ---
+
+  const audioData: Partial<ProgressLogSheetData> = {
+    formats: ['audio'],
+    resume_from_minute: 75,
+    default_audio_minutes: 600,
+  };
+
+  it('shows an HH:MM input for audio format', async () => {
+    await setup(audioData);
+    expect(screen.getByRole('textbox')).toBeTruthy();
+    expect(screen.queryByRole('spinbutton')).toBeNull();
+  });
+
+  it('pre-fills the minute input with formatted resume_from_minute', async () => {
+    await setup(audioData);
+    expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('01:15');
+  });
+
+  it('disables Save on open when the pre-filled time equals resume_from_minute', async () => {
+    await setup(audioData);
+    expect(
+      (screen.getByRole('button', { name: 'Save progress for Dune' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+  });
+
+  it('save calls logProgress with current_minute for audio', async () => {
+    const { mockEngagementService } = await setup(audioData);
+    fireEvent.input(screen.getByRole('textbox'), { target: { value: '02:30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', {
+      current_minute: 150,
+    });
+  });
+
+  it('patches the engagement with resume_from_minute and completion_pct on save', async () => {
+    const { mockEngagementService } = await setup(audioData);
+    fireEvent.input(screen.getByRole('textbox'), { target: { value: '02:30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
+    expect(mockEngagementService.patchEngagementInPlace).toHaveBeenCalledWith('eng-1', {
+      resume_from_minute: 150,
+      completion_pct: 25,
+    });
+  });
+
+  it('passes null completion_pct when audio length is unknown', async () => {
+    const { mockEngagementService } = await setup({
+      ...audioData,
+      default_audio_minutes: null,
+    });
+    fireEvent.input(screen.getByRole('textbox'), { target: { value: '02:30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
+    expect(mockEngagementService.patchEngagementInPlace).toHaveBeenCalledWith('eng-1', {
+      resume_from_minute: 150,
+      completion_pct: null,
+    });
+  });
+
+  it('shows a format error for invalid HH:MM input', async () => {
+    await setup(audioData);
+    fireEvent.input(screen.getByRole('textbox'), { target: { value: 'abc' } });
+    fireEvent.blur(screen.getByRole('textbox'));
+    expect(screen.getByText(/enter a time in HH:MM format/i)).toBeTruthy();
+  });
+
+  it('shows a min error when time does not advance past resume_from_minute', async () => {
+    await setup(audioData);
+    fireEvent.input(screen.getByRole('textbox'), { target: { value: '01:00' } });
+    fireEvent.blur(screen.getByRole('textbox'));
+    expect(screen.getByText(/must be after 01:15/i)).toBeTruthy();
+  });
+
+  it('shows a max error when time exceeds the audio length', async () => {
+    await setup(audioData);
+    fireEvent.input(screen.getByRole('textbox'), { target: { value: '11:00' } });
+    fireEvent.blur(screen.getByRole('textbox'));
+    expect(screen.getByText(/cannot exceed 10:00/i)).toBeTruthy();
+  });
+
+  it('does not submit when HH:MM input is invalid', async () => {
+    const { mockEngagementService } = await setup(audioData);
+    fireEvent.input(screen.getByRole('textbox'), { target: { value: 'not-a-time' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
+    expect(mockEngagementService.logProgress).not.toHaveBeenCalled();
+  });
+
+  it('warns about discarding the entered timestamp when finishing with edits', async () => {
+    await setup(audioData);
+    fireEvent.input(screen.getByRole('textbox'), { target: { value: '02:30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Mark Dune as finished' }));
+    expect(
+      screen.getByText(/finish and discard the timestamp you entered \(02:30\)/i),
+    ).toBeTruthy();
   });
 });

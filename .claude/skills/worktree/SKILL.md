@@ -29,6 +29,18 @@ Do NOT use `git worktree add` + `EnterWorktree path=...`. That pattern breaks
 cleanup: ExitWorktree will not remove a worktree entered via `path`, leaving
 orphaned worktrees behind.
 
+## After entering the worktree (always)
+
+Run these installs before starting any work — `node_modules` is not tracked in
+git so worktrees always start without it:
+
+```
+cd frontend && npm install
+cd ../e2e && npm install
+```
+
+Do both even if the task only touches one of them.
+
 ## If the user does not provide a branch name
 
 Ask: "Do you have a branch name you want to use?"

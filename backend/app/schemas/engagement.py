@@ -13,6 +13,7 @@ from app.schemas.book import BookRead
 class EngagementCreate(BaseModel):
     book_id: uuid.UUID
     edition_format: Format
+    audio_length_minutes: int | None = None
 
 
 class EngagementStatusUpdate(BaseModel):
@@ -29,6 +30,7 @@ class EngagementRead(BaseModel):
     finished_on: datetime.date | None
     abandoned_on: datetime.date | None
     resume_from_page: int
+    resume_from_minute: int
     completion_pct: int | None
     created_at: datetime.datetime
     updated_at: datetime.datetime

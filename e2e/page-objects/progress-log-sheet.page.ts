@@ -5,6 +5,7 @@ import { Locator, Page } from '@playwright/test';
 // both. Instantiated against the same page as the currently-reading POM.
 export class ProgressLogSheetPage {
   readonly pageInput: Locator;
+  readonly minuteInput: Locator;
   readonly cancelButton: Locator;
   readonly confirmationMessage: Locator;
   readonly finishButton: Locator;
@@ -14,6 +15,7 @@ export class ProgressLogSheetPage {
   /** @param page - The Playwright page the sheet is open on. */
   constructor(public readonly page: Page) {
     this.pageInput = page.getByRole('spinbutton', { name: 'Current page' });
+    this.minuteInput = page.getByRole('textbox', { name: 'Current position' });
     this.cancelButton = page.getByRole('button', { name: 'Cancel' });
     this.confirmationMessage = page.getByText('Finish and discard the page you entered');
     this.finishButton = page.getByRole('button', { name: /finish/i });
@@ -36,6 +38,14 @@ export class ProgressLogSheetPage {
    */
   async enterPage(page: number): Promise<void> {
     await this.pageInput.fill(String(page));
+  }
+
+  /**
+   * Types a position into the HH:MM field for audio reads.
+   * @param hhmm - The position in HH:MM format.
+   */
+  async enterMinute(hhmm: string): Promise<void> {
+    await this.minuteInput.fill(hhmm);
   }
 
   /**
