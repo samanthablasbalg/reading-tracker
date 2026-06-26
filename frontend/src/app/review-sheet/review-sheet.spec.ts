@@ -1,9 +1,9 @@
 import { render, screen, fireEvent } from '@testing-library/angular';
 import { Observable, of, throwError } from 'rxjs';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { ReviewSheetComponent, ReviewSheetData } from './review-sheet';
 import { EngagementService } from '../engagement.service';
+import { MATERIAL_ANIMATIONS } from '@angular/material/core';
 
 const baseData: ReviewSheetData = {
   engagementId: 'eng-1',
@@ -27,7 +27,7 @@ async function setup(
 
   await render(ReviewSheetComponent, {
     providers: [
-      provideNoopAnimations(),
+      { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
       { provide: MAT_DIALOG_DATA, useValue: { ...baseData, ...dataOverrides } },
       { provide: MatDialogRef, useValue: mockDialogRef },
       { provide: EngagementService, useValue: mockEngagementService },
