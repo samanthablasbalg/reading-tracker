@@ -544,3 +544,24 @@ def test_formats_derived_from_bound_editions(client: TestClient) -> None:
 
     data = client.get("/engagements?status=reading").json()
     assert set(data[0]["formats"]) == {"print", "digital"}
+
+
+# --- Get single engagement ---
+
+
+def test_get_engagement_returns_200_with_correct_fields(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+
+    response = client.get(f"/engagements/{engagement['id']}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == engagement["id"]
+    assert data["status"] == "reading"
+    assert data["book"]["title"] == "Piranesi"
+
+
+def test_get_engagement_unknown_id_returns_404(client: TestClient) -> None:
+    response = client.get(f"/engagements/{uuid.uuid4()}")
+    assert response.status_code == 404

@@ -354,6 +354,33 @@ def delete_binding(
     db.commit()
 
 
+@router.get("/{engagement_id}/progress-logs", response_model=list[ProgressLogRead])
+def list_progress_logs(
+    engagement_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> list[ProgressLogRead]:
+    if db.get(Engagement, engagement_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    logs = (
+        db.execute(
+            select(ProgressLog)
+            .where(ProgressLog.engagement_id == engagement_id)
+            .order_by(ProgressLog.logged_at.asc())
+        )
+        .scalars()
+        .all()
+    )
+    return [ProgressLogRead.model_validate(log) for log in logs]
+
+
+@router.get("/{engagement_id}", response_model=EngagementRead)
+def get_engagement(
+    engagement_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> EngagementRead:
+    return EngagementRead.model_validate(_fetch(engagement_id, db))
+
+
 @router.put("/{engagement_id}/review", response_model=EngagementRead)
 def upsert_review(
     engagement_id: uuid.UUID,
