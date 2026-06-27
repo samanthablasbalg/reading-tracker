@@ -419,6 +419,16 @@ def update_progress_log(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="That date would move this entry after the next one.",
             )
+        if engagement.started_on is not None and new_date < engagement.started_on:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="That date would be before the engagement's start date.",
+            )
+        if engagement.finished_on is not None and new_date > engagement.finished_on:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="That date would be after the engagement's finish date.",
+            )
         original = log.logged_at.astimezone(datetime.UTC)
         log.logged_at = datetime.datetime(
             new_date.year,
@@ -443,6 +453,13 @@ def update_progress_log(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Page must be higher than this session's starting page.",
             )
+        fmt = next((f for f in engagement.formats if f != Format.audio), Format.print)
+        book_length = engagement._resolve_length(fmt)
+        if book_length is not None and payload.page_end > book_length:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Page cannot exceed the book's length.",
+            )
         log.page_end = payload.page_end
 
     if payload.minute_end is not None:
@@ -450,6 +467,12 @@ def update_progress_log(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Minute must be higher than this session's starting minute.",
+            )
+        audio_length = engagement._resolve_length(Format.audio)
+        if audio_length is not None and payload.minute_end > audio_length:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Minute cannot exceed the audio length.",
             )
         log.minute_end = payload.minute_end
 

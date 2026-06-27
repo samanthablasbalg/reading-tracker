@@ -6,6 +6,7 @@ import uuid
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.models.engagement import Engagement
 from app.models.progress_log import ProgressLog
 from tests.helpers import (
     _create_audio_engagement,
@@ -20,6 +21,11 @@ def test_patch_log_date_updates_logged_at(client: TestClient, db: Session) -> No
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
     log = _log_progress(client, engagement["id"], 100)
+
+    eng_obj = db.get(Engagement, uuid.UUID(engagement["id"]))
+    assert eng_obj is not None
+    eng_obj.started_on = datetime.date(2026, 1, 1)
+    db.commit()
 
     response = client.patch(
         f"/engagements/{engagement['id']}/progress-logs/{log['id']}",
@@ -38,6 +44,11 @@ def test_patch_log_date_preserves_time_of_day(client: TestClient, db: Session) -
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
     log = _log_progress(client, engagement["id"], 100)
+
+    eng_obj = db.get(Engagement, uuid.UUID(engagement["id"]))
+    assert eng_obj is not None
+    eng_obj.started_on = datetime.date(2026, 1, 1)
+    db.commit()
 
     original_log = db.get(ProgressLog, uuid.UUID(log["id"]))
     assert original_log is not None
@@ -63,9 +74,11 @@ def test_patch_log_date_before_previous_log_returns_409(
     first = _log_progress(client, engagement["id"], 100)
     second = _log_progress(client, engagement["id"], 200)
 
+    eng_obj = db.get(Engagement, uuid.UUID(engagement["id"]))
     first_obj = db.get(ProgressLog, uuid.UUID(first["id"]))
     second_obj = db.get(ProgressLog, uuid.UUID(second["id"]))
-    assert first_obj is not None and second_obj is not None
+    assert eng_obj is not None and first_obj is not None and second_obj is not None
+    eng_obj.started_on = datetime.date(2026, 1, 1)
     first_obj.logged_at = datetime.datetime(2026, 1, 10, 12, 0, 0, tzinfo=datetime.UTC)
     second_obj.logged_at = datetime.datetime(2026, 1, 20, 12, 0, 0, tzinfo=datetime.UTC)
     db.commit()
@@ -86,15 +99,62 @@ def test_patch_log_date_after_next_log_returns_409(
     first = _log_progress(client, engagement["id"], 100)
     second = _log_progress(client, engagement["id"], 200)
 
+    eng_obj = db.get(Engagement, uuid.UUID(engagement["id"]))
     first_obj = db.get(ProgressLog, uuid.UUID(first["id"]))
     second_obj = db.get(ProgressLog, uuid.UUID(second["id"]))
-    assert first_obj is not None and second_obj is not None
+    assert eng_obj is not None and first_obj is not None and second_obj is not None
+    eng_obj.started_on = datetime.date(2026, 1, 1)
     first_obj.logged_at = datetime.datetime(2026, 1, 10, 12, 0, 0, tzinfo=datetime.UTC)
     second_obj.logged_at = datetime.datetime(2026, 1, 20, 12, 0, 0, tzinfo=datetime.UTC)
     db.commit()
 
     response = client.patch(
         f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        json={"logged_at": "2026-01-21"},
+    )
+
+    assert response.status_code == 409
+
+
+def test_patch_log_date_before_started_on_returns_409(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    log = _log_progress(client, engagement["id"], 100)
+
+    eng_obj = db.get(Engagement, uuid.UUID(engagement["id"]))
+    log_obj = db.get(ProgressLog, uuid.UUID(log["id"]))
+    assert eng_obj is not None and log_obj is not None
+    eng_obj.started_on = datetime.date(2026, 1, 20)
+    log_obj.logged_at = datetime.datetime(2026, 1, 22, 12, 0, 0, tzinfo=datetime.UTC)
+    db.commit()
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{log['id']}",
+        json={"logged_at": "2026-01-19"},
+    )
+
+    assert response.status_code == 409
+
+
+def test_patch_log_date_after_finished_on_returns_409(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    log = _log_progress(client, engagement["id"], 100)
+
+    eng_obj = db.get(Engagement, uuid.UUID(engagement["id"]))
+    log_obj = db.get(ProgressLog, uuid.UUID(log["id"]))
+    assert eng_obj is not None and log_obj is not None
+    eng_obj.started_on = datetime.date(2026, 1, 1)
+    eng_obj.finished_on = datetime.date(2026, 1, 20)
+    log_obj.logged_at = datetime.datetime(2026, 1, 18, 12, 0, 0, tzinfo=datetime.UTC)
+    db.commit()
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{log['id']}",
         json={"logged_at": "2026-01-21"},
     )
 
@@ -148,6 +208,25 @@ def test_patch_log_page_at_or_below_start_returns_409(client: TestClient) -> Non
     assert response.status_code == 409
 
 
+def test_patch_log_page_exceeds_book_length_returns_409(client: TestClient) -> None:
+    book_resp = client.post(
+        "/books",
+        json={"title": "Piranesi", "author": "Susanna Clarke", "page_count": 200},
+    )
+    assert book_resp.status_code == 201
+    book = book_resp.json()
+    client.post("/editions", json={"book_id": book["id"], "edition_format": "print"})
+    engagement = _create_engagement(client, book["id"])
+    latest = _log_progress(client, engagement["id"], 150)
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{latest['id']}",
+        json={"page_end": 250},
+    )
+
+    assert response.status_code == 409
+
+
 def test_patch_log_minute_on_most_recent_updates_minute_end(
     client: TestClient, db: Session
 ) -> None:
@@ -176,6 +255,20 @@ def test_patch_log_minute_at_or_below_start_returns_409(client: TestClient) -> N
     response = client.patch(
         f"/engagements/{engagement['id']}/progress-logs/{latest['id']}",
         json={"minute_end": 60},
+    )
+
+    assert response.status_code == 409
+
+
+def test_patch_log_minute_exceeds_audio_length_returns_409(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_audio_engagement(client, book["id"])
+    _log_audio_progress(client, engagement["id"], 60, audio_length_minutes=200)
+    latest = _log_audio_progress(client, engagement["id"], 120)
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{latest['id']}",
+        json={"minute_end": 250},
     )
 
     assert response.status_code == 409

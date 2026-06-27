@@ -7,7 +7,6 @@ import { BehaviorSubject, combineLatest, forkJoin } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
 import { Engagement, EngagementService, ProgressLog } from '../engagement.service';
 
 interface HistoryData {
@@ -24,7 +23,7 @@ function formatRange(log: ProgressLog): string {
 
 @Component({
   selector: 'app-engagement-history',
-  imports: [DatePipe, MatButtonModule, MatIconModule, MatListModule],
+  imports: [DatePipe, MatButtonModule, MatIconModule],
   styles: [
     `
       .page {
@@ -58,14 +57,34 @@ function formatRange(log: ProgressLog): string {
         margin-bottom: 16px;
       }
 
-      .range {
+      .log-list {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .log-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--mat-sys-outline-variant);
+      }
+
+      .log-range {
+        flex: 1;
         font-variant-numeric: tabular-nums;
+      }
+
+      .log-date {
+        font-size: 0.875rem;
+        color: var(--mat-sys-on-surface-variant);
       }
 
       .new-badge {
         font-size: 0.75rem;
         color: var(--mat-sys-primary);
         font-weight: 500;
+        padding-top: 2px;
       }
 
       .editable-btn {
@@ -82,8 +101,13 @@ function formatRange(log: ProgressLog): string {
         text-decoration: underline;
       }
 
+      .edit-row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
       .field-error {
-        display: block;
         font-size: 0.75rem;
         color: var(--mat-sys-error);
         margin-top: 2px;
@@ -111,50 +135,88 @@ function formatRange(log: ProgressLog): string {
           }}
         </div>
 
-        <mat-list>
+        <div class="log-list">
           @for (log of d.logs; track log.id) {
-            <mat-list-item>
-              <span matListItemTitle>
+            <div class="log-row">
+              <div class="log-range">
                 @if (editingPageLogId() === log.id && mostRecentLogId() === log.id) {
-                  <input
-                    #pageInput
-                    type="number"
-                    class="range"
-                    [value]="log.unit === 'pages' ? log.page_end : log.minute_end"
-                    [attr.aria-label]="log.unit === 'pages' ? 'Edit end page' : 'Edit end minute'"
-                    (blur)="submitPage(log, pageInput.value)"
-                    (keydown.enter)="pageInput.blur()"
-                    (keydown.escape)="cancelEditPage()"
-                  />
+                  <div class="edit-row">
+                    <input
+                      #pageInput
+                      type="number"
+                      [value]="log.unit === 'pages' ? log.page_end : log.minute_end"
+                      [attr.max]="
+                        log.unit === 'pages'
+                          ? (d.engagement.book.default_page_count ?? null)
+                          : (d.engagement.book.default_audio_minutes ?? null)
+                      "
+                      [attr.aria-label]="log.unit === 'pages' ? 'Edit end page' : 'Edit end minute'"
+                      (keydown.enter)="submitPage(log, pageInput.value)"
+                      (keydown.escape)="cancelEditPage()"
+                    />
+                    <button
+                      type="button"
+                      mat-icon-button
+                      aria-label="Save progress"
+                      (click)="submitPage(log, pageInput.value)"
+                    >
+                      <mat-icon>check</mat-icon>
+                    </button>
+                    <button
+                      type="button"
+                      mat-icon-button
+                      aria-label="Cancel progress edit"
+                      (click)="cancelEditPage()"
+                    >
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </div>
                   @if (pageError()) {
-                    <span class="field-error">{{ pageError() }}</span>
+                    <span class="field-error" role="alert">{{ pageError() }}</span>
                   }
                 } @else if (mostRecentLogId() === log.id) {
                   <button
                     type="button"
-                    class="range editable-btn"
+                    class="editable-btn"
                     aria-label="Edit progress range"
                     (click)="startEditPage(log.id)"
                   >
                     {{ formatRange(log) }}
                   </button>
                 } @else {
-                  <span class="range">{{ formatRange(log) }}</span>
+                  {{ formatRange(log) }}
                 }
-              </span>
-              <span matListItemLine>
+              </div>
+              <div class="log-date">
                 @if (editingDateLogId() === log.id) {
-                  <input
-                    #dateInput
-                    type="date"
-                    [value]="log.logged_at.substring(0, 10)"
-                    aria-label="Edit log date"
-                    (blur)="submitDate(log, dateInput.value)"
-                    (keydown.enter)="dateInput.blur()"
-                    (keydown.escape)="cancelEditDate()"
-                  />
+                  <div class="edit-row">
+                    <input
+                      #dateInput
+                      type="date"
+                      [value]="log.logged_at.substring(0, 10)"
+                      aria-label="Edit log date"
+                      (keydown.enter)="submitDate(log, dateInput.value)"
+                      (keydown.escape)="cancelEditDate()"
+                    />
+                    <button
+                      type="button"
+                      mat-icon-button
+                      aria-label="Save date"
+                      (click)="submitDate(log, dateInput.value)"
+                    >
+                      <mat-icon>check</mat-icon>
+                    </button>
+                    <button
+                      type="button"
+                      mat-icon-button
+                      aria-label="Cancel date edit"
+                      (click)="cancelEditDate()"
+                    >
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </div>
                   @if (dateError()) {
-                    <span class="field-error">{{ dateError() }}</span>
+                    <span class="field-error" role="alert">{{ dateError() }}</span>
                   }
                 } @else {
                   <button
@@ -166,15 +228,15 @@ function formatRange(log: ProgressLog): string {
                     {{ log.logged_at | date: 'mediumDate' : 'UTC' }}
                   </button>
                 }
-              </span>
+              </div>
               @if (log.new_ground) {
-                <span matListItemMeta class="new-badge">new</span>
+                <span class="new-badge">new</span>
               }
-            </mat-list-item>
+            </div>
           } @empty {
             <p>No progress logged yet.</p>
           }
-        </mat-list>
+        </div>
       </div>
     }
   `,
@@ -227,7 +289,7 @@ export class EngagementHistoryComponent {
 
   protected submitDate(log: ProgressLog, value: string): void {
     if (this.editingDateLogId() !== log.id) return;
-    if (!value) {
+    if (!value || value === log.logged_at.substring(0, 10)) {
       this.cancelEditDate();
       return;
     }
