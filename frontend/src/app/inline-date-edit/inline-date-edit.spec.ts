@@ -8,7 +8,7 @@ import { InlineDateEditComponent } from './inline-date-edit';
       [value]="value"
       label="test date"
       [(editing)]="editing"
-      [error]="error()"
+      [disabled]="disabled"
       (saved)="onSaved($event)"
     />
   `,
@@ -17,7 +17,7 @@ import { InlineDateEditComponent } from './inline-date-edit';
 class HostComponent {
   value: string | null = '2026-01-01';
   editing = signal(false);
-  error = signal<string | null>(null);
+  disabled = false;
   savedValue: string | null = null;
   onSaved(val: string): void {
     this.savedValue = val;
@@ -57,6 +57,17 @@ describe('InlineDateEditComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('input[type="date"]')).toBeTruthy();
+  });
+
+  it('does not enter edit mode when disabled', () => {
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.componentInstance.disabled = true;
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('button[aria-label="Edit test date"]').click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('input[type="date"]')).toBeNull();
   });
 
   it('clicking the save button emits the new value', () => {
@@ -109,16 +120,5 @@ describe('InlineDateEditComponent', () => {
 
     expect(fixture.nativeElement.querySelector('input[type="date"]')).toBeNull();
     expect(fixture.componentInstance.savedValue).toBeNull();
-  });
-
-  it('shows error message when error is set', () => {
-    const fixture = TestBed.createComponent(HostComponent);
-    fixture.componentInstance.editing.set(true);
-    fixture.componentInstance.error.set('Date is invalid');
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('.field-error').textContent).toContain(
-      'Date is invalid',
-    );
   });
 });

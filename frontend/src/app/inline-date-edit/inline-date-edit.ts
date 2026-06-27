@@ -26,17 +26,16 @@ import { MatIconModule } from '@angular/material/icon';
         text-decoration: underline;
       }
 
+      .editable-btn:disabled {
+        cursor: default;
+        text-decoration: none;
+        opacity: 0.5;
+      }
+
       .edit-row {
         display: inline-flex;
         align-items: center;
         gap: 4px;
-      }
-
-      .field-error {
-        display: block;
-        font-size: 0.75rem;
-        color: var(--mat-sys-error);
-        margin-top: 2px;
       }
     `,
   ],
@@ -68,14 +67,12 @@ import { MatIconModule } from '@angular/material/icon';
           <mat-icon>close</mat-icon>
         </button>
       </div>
-      @if (error()) {
-        <span class="field-error" role="alert">{{ error() }}</span>
-      }
     } @else {
       <button
         type="button"
         class="editable-btn"
         [attr.aria-label]="'Edit ' + label()"
+        [disabled]="disabled()"
         (click)="editing.set(true)"
       >
         {{ value() ? (value()! | date: 'mediumDate' : 'UTC') : '—' }}
@@ -86,7 +83,7 @@ import { MatIconModule } from '@angular/material/icon';
 export class InlineDateEditComponent {
   readonly value = input<string | null>(null);
   readonly label = input.required<string>();
-  readonly error = input<string | null>(null);
+  readonly disabled = input(false);
   readonly editing = model(false);
   readonly saved = output<string>();
 

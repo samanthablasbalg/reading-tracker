@@ -93,14 +93,6 @@ describe('EngagementHistoryComponent', () => {
     expect(text).toContain('pp. 51–100');
   });
 
-  it('shows the new badge on logs with new_ground true', () => {
-    const fixture = TestBed.createComponent(EngagementHistoryComponent);
-    flushLoad();
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelectorAll('.new-badge').length).toBe(2);
-  });
-
   it('shows empty state when there are no logs', () => {
     const fixture = TestBed.createComponent(EngagementHistoryComponent);
     flushLoad(mockEngagement, []);
@@ -163,7 +155,7 @@ describe('EngagementHistoryComponent', () => {
       expect(fixture.nativeElement.querySelector('input[aria-label="start date"]')).toBeNull();
     });
 
-    it('shows 409 error under started_on input', () => {
+    it('shows 409 error below the dates line', () => {
       const fixture = TestBed.createComponent(EngagementHistoryComponent);
       flushLoad();
       fixture.detectChanges();
@@ -189,6 +181,20 @@ describe('EngagementHistoryComponent', () => {
       expect(fixture.nativeElement.querySelector('.field-error').textContent).toContain(
         'started_on cannot be after the earliest progress log.',
       );
+    });
+
+    it('opening a log date edit is blocked while a start/finish date is being edited', () => {
+      const fixture = TestBed.createComponent(EngagementHistoryComponent);
+      flushLoad();
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Edit start date"]').click();
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label^="Edit date:"]').click();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('input[aria-label="Edit log date"]')).toBeNull();
     });
 
     it('clicking the finished_on button shows a date input', () => {
@@ -366,6 +372,22 @@ describe('EngagementHistoryComponent', () => {
       fixture.detectChanges();
 
       expect(fixture.nativeElement.querySelector('input[type="number"]')).toBeNull();
+    });
+
+    it('audio log range shows h:mm timestamps', () => {
+      const minuteLog: ProgressLog = {
+        ...mockLogs[0],
+        unit: 'minutes',
+        page_start: null,
+        page_end: null,
+        minute_start: 0,
+        minute_end: 110,
+      };
+      const fixture = TestBed.createComponent(EngagementHistoryComponent);
+      flushLoad(mockEngagement, [minuteLog]);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('0:00–1:50');
     });
 
     it('submitting a minutes log sends minute_end', () => {

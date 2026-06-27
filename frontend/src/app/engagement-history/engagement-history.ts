@@ -15,11 +15,16 @@ interface HistoryData {
   logs: ProgressLog[];
 }
 
+function formatMinutes(minutes: number): string {
+  const m = String(minutes % 60).padStart(2, '0');
+  return `${Math.floor(minutes / 60)}:${m}`;
+}
+
 function formatRange(log: ProgressLog): string {
   if (log.unit === 'pages') {
     return `pp. ${log.page_start ?? 0}–${log.page_end ?? 0}`;
   }
-  return `min. ${log.minute_start ?? 0}–${log.minute_end ?? 0}`;
+  return `${formatMinutes(log.minute_start ?? 0)}–${formatMinutes(log.minute_end ?? 0)}`;
 }
 
 @Component({
@@ -81,13 +86,6 @@ function formatRange(log: ProgressLog): string {
         color: var(--mat-sys-on-surface-variant);
       }
 
-      .new-badge {
-        font-size: 0.75rem;
-        color: var(--mat-sys-primary);
-        font-weight: 500;
-        padding-top: 2px;
-      }
-
       .editable-btn {
         background: none;
         border: none;
@@ -131,7 +129,7 @@ function formatRange(log: ProgressLog): string {
             [value]="d.engagement.started_on"
             label="start date"
             [(editing)]="editingStartedOn"
-            [error]="startedOnError()"
+            [disabled]="editingFinishedOn() || editingDateLogId() !== null"
             (saved)="submitStartedOn(d.engagement.id, $event)"
           />
           &nbsp;·&nbsp; Finished:
@@ -139,9 +137,12 @@ function formatRange(log: ProgressLog): string {
             [value]="d.engagement.finished_on"
             label="finish date"
             [(editing)]="editingFinishedOn"
-            [error]="finishedOnError()"
+            [disabled]="editingStartedOn() || editingDateLogId() !== null"
             (saved)="submitFinishedOn(d.engagement.id, $event)"
           />
+          @if (startedOnError() || finishedOnError()) {
+            <div class="field-error" role="alert">{{ startedOnError() ?? finishedOnError() }}</div>
+          }
         </div>
 
         <div class="log-list">
@@ -238,9 +239,6 @@ function formatRange(log: ProgressLog): string {
                   </button>
                 }
               </div>
-              @if (log.new_ground) {
-                <span class="new-badge">new</span>
-              }
             </div>
           } @empty {
             <p>No progress logged yet.</p>
@@ -322,6 +320,7 @@ export class EngagementHistoryComponent {
   }
 
   protected startEditDate(logId: string): void {
+    if (this.editingStartedOn() || this.editingFinishedOn()) return;
     this.editingDateLogId.set(logId);
     this.dateError.set(null);
   }
