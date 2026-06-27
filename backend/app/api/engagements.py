@@ -17,6 +17,7 @@ from app.models.review import Review
 from app.schemas.edition import EngagementEditionCreate, EngagementEditionRead
 from app.schemas.engagement import (
     EngagementCreate,
+    EngagementDatesUpdate,
     EngagementRead,
     EngagementStatusUpdate,
 )
@@ -55,6 +56,58 @@ def _fetch(engagement_id: uuid.UUID, db: Session) -> Engagement:
     if engagement is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return engagement
+
+
+def _apply_date_change(
+    engagement: Engagement,
+    started_on: datetime.date | None,
+    finished_on: datetime.date | None,
+) -> None:
+    logs = sorted(engagement.progress_logs, key=lambda log: log.logged_at)
+    earliest_log_date = (
+        logs[0].logged_at.astimezone(datetime.UTC).date() if logs else None
+    )
+    latest_log_date = (
+        logs[-1].logged_at.astimezone(datetime.UTC).date() if logs else None
+    )
+
+    effective_started = started_on if started_on is not None else engagement.started_on
+    effective_finished = (
+        finished_on if finished_on is not None else engagement.finished_on
+    )
+
+    if (
+        effective_finished is not None
+        and effective_started is not None
+        and effective_finished < effective_started
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="finished_on cannot be before started_on.",
+        )
+    if (
+        started_on is not None
+        and earliest_log_date is not None
+        and started_on > earliest_log_date
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="started_on cannot be after the earliest progress log.",
+        )
+    if (
+        finished_on is not None
+        and latest_log_date is not None
+        and finished_on < latest_log_date
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="finished_on cannot be before the latest progress log.",
+        )
+
+    if started_on is not None:
+        engagement.started_on = started_on
+    if finished_on is not None:
+        engagement.finished_on = finished_on
 
 
 @router.post("", response_model=EngagementRead, status_code=status.HTTP_201_CREATED)
@@ -192,6 +245,18 @@ def update_engagement_status(
 
     db.commit()
 
+    return EngagementRead.model_validate(_fetch(engagement_id, db))
+
+
+@router.patch("/{engagement_id}/dates", response_model=EngagementRead)
+def update_engagement_dates(
+    engagement_id: uuid.UUID,
+    payload: EngagementDatesUpdate,
+    db: Session = Depends(get_db),
+) -> EngagementRead:
+    engagement = _fetch(engagement_id, db)
+    _apply_date_change(engagement, payload.started_on, payload.finished_on)
+    db.commit()
     return EngagementRead.model_validate(_fetch(engagement_id, db))
 
 
