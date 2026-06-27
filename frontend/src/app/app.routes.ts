@@ -15,4 +15,9 @@ export const routes: Routes = [
     path: 'concluded',
     loadComponent: () => import('./concluded/concluded').then((m) => m.ConcludedComponent),
   },
+  {
+    path: 'engagement/:id',
+    loadComponent: () =>
+      import('./engagement-history/engagement-history').then((m) => m.EngagementHistoryComponent),
+  },
 ];
