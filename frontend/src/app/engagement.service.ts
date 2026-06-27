@@ -109,6 +109,17 @@ export class EngagementService {
     return this.http.get<ProgressLog[]>(`/api/engagements/${id}/progress-logs`);
   }
 
+  patchProgressLog(
+    engagementId: string,
+    logId: string,
+    patch: { logged_at?: string; page_end?: number; minute_end?: number },
+  ): Observable<ProgressLog> {
+    return this.http.patch<ProgressLog>(
+      `/api/engagements/${engagementId}/progress-logs/${logId}`,
+      patch,
+    );
+  }
+
   upsertReview(
     engagementId: string,
     rating: number | null,

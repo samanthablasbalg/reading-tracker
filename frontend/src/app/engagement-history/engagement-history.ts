@@ -1,16 +1,19 @@
 import { Location } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { forkJoin } from 'rxjs';
+import { BehaviorSubject, combineLatest, forkJoin } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { Engagement, EngagementService, ProgressLog } from '../engagement.service';
 
-interface HistoryData { engagement: Engagement; logs: ProgressLog[] }
+interface HistoryData {
+  engagement: Engagement;
+  logs: ProgressLog[];
+}
 
 function formatRange(log: ProgressLog): string {
   if (log.unit === 'pages') {
@@ -64,6 +67,27 @@ function formatRange(log: ProgressLog): string {
         color: var(--mat-sys-primary);
         font-weight: 500;
       }
+
+      .editable-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        font: inherit;
+        color: inherit;
+        text-align: left;
+      }
+
+      .editable-btn:hover {
+        text-decoration: underline;
+      }
+
+      .field-error {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--mat-sys-error);
+        margin-top: 2px;
+      }
     `,
   ],
   template: `
@@ -90,8 +114,59 @@ function formatRange(log: ProgressLog): string {
         <mat-list>
           @for (log of d.logs; track log.id) {
             <mat-list-item>
-              <span matListItemTitle class="range">{{ formatRange(log) }}</span>
-              <span matListItemLine>{{ log.logged_at | date: 'mediumDate' : 'UTC' }}</span>
+              <span matListItemTitle>
+                @if (editingPageLogId() === log.id && mostRecentLogId() === log.id) {
+                  <input
+                    #pageInput
+                    type="number"
+                    class="range"
+                    [value]="log.unit === 'pages' ? log.page_end : log.minute_end"
+                    [attr.aria-label]="log.unit === 'pages' ? 'Edit end page' : 'Edit end minute'"
+                    (blur)="submitPage(log, pageInput.value)"
+                    (keydown.enter)="pageInput.blur()"
+                    (keydown.escape)="cancelEditPage()"
+                  />
+                  @if (pageError()) {
+                    <span class="field-error">{{ pageError() }}</span>
+                  }
+                } @else if (mostRecentLogId() === log.id) {
+                  <button
+                    type="button"
+                    class="range editable-btn"
+                    aria-label="Edit progress range"
+                    (click)="startEditPage(log.id)"
+                  >
+                    {{ formatRange(log) }}
+                  </button>
+                } @else {
+                  <span class="range">{{ formatRange(log) }}</span>
+                }
+              </span>
+              <span matListItemLine>
+                @if (editingDateLogId() === log.id) {
+                  <input
+                    #dateInput
+                    type="date"
+                    [value]="log.logged_at.substring(0, 10)"
+                    aria-label="Edit log date"
+                    (blur)="submitDate(log, dateInput.value)"
+                    (keydown.enter)="dateInput.blur()"
+                    (keydown.escape)="cancelEditDate()"
+                  />
+                  @if (dateError()) {
+                    <span class="field-error">{{ dateError() }}</span>
+                  }
+                } @else {
+                  <button
+                    type="button"
+                    class="editable-btn"
+                    [attr.aria-label]="'Edit date: ' + log.logged_at"
+                    (click)="startEditDate(log.id)"
+                  >
+                    {{ log.logged_at | date: 'mediumDate' : 'UTC' }}
+                  </button>
+                }
+              </span>
               @if (log.new_ground) {
                 <span matListItemMeta class="new-badge">new</span>
               }
@@ -111,9 +186,16 @@ export class EngagementHistoryComponent {
   private readonly engagementService = inject(EngagementService);
   private readonly location = inject(Location);
 
+  private readonly refresh$ = new BehaviorSubject<void>(undefined);
+
+  protected readonly editingDateLogId = signal<string | null>(null);
+  protected readonly editingPageLogId = signal<string | null>(null);
+  protected readonly dateError = signal<string | null>(null);
+  protected readonly pageError = signal<string | null>(null);
+
   protected readonly data = toSignal<HistoryData>(
-    this.route.paramMap.pipe(
-      switchMap((params) => {
+    combineLatest([this.route.paramMap, this.refresh$]).pipe(
+      switchMap(([params]) => {
         const id = params.get('id')!;
         return forkJoin({
           engagement: this.engagementService.getEngagement(id),
@@ -123,7 +205,77 @@ export class EngagementHistoryComponent {
     ),
   );
 
+  protected readonly mostRecentLogId = computed(() => {
+    const d = this.data();
+    if (!d || d.logs.length === 0) return null;
+    return d.logs[d.logs.length - 1].id;
+  });
+
   protected back(): void {
     this.location.back();
+  }
+
+  protected startEditDate(logId: string): void {
+    this.editingDateLogId.set(logId);
+    this.dateError.set(null);
+  }
+
+  protected cancelEditDate(): void {
+    this.editingDateLogId.set(null);
+    this.dateError.set(null);
+  }
+
+  protected submitDate(log: ProgressLog, value: string): void {
+    if (this.editingDateLogId() !== log.id) return;
+    if (!value) {
+      this.cancelEditDate();
+      return;
+    }
+    this.engagementService
+      .patchProgressLog(log.engagement_id, log.id, { logged_at: value })
+      .subscribe({
+        next: () => {
+          this.editingDateLogId.set(null);
+          this.dateError.set(null);
+          this.refresh$.next();
+        },
+        error: (err) => {
+          if (err.status === 409) {
+            this.dateError.set(err.error?.detail ?? 'Conflict');
+          }
+        },
+      });
+  }
+
+  protected startEditPage(logId: string): void {
+    this.editingPageLogId.set(logId);
+    this.pageError.set(null);
+  }
+
+  protected cancelEditPage(): void {
+    this.editingPageLogId.set(null);
+    this.pageError.set(null);
+  }
+
+  protected submitPage(log: ProgressLog, value: string): void {
+    if (this.editingPageLogId() !== log.id) return;
+    const num = Number(value);
+    if (!value || isNaN(num)) {
+      this.cancelEditPage();
+      return;
+    }
+    const patch = log.unit === 'pages' ? { page_end: num } : { minute_end: num };
+    this.engagementService.patchProgressLog(log.engagement_id, log.id, patch).subscribe({
+      next: () => {
+        this.editingPageLogId.set(null);
+        this.pageError.set(null);
+        this.refresh$.next();
+      },
+      error: (err) => {
+        if (err.status === 409) {
+          this.pageError.set(err.error?.detail ?? 'Conflict');
+        }
+      },
+    });
   }
 }
