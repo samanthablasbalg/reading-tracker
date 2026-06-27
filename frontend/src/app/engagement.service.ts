@@ -120,6 +120,13 @@ export class EngagementService {
     );
   }
 
+  patchEngagementDates(
+    id: string,
+    patch: { started_on?: string; finished_on?: string },
+  ): Observable<Engagement> {
+    return this.http.patch<Engagement>(`/api/engagements/${id}/dates`, patch);
+  }
+
   upsertReview(
     engagementId: string,
     rating: number | null,

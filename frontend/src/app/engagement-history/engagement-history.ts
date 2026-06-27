@@ -1,12 +1,13 @@
 import { Location } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, combineLatest, forkJoin } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
+import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { InlineDateEditComponent } from '../inline-date-edit/inline-date-edit';
 import { Engagement, EngagementService, ProgressLog } from '../engagement.service';
 
 interface HistoryData {
@@ -23,7 +24,7 @@ function formatRange(log: ProgressLog): string {
 
 @Component({
   selector: 'app-engagement-history',
-  imports: [DatePipe, MatButtonModule, MatIconModule],
+  imports: [DatePipe, MatButtonModule, MatIconModule, InlineDateEditComponent],
   styles: [
     `
       .page {
@@ -126,13 +127,21 @@ function formatRange(log: ProgressLog): string {
         <div class="author">{{ d.engagement.book.authors.map((a) => a.name).join(', ') }}</div>
         <div class="dates">
           Started:
-          {{
-            d.engagement.started_on ? (d.engagement.started_on | date: 'mediumDate' : 'UTC') : '—'
-          }}
+          <app-inline-date-edit
+            [value]="d.engagement.started_on"
+            label="start date"
+            [(editing)]="editingStartedOn"
+            [error]="startedOnError()"
+            (saved)="submitStartedOn(d.engagement.id, $event)"
+          />
           &nbsp;·&nbsp; Finished:
-          {{
-            d.engagement.finished_on ? (d.engagement.finished_on | date: 'mediumDate' : 'UTC') : '—'
-          }}
+          <app-inline-date-edit
+            [value]="d.engagement.finished_on"
+            label="finish date"
+            [(editing)]="editingFinishedOn"
+            [error]="finishedOnError()"
+            (saved)="submitFinishedOn(d.engagement.id, $event)"
+          />
         </div>
 
         <div class="log-list">
@@ -250,6 +259,11 @@ export class EngagementHistoryComponent {
 
   private readonly refresh$ = new BehaviorSubject<void>(undefined);
 
+  protected readonly editingStartedOn = signal(false);
+  protected readonly editingFinishedOn = signal(false);
+  protected readonly startedOnError = signal<string | null>(null);
+  protected readonly finishedOnError = signal<string | null>(null);
+
   protected readonly editingDateLogId = signal<string | null>(null);
   protected readonly editingPageLogId = signal<string | null>(null);
   protected readonly dateError = signal<string | null>(null);
@@ -275,6 +289,36 @@ export class EngagementHistoryComponent {
 
   protected back(): void {
     this.location.back();
+  }
+
+  protected submitStartedOn(engagementId: string, value: string): void {
+    this.engagementService.patchEngagementDates(engagementId, { started_on: value }).subscribe({
+      next: () => {
+        this.editingStartedOn.set(false);
+        this.startedOnError.set(null);
+        this.refresh$.next();
+      },
+      error: (err) => {
+        if (err.status === 409) {
+          this.startedOnError.set(err.error?.detail ?? 'Conflict');
+        }
+      },
+    });
+  }
+
+  protected submitFinishedOn(engagementId: string, value: string): void {
+    this.engagementService.patchEngagementDates(engagementId, { finished_on: value }).subscribe({
+      next: () => {
+        this.editingFinishedOn.set(false);
+        this.finishedOnError.set(null);
+        this.refresh$.next();
+      },
+      error: (err) => {
+        if (err.status === 409) {
+          this.finishedOnError.set(err.error?.detail ?? 'Conflict');
+        }
+      },
+    });
   }
 
   protected startEditDate(logId: string): void {

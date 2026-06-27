@@ -109,8 +109,128 @@ describe('EngagementHistoryComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('No progress logged yet');
   });
 
-  describe('date editing', () => {
-    it('clicking a date button shows a date input', () => {
+  describe('engagement date editing', () => {
+    it('clicking the started_on button shows a date input', () => {
+      const fixture = TestBed.createComponent(EngagementHistoryComponent);
+      flushLoad();
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Edit start date"]').click();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('input[aria-label="start date"]')).toBeTruthy();
+    });
+
+    it('saving started_on calls PATCH /dates then refreshes', () => {
+      const fixture = TestBed.createComponent(EngagementHistoryComponent);
+      flushLoad();
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Edit start date"]').click();
+      fixture.detectChanges();
+
+      const input = fixture.nativeElement.querySelector(
+        'input[aria-label="start date"]',
+      ) as HTMLInputElement;
+      input.value = '2025-12-01';
+      fixture.nativeElement.querySelector('button[aria-label="Save start date"]').click();
+      fixture.detectChanges();
+
+      const req = httpTesting.expectOne('/api/engagements/eng-1/dates');
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.body).toEqual({ started_on: '2025-12-01' });
+      req.flush({ ...mockEngagement, started_on: '2025-12-01' });
+
+      flushLoad();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('input[aria-label="start date"]')).toBeNull();
+    });
+
+    it('pressing Escape on started_on input cancels without a PATCH', () => {
+      const fixture = TestBed.createComponent(EngagementHistoryComponent);
+      flushLoad();
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Edit start date"]').click();
+      fixture.detectChanges();
+
+      fixture.nativeElement
+        .querySelector('input[aria-label="start date"]')
+        .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('input[aria-label="start date"]')).toBeNull();
+    });
+
+    it('shows 409 error under started_on input', () => {
+      const fixture = TestBed.createComponent(EngagementHistoryComponent);
+      flushLoad();
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Edit start date"]').click();
+      fixture.detectChanges();
+
+      const input = fixture.nativeElement.querySelector(
+        'input[aria-label="start date"]',
+      ) as HTMLInputElement;
+      input.value = '2026-08-01';
+      fixture.nativeElement.querySelector('button[aria-label="Save start date"]').click();
+      fixture.detectChanges();
+
+      httpTesting
+        .expectOne('/api/engagements/eng-1/dates')
+        .flush(
+          { detail: 'started_on cannot be after the earliest progress log.' },
+          { status: 409, statusText: 'Conflict' },
+        );
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.field-error').textContent).toContain(
+        'started_on cannot be after the earliest progress log.',
+      );
+    });
+
+    it('clicking the finished_on button shows a date input', () => {
+      const fixture = TestBed.createComponent(EngagementHistoryComponent);
+      flushLoad();
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Edit finish date"]').click();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('input[aria-label="finish date"]')).toBeTruthy();
+    });
+
+    it('saving finished_on calls PATCH /dates with finished_on', () => {
+      const fixture = TestBed.createComponent(EngagementHistoryComponent);
+      flushLoad();
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Edit finish date"]').click();
+      fixture.detectChanges();
+
+      const input = fixture.nativeElement.querySelector(
+        'input[aria-label="finish date"]',
+      ) as HTMLInputElement;
+      input.value = '2026-07-01';
+      fixture.nativeElement.querySelector('button[aria-label="Save finish date"]').click();
+      fixture.detectChanges();
+
+      const req = httpTesting.expectOne('/api/engagements/eng-1/dates');
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.body).toEqual({ finished_on: '2026-07-01' });
+      req.flush({ ...mockEngagement, finished_on: '2026-07-01' });
+
+      flushLoad();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('input[aria-label="finish date"]')).toBeNull();
+    });
+  });
+
+  describe('log date editing', () => {
+    it('clicking a log date button shows a date input', () => {
       const fixture = TestBed.createComponent(EngagementHistoryComponent);
       flushLoad();
       fixture.detectChanges();
@@ -119,10 +239,10 @@ describe('EngagementHistoryComponent', () => {
       dateBtn.click();
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.querySelector('input[type="date"]')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('input[aria-label="Edit log date"]')).toBeTruthy();
     });
 
-    it('blur on the date input calls PATCH with logged_at then refreshes', () => {
+    it('saving a log date calls PATCH on the log then refreshes', () => {
       const fixture = TestBed.createComponent(EngagementHistoryComponent);
       flushLoad();
       fixture.detectChanges();
@@ -130,9 +250,11 @@ describe('EngagementHistoryComponent', () => {
       fixture.nativeElement.querySelector('button[aria-label^="Edit date:"]').click();
       fixture.detectChanges();
 
-      const input = fixture.nativeElement.querySelector('input[type="date"]') as HTMLInputElement;
+      const input = fixture.nativeElement.querySelector(
+        'input[aria-label="Edit log date"]',
+      ) as HTMLInputElement;
       input.value = '2026-02-01';
-      input.dispatchEvent(new Event('blur'));
+      fixture.nativeElement.querySelector('button[aria-label="Save date"]').click();
       fixture.detectChanges();
 
       const req = httpTesting.expectOne('/api/engagements/eng-1/progress-logs/log-1');
@@ -143,10 +265,10 @@ describe('EngagementHistoryComponent', () => {
       flushLoad();
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.querySelector('input[type="date"]')).toBeNull();
+      expect(fixture.nativeElement.querySelector('input[aria-label="Edit log date"]')).toBeNull();
     });
 
-    it('pressing Escape on the date input cancels without a PATCH', () => {
+    it('pressing Escape on the log date input cancels without a PATCH', () => {
       const fixture = TestBed.createComponent(EngagementHistoryComponent);
       flushLoad();
       fixture.detectChanges();
@@ -154,14 +276,15 @@ describe('EngagementHistoryComponent', () => {
       fixture.nativeElement.querySelector('button[aria-label^="Edit date:"]').click();
       fixture.detectChanges();
 
-      const input = fixture.nativeElement.querySelector('input[type="date"]') as HTMLInputElement;
-      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      fixture.nativeElement
+        .querySelector('input[aria-label="Edit log date"]')
+        .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.querySelector('input[type="date"]')).toBeNull();
+      expect(fixture.nativeElement.querySelector('input[aria-label="Edit log date"]')).toBeNull();
     });
 
-    it('shows the 409 error message under the date input', () => {
+    it('shows a 409 error under the log date input', () => {
       const fixture = TestBed.createComponent(EngagementHistoryComponent);
       flushLoad();
       fixture.detectChanges();
@@ -169,9 +292,11 @@ describe('EngagementHistoryComponent', () => {
       fixture.nativeElement.querySelector('button[aria-label^="Edit date:"]').click();
       fixture.detectChanges();
 
-      const input = fixture.nativeElement.querySelector('input[type="date"]') as HTMLInputElement;
+      const input = fixture.nativeElement.querySelector(
+        'input[aria-label="Edit log date"]',
+      ) as HTMLInputElement;
       input.value = '2026-02-01';
-      input.dispatchEvent(new Event('blur'));
+      fixture.nativeElement.querySelector('button[aria-label="Save date"]').click();
       fixture.detectChanges();
 
       httpTesting
@@ -188,28 +313,27 @@ describe('EngagementHistoryComponent', () => {
     });
   });
 
-  describe('page editing', () => {
-    it('most recent log (last in array) has an editable range button', () => {
+  describe('log page editing', () => {
+    it('most recent log row has an editable range button', () => {
       const fixture = TestBed.createComponent(EngagementHistoryComponent);
       flushLoad();
       fixture.detectChanges();
 
-      const items = fixture.nativeElement.querySelectorAll('mat-list-item');
-      const lastItem = items[items.length - 1];
-      expect(lastItem.querySelector('button[aria-label="Edit progress range"]')).toBeTruthy();
+      const rows = fixture.nativeElement.querySelectorAll('.log-row');
+      const lastRow = rows[rows.length - 1];
+      expect(lastRow.querySelector('button[aria-label="Edit progress range"]')).toBeTruthy();
     });
 
-    it('non-most-recent logs show a plain span with no edit button', () => {
+    it('non-most-recent log rows show plain text with no edit button', () => {
       const fixture = TestBed.createComponent(EngagementHistoryComponent);
       flushLoad();
       fixture.detectChanges();
 
-      const firstItem = fixture.nativeElement.querySelectorAll('mat-list-item')[0];
-      expect(firstItem.querySelector('button[aria-label="Edit progress range"]')).toBeNull();
-      expect(firstItem.querySelector('span.range')).toBeTruthy();
+      const firstRow = fixture.nativeElement.querySelectorAll('.log-row')[0];
+      expect(firstRow.querySelector('button[aria-label="Edit progress range"]')).toBeNull();
     });
 
-    it('clicking the range button on the most recent log shows a number input', () => {
+    it('clicking the range button shows a number input', () => {
       const fixture = TestBed.createComponent(EngagementHistoryComponent);
       flushLoad();
       fixture.detectChanges();
@@ -230,7 +354,7 @@ describe('EngagementHistoryComponent', () => {
 
       const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
       input.value = '120';
-      input.dispatchEvent(new Event('blur'));
+      fixture.nativeElement.querySelector('button[aria-label="Save progress"]').click();
       fixture.detectChanges();
 
       const req = httpTesting.expectOne('/api/engagements/eng-1/progress-logs/log-2');
@@ -262,7 +386,7 @@ describe('EngagementHistoryComponent', () => {
 
       const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
       input.value = '90';
-      input.dispatchEvent(new Event('blur'));
+      fixture.nativeElement.querySelector('button[aria-label="Save progress"]').click();
       fixture.detectChanges();
 
       const req = httpTesting.expectOne('/api/engagements/eng-1/progress-logs/log-2');
@@ -281,14 +405,15 @@ describe('EngagementHistoryComponent', () => {
       fixture.nativeElement.querySelector('button[aria-label="Edit progress range"]').click();
       fixture.detectChanges();
 
-      const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
-      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      fixture.nativeElement
+        .querySelector('input[type="number"]')
+        .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       fixture.detectChanges();
 
       expect(fixture.nativeElement.querySelector('input[type="number"]')).toBeNull();
     });
 
-    it('shows the 409 error message under the number input', () => {
+    it('shows a 409 error under the number input', () => {
       const fixture = TestBed.createComponent(EngagementHistoryComponent);
       flushLoad();
       fixture.detectChanges();
@@ -298,7 +423,7 @@ describe('EngagementHistoryComponent', () => {
 
       const input = fixture.nativeElement.querySelector('input[type="number"]') as HTMLInputElement;
       input.value = '9999';
-      input.dispatchEvent(new Event('blur'));
+      fixture.nativeElement.querySelector('button[aria-label="Save progress"]').click();
       fixture.detectChanges();
 
       httpTesting
