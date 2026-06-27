@@ -20,7 +20,11 @@ from app.schemas.engagement import (
     EngagementRead,
     EngagementStatusUpdate,
 )
-from app.schemas.progress_log import ProgressLogCreate, ProgressLogRead
+from app.schemas.progress_log import (
+    ProgressLogCreate,
+    ProgressLogRead,
+    ProgressLogUpdate,
+)
 from app.schemas.review import ReviewUpsert
 
 router = APIRouter(prefix="/engagements", tags=["engagements"])
@@ -371,6 +375,87 @@ def list_progress_logs(
         .all()
     )
     return [ProgressLogRead.model_validate(log) for log in logs]
+
+
+@router.patch(
+    "/{engagement_id}/progress-logs/{log_id}",
+    response_model=ProgressLogRead,
+)
+def update_progress_log(
+    engagement_id: uuid.UUID,
+    log_id: uuid.UUID,
+    payload: ProgressLogUpdate,
+    db: Session = Depends(get_db),
+) -> ProgressLogRead:
+    engagement = _fetch(engagement_id, db)
+
+    log = next(
+        (entry for entry in engagement.progress_logs if entry.id == log_id),
+        None,
+    )
+    if log is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    sorted_logs = sorted(engagement.progress_logs, key=lambda entry: entry.logged_at)
+    idx = sorted_logs.index(log)
+    prev_log = sorted_logs[idx - 1] if idx > 0 else None
+    next_log = sorted_logs[idx + 1] if idx < len(sorted_logs) - 1 else None
+
+    if payload.logged_at is not None:
+        new_date = payload.logged_at
+        if (
+            prev_log is not None
+            and new_date < prev_log.logged_at.astimezone(datetime.UTC).date()
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="That date would move this entry before the previous one.",
+            )
+        if (
+            next_log is not None
+            and new_date > next_log.logged_at.astimezone(datetime.UTC).date()
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="That date would move this entry after the next one.",
+            )
+        original = log.logged_at.astimezone(datetime.UTC)
+        log.logged_at = datetime.datetime(
+            new_date.year,
+            new_date.month,
+            new_date.day,
+            original.hour,
+            original.minute,
+            original.second,
+            tzinfo=datetime.UTC,
+        )
+
+    editing_progress = payload.page_end is not None or payload.minute_end is not None
+    if editing_progress and log.id != sorted_logs[-1].id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only the most recent entry's progress can be edited.",
+        )
+
+    if payload.page_end is not None:
+        if payload.page_end <= (log.page_start or 0):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Page must be higher than this session's starting page.",
+            )
+        log.page_end = payload.page_end
+
+    if payload.minute_end is not None:
+        if payload.minute_end <= (log.minute_start or 0):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Minute must be higher than this session's starting minute.",
+            )
+        log.minute_end = payload.minute_end
+
+    db.commit()
+    db.refresh(log)
+    return ProgressLogRead.model_validate(log)
 
 
 @router.get("/{engagement_id}", response_model=EngagementRead)
