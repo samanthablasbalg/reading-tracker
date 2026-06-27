@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { DatePipe, NgOptimizedImage } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -14,7 +15,15 @@ import { ReviewSheetComponent, ReviewSheetData } from '../review-sheet/review-sh
 
 @Component({
   selector: 'app-dnf',
-  imports: [MatListModule, MatIconModule, MatDivider, NgOptimizedImage, DatePipe, MatButtonModule],
+  imports: [
+    MatListModule,
+    MatIconModule,
+    MatDivider,
+    NgOptimizedImage,
+    DatePipe,
+    MatButtonModule,
+    RouterLink,
+  ],
   styles: [
     `
       .format-icon {
@@ -62,6 +71,13 @@ import { ReviewSheetComponent, ReviewSheetData } from '../review-sheet/review-sh
             >
           }
           <span matListItemMeta>
+            <button
+              mat-icon-button
+              [routerLink]="['/engagement', engagement.id]"
+              [attr.aria-label]="'View history for ' + engagement.book.title"
+            >
+              <mat-icon>history</mat-icon>
+            </button>
             <button
               mat-button
               (click)="openReviewSheet(engagement)"

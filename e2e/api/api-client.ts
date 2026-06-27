@@ -39,7 +39,7 @@ export class ApiClient {
   async markAsReading(
     bookId: string,
     editionFormat = 'print',
-    audioLengthMinutes?: number,
+    audioLengthMinutes?: number
   ): Promise<string> {
     const response = await this.request.post(`${BACKEND_URL}/engagements`, {
       data: {
@@ -93,6 +93,21 @@ export class ApiClient {
   async markAsDnf(engagementId: string): Promise<void> {
     await this.request.patch(`${BACKEND_URL}/engagements/${engagementId}`, {
       data: { status: 'dnf' },
+    });
+  }
+
+  /**
+   * Patches the start and/or finish date of an engagement.
+   * Used in test setup to put the engagement's dates in a known state.
+   * @param engagementId - The engagement to patch.
+   * @param dates - The dates to apply; each is optional.
+   */
+  async patchEngagementDates(
+    engagementId: string,
+    dates: { started_on?: string; finished_on?: string }
+  ): Promise<void> {
+    await this.request.patch(`${BACKEND_URL}/engagements/${engagementId}/dates`, {
+      data: dates,
     });
   }
 

@@ -679,3 +679,36 @@ def test_resume_from_page_unaffected_by_minute_logs(client: TestClient) -> None:
     response = client.get("/engagements?status=reading")
     assert response.json()[0]["resume_from_page"] == 100
     assert response.json()[0]["resume_from_minute"] == 0
+
+
+# --- List progress logs ---
+
+
+def test_list_progress_logs_returns_200_ordered_by_date(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 100)
+    _log_progress(client, engagement["id"], 200)
+
+    response = client.get(f"/engagements/{engagement['id']}/progress-logs")
+
+    assert response.status_code == 200
+    logs = response.json()
+    assert len(logs) == 2
+    assert logs[0]["page_end"] == 100
+    assert logs[1]["page_end"] == 200
+
+
+def test_list_progress_logs_returns_empty_list_when_no_logs(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+
+    response = client.get(f"/engagements/{engagement['id']}/progress-logs")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_list_progress_logs_unknown_engagement_returns_404(client: TestClient) -> None:
+    response = client.get(f"/engagements/{uuid.uuid4()}/progress-logs")
+    assert response.status_code == 404

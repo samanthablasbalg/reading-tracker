@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { BreakpointObserver } from '@angular/cdk/layout';
@@ -48,6 +49,7 @@ describe('DNFComponent', () => {
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        provideRouter([]),
         { provide: MatBottomSheet, useValue: mockBottomSheet },
         { provide: MatDialog, useValue: mockDialog },
         { provide: BreakpointObserver, useValue: mockBreakpointObserver },
@@ -150,7 +152,7 @@ describe('DNFComponent', () => {
       flushDnfList([{ ...mockDnf, formats: [] }]);
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.querySelector('mat-icon')).toBeNull();
+      expect(fixture.nativeElement.querySelector('mat-icon[aria-label^="Format:"]')).toBeNull();
     });
   });
 

@@ -15,6 +15,18 @@ export interface Review {
   body: string | null;
 }
 
+export interface ProgressLog {
+  id: string;
+  engagement_id: string;
+  logged_at: string;
+  unit: 'pages' | 'minutes';
+  page_start: number | null;
+  page_end: number | null;
+  minute_start: number | null;
+  minute_end: number | null;
+  new_ground: boolean;
+}
+
 export interface Engagement {
   id: string;
   book: EngagedBook;
@@ -87,6 +99,32 @@ export class EngagementService {
 
   logProgress(engagementId: string, payload: Record<string, number>): Observable<unknown> {
     return this.http.post<unknown>(`/api/engagements/${engagementId}/progress-logs`, payload);
+  }
+
+  getEngagement(id: string): Observable<Engagement> {
+    return this.http.get<Engagement>(`/api/engagements/${id}`);
+  }
+
+  getProgressLogs(id: string): Observable<ProgressLog[]> {
+    return this.http.get<ProgressLog[]>(`/api/engagements/${id}/progress-logs`);
+  }
+
+  patchProgressLog(
+    engagementId: string,
+    logId: string,
+    patch: { logged_at?: string; page_end?: number; minute_end?: number },
+  ): Observable<ProgressLog> {
+    return this.http.patch<ProgressLog>(
+      `/api/engagements/${engagementId}/progress-logs/${logId}`,
+      patch,
+    );
+  }
+
+  patchEngagementDates(
+    id: string,
+    patch: { started_on?: string; finished_on?: string },
+  ): Observable<Engagement> {
+    return this.http.patch<Engagement>(`/api/engagements/${id}/dates`, patch);
   }
 
   upsertReview(

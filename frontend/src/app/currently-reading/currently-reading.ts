@@ -9,6 +9,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
+import { RouterLink } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { Engagement, EngagementService } from '../engagement.service';
 import {
@@ -26,6 +27,7 @@ import { formatIcon } from '../format-icon';
     MatIconModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
+    RouterLink,
   ],
   styles: [
     `
@@ -184,6 +186,13 @@ import { formatIcon } from '../format-icon';
                   (click)="openLogSheet(engagement)"
                 >
                   Log progress
+                </button>
+                <button
+                  mat-icon-button
+                  [routerLink]="['/engagement', engagement.id]"
+                  [attr.aria-label]="'View history for ' + engagement.book.title"
+                >
+                  <mat-icon>history</mat-icon>
                 </button>
               </div>
             </div>

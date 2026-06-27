@@ -21,6 +21,11 @@ class EngagementStatusUpdate(BaseModel):
     status: Literal["reading", "finished", "dnf"]
 
 
+class EngagementDatesUpdate(BaseModel):
+    started_on: datetime.date | None = None
+    finished_on: datetime.date | None = None
+
+
 class EngagementRead(BaseModel):
     id: uuid.UUID
     book: BookRead

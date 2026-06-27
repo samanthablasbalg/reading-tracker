@@ -17,10 +17,15 @@ from app.models.review import Review
 from app.schemas.edition import EngagementEditionCreate, EngagementEditionRead
 from app.schemas.engagement import (
     EngagementCreate,
+    EngagementDatesUpdate,
     EngagementRead,
     EngagementStatusUpdate,
 )
-from app.schemas.progress_log import ProgressLogCreate, ProgressLogRead
+from app.schemas.progress_log import (
+    ProgressLogCreate,
+    ProgressLogRead,
+    ProgressLogUpdate,
+)
 from app.schemas.review import ReviewUpsert
 
 router = APIRouter(prefix="/engagements", tags=["engagements"])
@@ -51,6 +56,58 @@ def _fetch(engagement_id: uuid.UUID, db: Session) -> Engagement:
     if engagement is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return engagement
+
+
+def _apply_date_change(
+    engagement: Engagement,
+    started_on: datetime.date | None,
+    finished_on: datetime.date | None,
+) -> None:
+    logs = sorted(engagement.progress_logs, key=lambda log: log.logged_at)
+    earliest_log_date = (
+        logs[0].logged_at.astimezone(datetime.UTC).date() if logs else None
+    )
+    latest_log_date = (
+        logs[-1].logged_at.astimezone(datetime.UTC).date() if logs else None
+    )
+
+    effective_started = started_on if started_on is not None else engagement.started_on
+    effective_finished = (
+        finished_on if finished_on is not None else engagement.finished_on
+    )
+
+    if (
+        effective_finished is not None
+        and effective_started is not None
+        and effective_finished < effective_started
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="finished_on cannot be before started_on.",
+        )
+    if (
+        started_on is not None
+        and earliest_log_date is not None
+        and started_on > earliest_log_date
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="started_on cannot be after the earliest progress log.",
+        )
+    if (
+        finished_on is not None
+        and latest_log_date is not None
+        and finished_on < latest_log_date
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="finished_on cannot be before the latest progress log.",
+        )
+
+    if started_on is not None:
+        engagement.started_on = started_on
+    if finished_on is not None:
+        engagement.finished_on = finished_on
 
 
 @router.post("", response_model=EngagementRead, status_code=status.HTTP_201_CREATED)
@@ -188,6 +245,18 @@ def update_engagement_status(
 
     db.commit()
 
+    return EngagementRead.model_validate(_fetch(engagement_id, db))
+
+
+@router.patch("/{engagement_id}/dates", response_model=EngagementRead)
+def update_engagement_dates(
+    engagement_id: uuid.UUID,
+    payload: EngagementDatesUpdate,
+    db: Session = Depends(get_db),
+) -> EngagementRead:
+    engagement = _fetch(engagement_id, db)
+    _apply_date_change(engagement, payload.started_on, payload.finished_on)
+    db.commit()
     return EngagementRead.model_validate(_fetch(engagement_id, db))
 
 
@@ -352,6 +421,137 @@ def delete_binding(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     db.delete(binding)
     db.commit()
+
+
+@router.get("/{engagement_id}/progress-logs", response_model=list[ProgressLogRead])
+def list_progress_logs(
+    engagement_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> list[ProgressLogRead]:
+    if db.get(Engagement, engagement_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    logs = (
+        db.execute(
+            select(ProgressLog)
+            .where(ProgressLog.engagement_id == engagement_id)
+            .order_by(ProgressLog.logged_at.asc())
+        )
+        .scalars()
+        .all()
+    )
+    return [ProgressLogRead.model_validate(log) for log in logs]
+
+
+@router.patch(
+    "/{engagement_id}/progress-logs/{log_id}",
+    response_model=ProgressLogRead,
+)
+def update_progress_log(
+    engagement_id: uuid.UUID,
+    log_id: uuid.UUID,
+    payload: ProgressLogUpdate,
+    db: Session = Depends(get_db),
+) -> ProgressLogRead:
+    engagement = _fetch(engagement_id, db)
+
+    log = next(
+        (entry for entry in engagement.progress_logs if entry.id == log_id),
+        None,
+    )
+    if log is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    sorted_logs = sorted(engagement.progress_logs, key=lambda entry: entry.logged_at)
+    idx = sorted_logs.index(log)
+    prev_log = sorted_logs[idx - 1] if idx > 0 else None
+    next_log = sorted_logs[idx + 1] if idx < len(sorted_logs) - 1 else None
+
+    if payload.logged_at is not None:
+        new_date = payload.logged_at
+        if (
+            prev_log is not None
+            and new_date < prev_log.logged_at.astimezone(datetime.UTC).date()
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="That date would move this entry before the previous one.",
+            )
+        if (
+            next_log is not None
+            and new_date > next_log.logged_at.astimezone(datetime.UTC).date()
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="That date would move this entry after the next one.",
+            )
+        if engagement.started_on is not None and new_date < engagement.started_on:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="That date would be before the engagement's start date.",
+            )
+        if engagement.finished_on is not None and new_date > engagement.finished_on:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="That date would be after the engagement's finish date.",
+            )
+        original = log.logged_at.astimezone(datetime.UTC)
+        log.logged_at = datetime.datetime(
+            new_date.year,
+            new_date.month,
+            new_date.day,
+            original.hour,
+            original.minute,
+            original.second,
+            tzinfo=datetime.UTC,
+        )
+
+    editing_progress = payload.page_end is not None or payload.minute_end is not None
+    if editing_progress and log.id != sorted_logs[-1].id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only the most recent entry's progress can be edited.",
+        )
+
+    if payload.page_end is not None:
+        if payload.page_end <= (log.page_start or 0):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Page must be higher than this session's starting page.",
+            )
+        fmt = next((f for f in engagement.formats if f != Format.audio), Format.print)
+        book_length = engagement._resolve_length(fmt)
+        if book_length is not None and payload.page_end > book_length:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Page cannot exceed the book's length.",
+            )
+        log.page_end = payload.page_end
+
+    if payload.minute_end is not None:
+        if payload.minute_end <= (log.minute_start or 0):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Minute must be higher than this session's starting minute.",
+            )
+        audio_length = engagement._resolve_length(Format.audio)
+        if audio_length is not None and payload.minute_end > audio_length:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Minute cannot exceed the audio length.",
+            )
+        log.minute_end = payload.minute_end
+
+    db.commit()
+    db.refresh(log)
+    return ProgressLogRead.model_validate(log)
+
+
+@router.get("/{engagement_id}", response_model=EngagementRead)
+def get_engagement(
+    engagement_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> EngagementRead:
+    return EngagementRead.model_validate(_fetch(engagement_id, db))
 
 
 @router.put("/{engagement_id}/review", response_model=EngagementRead)

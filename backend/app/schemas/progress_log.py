@@ -14,6 +14,12 @@ class ProgressLogCreate(BaseModel):
     audio_length_minutes: int | None = Field(default=None, gt=0)
 
 
+class ProgressLogUpdate(BaseModel):
+    logged_at: datetime.date | None = None
+    page_end: int | None = Field(default=None, gt=0)
+    minute_end: int | None = Field(default=None, gt=0)
+
+
 class ProgressLogRead(BaseModel):
     id: uuid.UUID
     engagement_id: uuid.UUID

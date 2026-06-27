@@ -95,11 +95,39 @@ is too vague to build a scenario, clarify inline.
 - Open an existing Page Object **only if one already exists for this feature** (to extend it). Don't
   read unrelated tests/POMs.
 
-> **HARD GATE — no code, no plan, no confirmation request.** After Step 2 your next action is
-> launching the seed (Step 3). Do not write POM or spec code. Do not present a plan and ask the
-> user to confirm it. The user invoking this skill is already the confirmation. Candidate locators
-> from source are unconfirmed until a live `playwright-cli snapshot` validates them — writing tests
-> from source locators is the mistake this gate exists to prevent.
+### Vitest triage — mandatory before driving
+
+**Read the Vitest spec for the feature** (`frontend/src/app/<feature>/<feature>.spec.ts`) if it
+exists. Then produce a written triage — do not skip this, do not abbreviate it:
+
+1. List every scenario the Vitest spec already covers (one line each).
+2. For each scenario you are considering as an e2e test, answer: **"What does this test that Vitest
+   cannot?"** Valid answers are narrow:
+   - Real cross-component navigation (a router transition that spans two mounted components)
+   - Real backend contract (the frontend's request shape actually reaches and is accepted by the live
+     backend, and the response is correctly rendered — not just that Angular called `http.patch()`)
+   - Real browser behaviour JSDOM cannot replicate (file choosers, clipboard, resize observers, etc.)
+3. **Always keep one happy-path round-trip per major user action,** even when Vitest covers the same
+   scenario. A Vitest test that mocks the HTTP response proves the component wires up correctly; it
+   does not prove the frontend request shape actually reaches and is accepted by the real backend, or
+   that the real response renders correctly. One e2e test per action closes that gap.
+4. **Drop any scenario beyond the happy path where Vitest already covers it.** A Vitest test that
+   mocks a 409 and verifies the error message is displayed already covers the error path. An e2e
+   test that does the same thing with a real backend adds almost nothing — the backend has its own
+   pytest suite. Do not write it.
+
+**The bar for an e2e scenario is:** something goes wrong in the integration that neither Vitest
+(which mocks HTTP) nor pytest (which has no browser) would catch. Navigation flows, cross-component
+data hand-offs, one happy-path round-trip per major action, and end-to-end rendering of real backend
+data are the target. Duplicate error-display tests, input-validation tests, and UI state-machine
+tests almost never meet the bar when a Vitest spec already exists.
+
+> **HARD GATE — no code, no plan, no confirmation request.** After Step 2 (including the Vitest
+> triage) your next action is launching the seed (Step 3). Do not write POM or spec code. Do not
+> present a plan and ask the user to confirm it. The user invoking this skill is already the
+> confirmation. Candidate locators from source are unconfirmed until a live `playwright-cli
+> snapshot` validates them — writing tests from source locators is the mistake this gate exists to
+> prevent. The Vitest triage is the other mistake this gate exists to prevent.
 
 ## Step 3 — Drive the live app (CLI-first)
 

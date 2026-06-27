@@ -60,6 +60,15 @@ export class CurrentlyReadingPage {
   }
 
   /**
+   * Locates the "View history" button for a book's card.
+   * @param title - The book's title.
+   * @returns The view-history button locator.
+   */
+  getViewHistoryButton(title: string): Locator {
+    return this.page.getByRole('button', { name: `View history for ${title}` });
+  }
+
+  /**
    * Returns the book titles in their current DOM order, derived from the
    * aria-label on each listitem card.
    */
