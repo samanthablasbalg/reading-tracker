@@ -145,9 +145,9 @@ function formatRange(log: ProgressLog): string {
           }
         </div>
 
-        <div class="log-list">
-          @for (log of d.logs; track log.id) {
-            <div class="log-row">
+        <div class="log-list" role="list" aria-label="Progress logs">
+          @for (log of d.logs; track log.id; let i = $index) {
+            <div class="log-row" role="listitem" [attr.aria-label]="'Progress log ' + (i + 1)">
               <div class="log-range">
                 @if (editingPageLogId() === log.id && mostRecentLogId() === log.id) {
                   <div class="edit-row">
