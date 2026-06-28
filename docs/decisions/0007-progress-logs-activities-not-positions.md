@@ -1,6 +1,7 @@
 # 0007. Progress logs are activities, not positions
 
-- Status: Accepted
+- Status: Accepted (superseded in part by [[0024-progress-logs-dated-to-a-local-day]] — the journal
+  is now ordered by `(logged_on, created_at)`, not by `logged_at`)
 - Date: 2026-06-08
 
 ## Context
