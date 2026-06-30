@@ -8,7 +8,7 @@ import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { InlineDateEditComponent } from '../inline-date-edit/inline-date-edit';
-import { Engagement, EngagementService, ProgressLog } from '../engagement.service';
+import { Engagement, EngagementService, localDateString, ProgressLog } from '../engagement.service';
 
 interface HistoryData {
   engagement: Engagement;
@@ -203,7 +203,8 @@ function formatRange(log: ProgressLog): string {
                     <input
                       #dateInput
                       type="date"
-                      [value]="log.logged_at.substring(0, 10)"
+                      [value]="log.logged_on"
+                      [attr.max]="todayLocal"
                       aria-label="Edit log date"
                       (keydown.enter)="submitDate(log, dateInput.value)"
                       (keydown.escape)="cancelEditDate()"
@@ -232,10 +233,10 @@ function formatRange(log: ProgressLog): string {
                   <button
                     type="button"
                     class="editable-btn"
-                    [attr.aria-label]="'Edit date: ' + log.logged_at"
+                    [attr.aria-label]="'Edit date: ' + log.logged_on"
                     (click)="startEditDate(log.id)"
                   >
-                    {{ log.logged_at | date: 'mediumDate' : 'UTC' }}
+                    {{ log.logged_on | date: 'mediumDate' : 'UTC' }}
                   </button>
                 }
               </div>
@@ -261,6 +262,8 @@ export class EngagementHistoryComponent {
   protected readonly editingFinishedOn = signal(false);
   protected readonly startedOnError = signal<string | null>(null);
   protected readonly finishedOnError = signal<string | null>(null);
+
+  protected readonly todayLocal = localDateString();
 
   protected readonly editingDateLogId = signal<string | null>(null);
   protected readonly editingPageLogId = signal<string | null>(null);
@@ -332,12 +335,12 @@ export class EngagementHistoryComponent {
 
   protected submitDate(log: ProgressLog, value: string): void {
     if (this.editingDateLogId() !== log.id) return;
-    if (!value || value === log.logged_at.substring(0, 10)) {
+    if (!value || value === log.logged_on) {
       this.cancelEditDate();
       return;
     }
     this.engagementService
-      .patchProgressLog(log.engagement_id, log.id, { logged_at: value })
+      .patchProgressLog(log.engagement_id, log.id, { logged_on: value })
       .subscribe({
         next: () => {
           this.editingDateLogId.set(null);
