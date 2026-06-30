@@ -361,7 +361,7 @@ def _set_logged_at(db: Session, engagement_id: str, when: datetime.datetime) -> 
     log = db.execute(
         select(ProgressLog).where(ProgressLog.engagement_id == uuid.UUID(engagement_id))
     ).scalar_one()
-    log.logged_at = when
+    log.logged_on = when.date()
     db.commit()
 
 

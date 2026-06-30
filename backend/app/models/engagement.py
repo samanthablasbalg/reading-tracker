@@ -84,7 +84,7 @@ class Engagement(TimestampMixin, Base):
         page_logs = [log for log in self.progress_logs if log.page_end is not None]
         if not page_logs:
             return None
-        return max(page_logs, key=lambda log: log.logged_at).page_end
+        return max(page_logs, key=lambda log: (log.logged_on, log.created_at)).page_end
 
     @property
     def resume_from_page(self) -> int:
@@ -95,7 +95,9 @@ class Engagement(TimestampMixin, Base):
         minute_logs = [log for log in self.progress_logs if log.minute_end is not None]
         if not minute_logs:
             return None
-        return max(minute_logs, key=lambda log: log.logged_at).minute_end
+        return max(
+            minute_logs, key=lambda log: (log.logged_on, log.created_at)
+        ).minute_end
 
     @property
     def resume_from_minute(self) -> int:
