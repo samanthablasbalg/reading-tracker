@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import uuid
 
 from fastapi.testclient import TestClient
@@ -8,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.models.book import Book
 from app.models.edition import Edition, EngagementEdition
+from app.models.engagement import Engagement
 from app.models.progress_log import ProgressLog
 from tests.helpers import (
     _create_audio_engagement,
@@ -311,7 +313,7 @@ def test_finish_creates_final_progress_log(client: TestClient, db: Session) -> N
         .all()
     )
     assert len(logs) == 2
-    final_log = max(logs, key=lambda log: log.logged_at)
+    final_log = max(logs, key=lambda log: (log.logged_on, log.created_at))
     assert final_log.page_start == 150
     assert final_log.page_end == 300
 
@@ -395,7 +397,7 @@ def test_finish_audio_creates_final_minutes_log(
         .all()
     )
     assert len(logs) == 2
-    final_log = max(logs, key=lambda log: log.logged_at)
+    final_log = max(logs, key=lambda log: (log.logged_on, log.created_at))
     assert final_log.unit.value == "minutes"
     assert final_log.minute_start == 240
     assert final_log.minute_end == 480
@@ -712,3 +714,208 @@ def test_list_progress_logs_returns_empty_list_when_no_logs(client: TestClient) 
 def test_list_progress_logs_unknown_engagement_returns_404(client: TestClient) -> None:
     response = client.get(f"/engagements/{uuid.uuid4()}/progress-logs")
     assert response.status_code == 404
+
+
+# --- logged_on ordering ---
+
+
+def test_same_day_logs_ordered_by_creation(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    _log_progress(client, engagement["id"], 100, logged_on="2026-01-10")
+    _log_progress(client, engagement["id"], 200, logged_on="2026-01-10")
+
+    logs = client.get(f"/engagements/{engagement['id']}/progress-logs").json()
+
+    assert logs[0]["page_end"] == 100
+    assert logs[1]["page_end"] == 200
+
+
+def test_multiple_backdated_days_sorted_by_date(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    # Create three logs (creation order 1, 2, 3), then retarget their dates out
+    # of creation order via PATCH — creating them pre-dated would now 409
+    # (a log may not be backdated behind an existing later-day log).
+    first = _log_progress(client, engagement["id"], 100)
+    second = _log_progress(client, engagement["id"], 200)
+    third = _log_progress(client, engagement["id"], 300)
+
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        json={"logged_on": "2026-01-30"},
+    )
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{second['id']}",
+        json={"logged_on": "2026-01-10"},
+    )
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{third['id']}",
+        json={"logged_on": "2026-01-20"},
+    )
+
+    logs = client.get(f"/engagements/{engagement['id']}/progress-logs").json()
+
+    assert logs[0]["logged_on"] == "2026-01-10"
+    assert logs[1]["logged_on"] == "2026-01-20"
+    assert logs[2]["logged_on"] == "2026-01-30"
+
+
+def test_log_before_started_on_returns_409(client: TestClient, db: Session) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+
+    eng_obj = db.get(Engagement, uuid.UUID(engagement["id"]))
+    assert eng_obj is not None
+    eng_obj.started_on = datetime.date(2026, 1, 15)
+    db.commit()
+
+    response = client.post(
+        f"/engagements/{engagement['id']}/progress-logs",
+        json={"current_page": 50, "logged_on": "2026-01-10"},
+    )
+
+    assert response.status_code == 409
+
+
+def test_log_future_date_returns_422(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    future = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
+
+    response = client.post(
+        f"/engagements/{engagement['id']}/progress-logs",
+        json={"current_page": 50, "logged_on": future},
+    )
+
+    assert response.status_code == 422
+
+
+def test_log_backdated_behind_later_day_returns_409(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    _log_progress(client, engagement["id"], 100, logged_on="2026-01-20")
+
+    response = client.post(
+        f"/engagements/{engagement['id']}/progress-logs",
+        json={"current_page": 200, "logged_on": "2026-01-10"},
+    )
+
+    assert response.status_code == 409
+
+
+def test_log_backdated_to_day_with_existing_log_and_higher_page_is_allowed(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    _log_progress(client, engagement["id"], 100, logged_on="2026-01-10")
+
+    response = client.post(
+        f"/engagements/{engagement['id']}/progress-logs",
+        json={"current_page": 200, "logged_on": "2026-01-10"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["logged_on"] == "2026-01-10"
+
+    logs = client.get(f"/engagements/{engagement['id']}/progress-logs").json()
+    assert len(logs) == 2
+    assert logs[-1]["page_end"] == 200
+
+
+def test_finish_uses_effective_on_for_finished_on_and_completion_log(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_page_count = 300
+    db.commit()
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    _log_progress(client, engagement["id"], 150, logged_on="2026-01-10")
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}",
+        json={"status": "finished", "effective_on": "2026-01-15"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["finished_on"] == "2026-01-15"
+
+    logs = (
+        db.execute(
+            select(ProgressLog).where(
+                ProgressLog.engagement_id == uuid.UUID(engagement["id"])
+            )
+        )
+        .scalars()
+        .all()
+    )
+    completion_log = max(logs, key=lambda log: log.created_at)
+    assert completion_log.logged_on == datetime.date(2026, 1, 15)
+
+
+def test_finish_effective_on_before_latest_log_returns_409(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    _log_progress(client, engagement["id"], 150, logged_on="2026-01-20")
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}",
+        json={"status": "finished", "effective_on": "2026-01-15"},
+    )
+
+    assert response.status_code == 409
+
+
+def test_resume_from_page_uses_canonical_order_latest(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    # Retarget dates via PATCH after creation, so the earlier-created log
+    # (page 100) ends up dated later (Jan 30) than the later-created log
+    # (page 200, dated Jan 20). Canonical latest is by (logged_on, created_at),
+    # so resume_from_page should be 100, not 200.
+    first = _log_progress(client, engagement["id"], 100)
+    second = _log_progress(client, engagement["id"], 200)
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        json={"logged_on": "2026-01-30"},
+    )
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{second['id']}",
+        json={"logged_on": "2026-01-20"},
+    )
+
+    response = client.get("/engagements?status=reading")
+    assert response.json()[0]["resume_from_page"] == 100
+
+
+def test_completion_pct_uses_canonical_order_latest(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    book_obj = db.get(Book, uuid.UUID(book["id"]))
+    assert book_obj is not None
+    book_obj.default_page_count = 300
+    db.commit()
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    # Retarget dates via PATCH so the page-100 log ends up canonical latest
+    # (Jan 30) ahead of the page-200 log (Jan 20) → completion_pct = 33, not 67.
+    first = _log_progress(client, engagement["id"], 100)
+    second = _log_progress(client, engagement["id"], 200)
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        json={"logged_on": "2026-01-30"},
+    )
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{second['id']}",
+        json={"logged_on": "2026-01-20"},
+    )
+
+    response = client.get("/engagements?status=reading")
+    assert response.json()[0]["completion_pct"] == 33

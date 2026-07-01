@@ -1,6 +1,8 @@
 # 0008. Time modeling: fuzzy `_on` dates vs exact `_at` instants
 
-- Status: Accepted
+- Status: Accepted (superseded in part by [[0024-progress-logs-dated-to-a-local-day]] — `logged_at`
+  is replaced by the `logged_on` local date; the activity-instant category now covers only
+  `written_at`)
 - Date: 2026-06-08
 
 ## Context

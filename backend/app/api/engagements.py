@@ -63,13 +63,11 @@ def _apply_date_change(
     started_on: datetime.date | None,
     finished_on: datetime.date | None,
 ) -> None:
-    logs = sorted(engagement.progress_logs, key=lambda log: log.logged_at)
-    earliest_log_date = (
-        logs[0].logged_at.astimezone(datetime.UTC).date() if logs else None
+    logs = sorted(
+        engagement.progress_logs, key=lambda log: (log.logged_on, log.created_at)
     )
-    latest_log_date = (
-        logs[-1].logged_at.astimezone(datetime.UTC).date() if logs else None
-    )
+    earliest_log_date = logs[0].logged_on if logs else None
+    latest_log_date = logs[-1].logged_on if logs else None
 
     effective_started = started_on if started_on is not None else engagement.started_on
     effective_finished = (
@@ -134,7 +132,7 @@ def create_engagement(
     engagement = Engagement(
         book_id=payload.book_id,
         status=ReadingStatus.reading,
-        started_on=datetime.date.today(),
+        started_on=payload.started_on or datetime.date.today(),
     )
     db.add(engagement)
     db.flush()
@@ -198,20 +196,32 @@ def update_engagement_status(
         if duplicate is not None:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
+    effective_on = payload.effective_on or datetime.date.today()
+
     engagement.status = new_status
     match new_status:
         case ReadingStatus.reading:
             engagement.finished_on = None
             engagement.abandoned_on = None
         case ReadingStatus.finished:
-            engagement.finished_on = datetime.date.today()
+            if engagement.progress_logs:
+                latest_log = max(
+                    engagement.progress_logs,
+                    key=lambda log: (log.logged_on, log.created_at),
+                )
+                if effective_on < latest_log.logged_on:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="finished_on cannot be before the latest progress log.",
+                    )
+            engagement.finished_on = effective_on
             if Format.audio not in engagement.formats:
                 page_count = engagement.book.default_page_count
                 if page_count is not None and engagement.resume_from_page != page_count:
                     db.add(
                         ProgressLog(
                             engagement_id=engagement.id,
-                            logged_at=datetime.datetime.now(datetime.UTC),
+                            logged_on=effective_on,
                             unit=LogUnit.pages,
                             page_start=engagement.resume_from_page,
                             page_end=page_count,
@@ -227,7 +237,7 @@ def update_engagement_status(
                     db.add(
                         ProgressLog(
                             engagement_id=engagement.id,
-                            logged_at=datetime.datetime.now(datetime.UTC),
+                            logged_on=effective_on,
                             unit=LogUnit.minutes,
                             minute_start=engagement.resume_from_minute,
                             minute_end=audio_length,
@@ -236,12 +246,13 @@ def update_engagement_status(
                     )
         case ReadingStatus.dnf:
             if engagement.progress_logs:
-                latest = max(engagement.progress_logs, key=lambda log: log.logged_at)
-                engagement.abandoned_on = latest.logged_at.astimezone(
-                    datetime.UTC
-                ).date()
+                latest = max(
+                    engagement.progress_logs,
+                    key=lambda log: (log.logged_on, log.created_at),
+                )
+                engagement.abandoned_on = latest.logged_on
             else:
-                engagement.abandoned_on = datetime.date.today()
+                engagement.abandoned_on = effective_on
 
     db.commit()
 
@@ -285,9 +296,26 @@ def log_progress(
     if position <= resume:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
+    logged_on = payload.logged_on or datetime.date.today()
+    if logged_on > datetime.date.today():
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
+    if engagement.started_on is not None and logged_on < engagement.started_on:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Log date cannot be before the engagement's start date.",
+        )
+    if any(log.logged_on > logged_on for log in engagement.progress_logs):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "A log already exists on a later day; you can only correct the"
+                " most recent day."
+            ),
+        )
+
     log = ProgressLog(
         engagement_id=engagement_id,
-        logged_at=datetime.datetime.now(datetime.UTC),
+        logged_on=logged_on,
         unit=unit,
         minute_start=resume if is_audio else None,
         minute_end=position if is_audio else None,
@@ -434,7 +462,7 @@ def list_progress_logs(
         db.execute(
             select(ProgressLog)
             .where(ProgressLog.engagement_id == engagement_id)
-            .order_by(ProgressLog.logged_at.asc())
+            .order_by(ProgressLog.logged_on.asc(), ProgressLog.created_at.asc())
         )
         .scalars()
         .all()
@@ -461,29 +489,13 @@ def update_progress_log(
     if log is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    sorted_logs = sorted(engagement.progress_logs, key=lambda entry: entry.logged_at)
-    idx = sorted_logs.index(log)
-    prev_log = sorted_logs[idx - 1] if idx > 0 else None
-    next_log = sorted_logs[idx + 1] if idx < len(sorted_logs) - 1 else None
+    sorted_logs = sorted(
+        engagement.progress_logs,
+        key=lambda entry: (entry.logged_on, entry.created_at),
+    )
 
-    if payload.logged_at is not None:
-        new_date = payload.logged_at
-        if (
-            prev_log is not None
-            and new_date < prev_log.logged_at.astimezone(datetime.UTC).date()
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="That date would move this entry before the previous one.",
-            )
-        if (
-            next_log is not None
-            and new_date > next_log.logged_at.astimezone(datetime.UTC).date()
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="That date would move this entry after the next one.",
-            )
+    if payload.logged_on is not None:
+        new_date = payload.logged_on
         if engagement.started_on is not None and new_date < engagement.started_on:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -494,16 +506,7 @@ def update_progress_log(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="That date would be after the engagement's finish date.",
             )
-        original = log.logged_at.astimezone(datetime.UTC)
-        log.logged_at = datetime.datetime(
-            new_date.year,
-            new_date.month,
-            new_date.day,
-            original.hour,
-            original.minute,
-            original.second,
-            tzinfo=datetime.UTC,
-        )
+        log.logged_on = new_date
 
     editing_progress = payload.page_end is not None or payload.minute_end is not None
     if editing_progress and log.id != sorted_logs[-1].id:
@@ -592,14 +595,14 @@ def list_engagements(
     latest_log_sq = (
         select(
             ProgressLog.engagement_id,
-            func.max(ProgressLog.logged_at).label("max_logged_at"),
+            func.max(ProgressLog.created_at).label("max_created_at"),
         )
         .group_by(ProgressLog.engagement_id)
         .subquery()
     )
     order_key = {
         ReadingStatus.reading: func.greatest(
-            Engagement.updated_at, latest_log_sq.c.max_logged_at
+            Engagement.updated_at, latest_log_sq.c.max_created_at
         ),
         ReadingStatus.finished: Engagement.finished_on,
         ReadingStatus.dnf: Engagement.abandoned_on,

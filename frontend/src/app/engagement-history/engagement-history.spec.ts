@@ -31,7 +31,7 @@ const mockLogs: ProgressLog[] = [
   {
     id: 'log-1',
     engagement_id: 'eng-1',
-    logged_at: '2026-01-01',
+    logged_on: '2026-01-01',
     unit: 'pages',
     page_start: 1,
     page_end: 50,
@@ -42,7 +42,7 @@ const mockLogs: ProgressLog[] = [
   {
     id: 'log-2',
     engagement_id: 'eng-1',
-    logged_at: '2026-01-10',
+    logged_on: '2026-01-10',
     unit: 'pages',
     page_start: 51,
     page_end: 100,
@@ -265,8 +265,8 @@ describe('EngagementHistoryComponent', () => {
 
       const req = httpTesting.expectOne('/api/engagements/eng-1/progress-logs/log-1');
       expect(req.request.method).toBe('PATCH');
-      expect(req.request.body).toEqual({ logged_at: '2026-02-01' });
-      req.flush({ ...mockLogs[0], logged_at: '2026-02-01' });
+      expect(req.request.body).toEqual({ logged_on: '2026-02-01' });
+      req.flush({ ...mockLogs[0], logged_on: '2026-02-01' });
 
       flushLoad();
       fixture.detectChanges();
@@ -288,6 +288,25 @@ describe('EngagementHistoryComponent', () => {
       fixture.detectChanges();
 
       expect(fixture.nativeElement.querySelector('input[aria-label="Edit log date"]')).toBeNull();
+    });
+
+    it('log date input is bounded to today as the max', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 5, 30, 12, 0, 0));
+
+      const fixture = TestBed.createComponent(EngagementHistoryComponent);
+      flushLoad();
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label^="Edit date:"]').click();
+      fixture.detectChanges();
+
+      const input = fixture.nativeElement.querySelector(
+        'input[aria-label="Edit log date"]',
+      ) as HTMLInputElement;
+      expect(input.max).toBe('2026-06-30');
+
+      vi.useRealTimers();
     });
 
     it('shows a 409 error under the log date input', () => {

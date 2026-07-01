@@ -120,7 +120,7 @@ def test_patch_dates_started_after_earliest_log_returns_409(
             ProgressLog.engagement_id == uuid.UUID(engagement["id"])
         )
     ).scalar_one()
-    log.logged_at = datetime.datetime(2026, 3, 15, tzinfo=datetime.UTC)
+    log.logged_on = datetime.date(2026, 3, 15)
     db.commit()
 
     response = client.patch(
@@ -142,7 +142,7 @@ def test_patch_dates_finished_before_latest_log_returns_409(
             ProgressLog.engagement_id == uuid.UUID(engagement["id"])
         )
     ).scalar_one()
-    log.logged_at = datetime.datetime(2026, 3, 15, tzinfo=datetime.UTC)
+    log.logged_on = datetime.date(2026, 3, 15)
     db.commit()
 
     response = client.patch(
