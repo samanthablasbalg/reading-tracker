@@ -297,10 +297,20 @@ def log_progress(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
     logged_on = payload.logged_on or datetime.date.today()
+    if logged_on > datetime.date.today():
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
     if engagement.started_on is not None and logged_on < engagement.started_on:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Log date cannot be before the engagement's start date.",
+        )
+    if any(log.logged_on > logged_on for log in engagement.progress_logs):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "A log already exists on a later day; you can only correct the"
+                " most recent day."
+            ),
         )
 
     log = ProgressLog(

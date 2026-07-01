@@ -734,14 +734,25 @@ def test_same_day_logs_ordered_by_creation(client: TestClient) -> None:
 def test_multiple_backdated_days_sorted_by_date(client: TestClient) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
-    # Create in reverse date order (Jan 30, Jan 10, Jan 20).
-    # Pages must exceed the canonical resume each time so the guard passes.
-    # After Jan 30 (page 100): canonical latest = Jan 30, resume = 100.
-    # Jan 10 (page 200): 200 > 100, OK. Canonical latest still Jan 30.
-    # Jan 20 (page 300): 300 > 100, OK.
-    _log_progress(client, engagement["id"], 100, logged_on="2026-01-30")
-    _log_progress(client, engagement["id"], 200, logged_on="2026-01-10")
-    _log_progress(client, engagement["id"], 300, logged_on="2026-01-20")
+    # Create three logs (creation order 1, 2, 3), then retarget their dates out
+    # of creation order via PATCH — creating them pre-dated would now 409
+    # (a log may not be backdated behind an existing later-day log).
+    first = _log_progress(client, engagement["id"], 100)
+    second = _log_progress(client, engagement["id"], 200)
+    third = _log_progress(client, engagement["id"], 300)
+
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        json={"logged_on": "2026-01-30"},
+    )
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{second['id']}",
+        json={"logged_on": "2026-01-10"},
+    )
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{third['id']}",
+        json={"logged_on": "2026-01-20"},
+    )
 
     logs = client.get(f"/engagements/{engagement['id']}/progress-logs").json()
 
@@ -765,6 +776,52 @@ def test_log_before_started_on_returns_409(client: TestClient, db: Session) -> N
     )
 
     assert response.status_code == 409
+
+
+def test_log_future_date_returns_422(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    future = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
+
+    response = client.post(
+        f"/engagements/{engagement['id']}/progress-logs",
+        json={"current_page": 50, "logged_on": future},
+    )
+
+    assert response.status_code == 422
+
+
+def test_log_backdated_behind_later_day_returns_409(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    _log_progress(client, engagement["id"], 100, logged_on="2026-01-20")
+
+    response = client.post(
+        f"/engagements/{engagement['id']}/progress-logs",
+        json={"current_page": 200, "logged_on": "2026-01-10"},
+    )
+
+    assert response.status_code == 409
+
+
+def test_log_backdated_to_day_with_existing_log_and_higher_page_is_allowed(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    _log_progress(client, engagement["id"], 100, logged_on="2026-01-10")
+
+    response = client.post(
+        f"/engagements/{engagement['id']}/progress-logs",
+        json={"current_page": 200, "logged_on": "2026-01-10"},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["logged_on"] == "2026-01-10"
+
+    logs = client.get(f"/engagements/{engagement['id']}/progress-logs").json()
+    assert len(logs) == 2
+    assert logs[-1]["page_end"] == 200
 
 
 def test_finish_uses_effective_on_for_finished_on_and_completion_log(
@@ -819,11 +876,20 @@ def test_resume_from_page_uses_canonical_order_latest(
 ) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
-    # Jan 30 (page 100) created first → canonical latest.
-    # Jan 20 (page 200) created second but earlier date → 200 > resume(100), OK.
-    # Canonical latest stays Jan 30, so resume_from_page = 100, not 200.
-    _log_progress(client, engagement["id"], 100, logged_on="2026-01-30")
-    _log_progress(client, engagement["id"], 200, logged_on="2026-01-20")
+    # Retarget dates via PATCH after creation, so the earlier-created log
+    # (page 100) ends up dated later (Jan 30) than the later-created log
+    # (page 200, dated Jan 20). Canonical latest is by (logged_on, created_at),
+    # so resume_from_page should be 100, not 200.
+    first = _log_progress(client, engagement["id"], 100)
+    second = _log_progress(client, engagement["id"], 200)
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        json={"logged_on": "2026-01-30"},
+    )
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{second['id']}",
+        json={"logged_on": "2026-01-20"},
+    )
 
     response = client.get("/engagements?status=reading")
     assert response.json()[0]["resume_from_page"] == 100
@@ -838,9 +904,18 @@ def test_completion_pct_uses_canonical_order_latest(
     book_obj.default_page_count = 300
     db.commit()
     engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
-    # Jan 30 (page 100) is canonical latest → completion_pct = 33, not 67.
-    _log_progress(client, engagement["id"], 100, logged_on="2026-01-30")
-    _log_progress(client, engagement["id"], 200, logged_on="2026-01-20")
+    # Retarget dates via PATCH so the page-100 log ends up canonical latest
+    # (Jan 30) ahead of the page-200 log (Jan 20) → completion_pct = 33, not 67.
+    first = _log_progress(client, engagement["id"], 100)
+    second = _log_progress(client, engagement["id"], 200)
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        json={"logged_on": "2026-01-30"},
+    )
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{second['id']}",
+        json={"logged_on": "2026-01-20"},
+    )
 
     response = client.get("/engagements?status=reading")
     assert response.json()[0]["completion_pct"] == 33
