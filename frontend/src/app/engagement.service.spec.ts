@@ -67,4 +67,12 @@ describe('EngagementService', () => {
     expect(req.request.body).toEqual({ current_page: 120, logged_on: '2026-06-30' });
     req.flush({});
   });
+
+  it('logProgress sends the provided loggedOn instead of the local date', () => {
+    service.logProgress('eng-1', { current_page: 120 }, '2026-06-10').subscribe();
+
+    const req = httpTesting.expectOne('/api/engagements/eng-1/progress-logs');
+    expect(req.request.body).toEqual({ current_page: 120, logged_on: '2026-06-10' });
+    req.flush({});
+  });
 });

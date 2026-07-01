@@ -2,10 +2,11 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogTitle } from '@angular/material/dialog';
 import { MatBottomSheetRef, MAT_BOTTOM_SHEET_DATA } from '@angular/material/bottom-sheet';
-import { EngagementService } from '../engagement.service';
+import { EngagementService, localDateString } from '../engagement.service';
 import {
   parseHhmm,
   formatHhmm,
@@ -31,6 +32,7 @@ export interface ProgressLogSheetData {
     ReactiveFormsModule,
     MatButtonModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
     MatDialogTitle,
   ],
@@ -50,6 +52,15 @@ export interface ProgressLogSheetData {
         <mat-form-field style="width: 100%;">
           <mat-label>Current position</mat-label>
           <input matInput [formControl]="minuteControl" placeholder="HH:MM" />
+          <button
+            matSuffix
+            type="button"
+            mat-icon-button
+            aria-label="Log for a different day"
+            (click)="toggleDatePicker()"
+          >
+            <mat-icon>event</mat-icon>
+          </button>
           @if (minuteControl.hasError('hhmm')) {
             <mat-error>Enter a time in HH:MM format</mat-error>
           }
@@ -64,12 +75,34 @@ export interface ProgressLogSheetData {
         <mat-form-field style="width: 100%;">
           <mat-label>Current page</mat-label>
           <input matInput type="number" [attr.min]="effectiveMin" [formControl]="pageControl" />
+          <button
+            matSuffix
+            type="button"
+            mat-icon-button
+            aria-label="Log for a different day"
+            (click)="toggleDatePicker()"
+          >
+            <mat-icon>event</mat-icon>
+          </button>
           @if (pageControl.hasError('min')) {
             <mat-error>Must be greater than page {{ data.resume_from_page }}</mat-error>
           }
           @if (pageControl.hasError('max')) {
             <mat-error>Cannot exceed {{ data.default_page_count }} pages</mat-error>
           }
+        </mat-form-field>
+      }
+      @if (showDatePicker()) {
+        <mat-form-field style="width: 100%;">
+          <mat-label>Log date</mat-label>
+          <input
+            matInput
+            type="date"
+            [value]="logDate()"
+            [attr.max]="todayLocal"
+            aria-label="Log date"
+            (change)="onDateChange($event)"
+          />
         </mat-form-field>
       }
       @if (error()) {
@@ -145,6 +178,10 @@ export class ProgressLogSheetComponent {
   protected readonly currentValueProperty = this.isAudio ? 'current_minute' : 'current_page';
   protected readonly resumeFromProperty = this.isAudio ? 'resume_from_minute' : 'resume_from_page';
   protected readonly entryText = this.isAudio ? 'timestamp' : 'page';
+
+  protected readonly todayLocal = localDateString();
+  protected readonly logDate = signal(this.todayLocal);
+  protected readonly showDatePicker = signal(false);
 
   protected readonly saving = signal(false);
   protected readonly mode = signal<
@@ -232,6 +269,21 @@ export class ProgressLogSheetComponent {
     });
   }
 
+  protected toggleDatePicker(): void {
+    const opening = !this.showDatePicker();
+    this.showDatePicker.set(opening);
+    if (!opening) {
+      this.logDate.set(this.todayLocal);
+    }
+  }
+
+  protected onDateChange(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    if (value) {
+      this.logDate.set(value);
+    }
+  }
+
   protected save(): void {
     if (this.saveDisabled || this.saving()) return;
     this.saving.set(true);
@@ -242,7 +294,11 @@ export class ProgressLogSheetComponent {
       : (this.pageControl.value as number);
 
     this.engagementService
-      .logProgress(this.data.engagementId, { [this.currentValueProperty]: updateValue })
+      .logProgress(
+        this.data.engagementId,
+        { [this.currentValueProperty]: updateValue },
+        this.logDate(),
+      )
       .subscribe({
         next: () => {
           const completion_pct = this.defaultValue
@@ -254,9 +310,9 @@ export class ProgressLogSheetComponent {
           });
           this.close();
         },
-        error: () => {
+        error: (err) => {
           this.saving.set(false);
-          this.error.set('Failed to save. Please try again.');
+          this.error.set(err.error?.detail ?? 'Failed to save. Please try again.');
         },
       });
   }

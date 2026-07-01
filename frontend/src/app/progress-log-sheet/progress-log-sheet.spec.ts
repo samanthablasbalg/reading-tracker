@@ -48,6 +48,15 @@ async function setup(
 }
 
 describe('ProgressLogSheetComponent', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 30, 12, 0, 0));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('renders the book title', async () => {
     await setup();
     expect(screen.getByRole('heading', { name: 'Dune' })).toBeTruthy();
@@ -87,7 +96,11 @@ describe('ProgressLogSheetComponent', () => {
     const { mockEngagementService } = await setup();
     fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
-    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', { current_page: 100 });
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith(
+      'eng-1',
+      { current_page: 100 },
+      '2026-06-30',
+    );
   });
 
   it('patches the engagement in place and closes on save success', async () => {
@@ -164,7 +177,11 @@ describe('ProgressLogSheetComponent', () => {
     const { mockEngagementService } = await setup({ default_page_count: 300 });
     fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '300' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
-    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', { current_page: 300 });
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith(
+      'eng-1',
+      { current_page: 300 },
+      '2026-06-30',
+    );
   });
 
   it('enables Save on open when resume_from_page equals the page count', async () => {
@@ -181,7 +198,72 @@ describe('ProgressLogSheetComponent', () => {
       default_page_count: 200,
     });
     fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
-    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', { current_page: 200 });
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith(
+      'eng-1',
+      { current_page: 200 },
+      '2026-06-30',
+    );
+  });
+
+  // --- Backdating ---
+
+  it('does not show a date input until the calendar toggle is clicked', async () => {
+    await setup();
+    expect(screen.queryByLabelText('Log date')).toBeNull();
+  });
+
+  it('reveals a date input capped at today when the calendar toggle is clicked', async () => {
+    await setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Log for a different day' }));
+    const dateInput = screen.getByLabelText('Log date') as HTMLInputElement;
+    expect(dateInput).toBeTruthy();
+    expect(dateInput.max).toBe('2026-06-30');
+  });
+
+  it('clicking the toggle again hides the date input and resets to today', async () => {
+    const { mockEngagementService } = await setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Log for a different day' }));
+    fireEvent.change(screen.getByLabelText('Log date'), { target: { value: '2026-06-10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Log for a different day' }));
+    expect(screen.queryByLabelText('Log date')).toBeNull();
+
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith(
+      'eng-1',
+      { current_page: 100 },
+      '2026-06-30',
+    );
+  });
+
+  it('save sends the chosen past date when backdated', async () => {
+    const { mockEngagementService } = await setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Log for a different day' }));
+    fireEvent.change(screen.getByLabelText('Log date'), { target: { value: '2026-06-10' } });
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith(
+      'eng-1',
+      { current_page: 100 },
+      '2026-06-10',
+    );
+  });
+
+  it('shows the backend detail message on a 409 conflict', async () => {
+    await setup(
+      {},
+      {
+        logProgress: vi.fn(() =>
+          throwError(() => ({
+            status: 409,
+            error: { detail: 'A log already exists on a later day.' },
+          })),
+        ),
+      },
+    );
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
+    expect(screen.getByRole('alert').textContent).toContain('A log already exists on a later day.');
   });
 
   it('closes the sheet without saving when cancel is clicked', async () => {
@@ -366,9 +448,11 @@ describe('ProgressLogSheetComponent', () => {
     const { mockEngagementService } = await setup(audioData);
     fireEvent.input(screen.getByRole('textbox'), { target: { value: '02:30' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
-    expect(mockEngagementService.logProgress).toHaveBeenCalledWith('eng-1', {
-      current_minute: 150,
-    });
+    expect(mockEngagementService.logProgress).toHaveBeenCalledWith(
+      'eng-1',
+      { current_minute: 150 },
+      '2026-06-30',
+    );
   });
 
   it('patches the engagement with resume_from_minute and completion_pct on save', async () => {

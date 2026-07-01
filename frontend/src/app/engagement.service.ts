@@ -111,10 +111,14 @@ export class EngagementService {
     });
   }
 
-  logProgress(engagementId: string, payload: Record<string, number>): Observable<unknown> {
+  logProgress(
+    engagementId: string,
+    payload: Record<string, number>,
+    loggedOn?: string,
+  ): Observable<unknown> {
     return this.http.post<unknown>(`/api/engagements/${engagementId}/progress-logs`, {
       ...payload,
-      logged_on: localDateString(),
+      logged_on: loggedOn ?? localDateString(),
     });
   }
 
