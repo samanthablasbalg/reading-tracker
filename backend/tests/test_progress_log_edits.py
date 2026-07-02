@@ -254,3 +254,33 @@ def test_patch_backdated_log_is_not_most_recent_for_progress_edit(
     )
 
     assert response.status_code == 409
+
+
+def test_patch_log_date_and_progress_together_when_date_makes_it_latest(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    first = _log_progress(client, engagement["id"], 100, logged_on="2026-01-10")
+    _log_progress(client, engagement["id"], 200, logged_on="2026-01-20")
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        json={"logged_on": "2026-01-25", "page_end": 90},
+    )
+
+    assert response.status_code == 200
+
+
+def test_patch_log_date_in_future_returns_422(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    log = _log_progress(client, engagement["id"], 100)
+    future = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{log['id']}",
+        json={"logged_on": future},
+    )
+
+    assert response.status_code == 422

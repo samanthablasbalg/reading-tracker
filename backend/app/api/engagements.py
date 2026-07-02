@@ -507,13 +507,10 @@ def update_progress_log(
     if log is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    sorted_logs = sorted(
-        engagement.progress_logs,
-        key=lambda entry: (entry.logged_on, entry.created_at),
-    )
-
     if payload.logged_on is not None:
         new_date = payload.logged_on
+        if new_date > datetime.date.today():
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
         if engagement.started_on is not None and new_date < engagement.started_on:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -527,11 +524,16 @@ def update_progress_log(
         log.logged_on = new_date
 
     editing_progress = payload.page_end is not None or payload.minute_end is not None
-    if editing_progress and log.id != sorted_logs[-1].id:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Only the most recent entry's progress can be edited.",
+    if editing_progress:
+        sorted_logs = sorted(
+            engagement.progress_logs,
+            key=lambda entry: (entry.logged_on, entry.created_at),
         )
+        if log.id != sorted_logs[-1].id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Only the most recent entry's progress can be edited.",
+            )
 
     if payload.page_end is not None:
         if payload.page_end <= (log.page_start or 0):
