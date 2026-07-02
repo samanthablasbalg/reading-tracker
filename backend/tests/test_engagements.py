@@ -442,6 +442,16 @@ def _set_logged_at(db: Session, engagement_id: str, when: datetime.datetime) -> 
     db.commit()
 
 
+def _set_log_created_at(
+    db: Session, engagement_id: str, when: datetime.datetime
+) -> None:
+    log = db.execute(
+        select(ProgressLog).where(ProgressLog.engagement_id == uuid.UUID(engagement_id))
+    ).scalar_one()
+    log.created_at = when
+    db.commit()
+
+
 def _set_finished_on(db: Session, engagement_id: str, when: datetime.date) -> None:
     engagement = db.get(Engagement, uuid.UUID(engagement_id))
     assert engagement is not None
@@ -482,7 +492,9 @@ def test_list_reading_log_outranks_more_recently_marked(
 
     _set_updated_at(db, eng_a["id"], datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC))
     _set_updated_at(db, eng_b["id"], datetime.datetime(2024, 6, 1, tzinfo=datetime.UTC))
-    _set_logged_at(db, eng_a["id"], datetime.datetime(2024, 12, 1, tzinfo=datetime.UTC))
+    _set_log_created_at(
+        db, eng_a["id"], datetime.datetime(2024, 12, 1, tzinfo=datetime.UTC)
+    )
 
     data = client.get("/engagements?status=reading").json()
     assert [e["book"]["title"] for e in data] == ["Book A", "Book B"]
@@ -499,14 +511,14 @@ def test_list_reading_orders_multiple_logs_by_recency(
         engagements[title] = eng["id"]
 
     marked = datetime.datetime(2023, 1, 1, tzinfo=datetime.UTC)
-    log_times = {
+    log_created_times = {
         "Book A": datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
         "Book B": datetime.datetime(2024, 2, 1, tzinfo=datetime.UTC),
         "Book C": datetime.datetime(2024, 3, 1, tzinfo=datetime.UTC),
     }
     for title, eng_id in engagements.items():
         _set_updated_at(db, eng_id, marked)
-        _set_logged_at(db, eng_id, log_times[title])
+        _set_log_created_at(db, eng_id, log_created_times[title])
 
     data = client.get("/engagements?status=reading").json()
     assert [e["book"]["title"] for e in data] == ["Book C", "Book B", "Book A"]
