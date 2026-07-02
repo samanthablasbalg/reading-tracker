@@ -1,5 +1,6 @@
 import { expect, test } from '../../fixtures/api-client';
 import { CurrentlyReadingPage } from '../../page-objects/currently-reading.page';
+import { EngagementHistoryPage } from '../../page-objects/engagement-history.page';
 import { ProgressLogSheetPage } from '../../page-objects/progress-log-sheet.page';
 import { ReadPage } from '../../page-objects/read.page';
 
@@ -51,6 +52,40 @@ test('Logging progress advances the card in place and survives reload', async ({
       'Dune progress: 49%'
     );
     expect(await currentlyReading.getCardTitlesInOrder()).toEqual(['Dune', 'Piranesi']);
+  });
+});
+
+test('Backdating a log stores it under the chosen day', async ({ page, apiClient }) => {
+  const currentlyReading = new CurrentlyReadingPage(page);
+  const sheet = new ProgressLogSheetPage(page);
+  const history = new EngagementHistoryPage(page);
+
+  let engId = '';
+
+  await test.step('Seed a book being read with an early start date', async () => {
+    const bookId = await apiClient.createBook('Dune', 'Frank Herbert', 412);
+    engId = await apiClient.markAsReading(bookId);
+    await apiClient.patchEngagementDates(engId, { started_on: '2025-01-01' });
+  });
+
+  await test.step('Log a backdated entry', async () => {
+    await currentlyReading.goto();
+    await currentlyReading.openLogSheet('Dune');
+    await sheet.openDatePicker();
+    await sheet.setDate('2025-06-15');
+    await sheet.enterPage(100);
+    await sheet.save('Dune');
+  });
+
+  await test.step('Verify the progress bar reflects the backdated page', async () => {
+    await expect(currentlyReading.getProgressBar('Dune')).toHaveAccessibleName(
+      'Dune progress: 24%'
+    );
+  });
+
+  await test.step('Verify the history page shows the log under the chosen day', async () => {
+    await history.goto(engId);
+    await expect(history.getLogDateButton(1)).toHaveText('Jun 15, 2025');
   });
 });
 
@@ -174,7 +209,7 @@ test('Logging audio progress advances the completion percentage', async ({ page,
 
   await test.step('Verify completion percentage is 50%', async () => {
     await expect(currentlyReading.getProgressBar('The Hobbit')).toHaveAccessibleName(
-      'The Hobbit progress: 50%',
+      'The Hobbit progress: 50%'
     );
   });
 });
