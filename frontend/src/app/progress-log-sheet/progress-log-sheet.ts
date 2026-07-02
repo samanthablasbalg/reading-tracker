@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { ErrorStateMatcher } from '@angular/material/core';
+import { ShowOnDirtyErrorStateMatcher } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -15,12 +15,6 @@ import {
   hhmmMinValidator,
   hhmmMaxValidator,
 } from '../hhmm';
-
-class DirtyErrorStateMatcher implements ErrorStateMatcher {
-  isErrorState(control: FormControl | null): boolean {
-    return !!(control && control.invalid && control.dirty);
-  }
-}
 
 export interface ProgressLogSheetData {
   engagementId: string;
@@ -189,7 +183,7 @@ export class ProgressLogSheetComponent {
   private readonly engagementService = inject(EngagementService);
 
   protected readonly formatHhmm = formatHhmm;
-  protected readonly errorMatcher = new DirtyErrorStateMatcher();
+  protected readonly errorMatcher = new ShowOnDirtyErrorStateMatcher();
   protected readonly isAudio = this.data.formats.includes('audio');
   protected readonly defaultValue = this.isAudio
     ? this.data.default_audio_minutes
