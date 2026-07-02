@@ -29,21 +29,27 @@ def _create_bare_book(
     return cast(dict[str, Any], response.json())
 
 
-def _create_engagement(client: TestClient, book_id: str) -> dict[str, Any]:
-    response = client.post(
-        "/engagements", json={"book_id": book_id, "edition_format": "print"}
-    )
+def _create_engagement(
+    client: TestClient, book_id: str, started_on: str | None = None
+) -> dict[str, Any]:
+    body: dict[str, Any] = {"book_id": book_id, "edition_format": "print"}
+    if started_on is not None:
+        body["started_on"] = started_on
+    response = client.post("/engagements", json=body)
     assert response.status_code == 201
     return cast(dict[str, Any], response.json())
 
 
 def _log_progress(
-    client: TestClient, engagement_id: str, current_page: int
+    client: TestClient,
+    engagement_id: str,
+    current_page: int,
+    logged_on: str | None = None,
 ) -> dict[str, Any]:
-    response = client.post(
-        f"/engagements/{engagement_id}/progress-logs",
-        json={"current_page": current_page},
-    )
+    body: dict[str, Any] = {"current_page": current_page}
+    if logged_on is not None:
+        body["logged_on"] = logged_on
+    response = client.post(f"/engagements/{engagement_id}/progress-logs", json=body)
     assert response.status_code == 201
     return cast(dict[str, Any], response.json())
 
@@ -76,10 +82,13 @@ def _bind_edition(
     return cast(dict[str, Any], response.json())
 
 
-def _create_audio_engagement(client: TestClient, book_id: str) -> dict[str, Any]:
-    response = client.post(
-        "/engagements", json={"book_id": book_id, "edition_format": "audio"}
-    )
+def _create_audio_engagement(
+    client: TestClient, book_id: str, started_on: str | None = None
+) -> dict[str, Any]:
+    body: dict[str, Any] = {"book_id": book_id, "edition_format": "audio"}
+    if started_on is not None:
+        body["started_on"] = started_on
+    response = client.post("/engagements", json=body)
     assert response.status_code == 201
     return cast(dict[str, Any], response.json())
 
@@ -88,11 +97,12 @@ def _log_audio_progress(
     client: TestClient,
     engagement_id: str,
     current_minute: int,
+    logged_on: str | None = None,
     **kwargs: Any,
 ) -> dict[str, Any]:
-    response = client.post(
-        f"/engagements/{engagement_id}/progress-logs",
-        json={"current_minute": current_minute, **kwargs},
-    )
+    body: dict[str, Any] = {"current_minute": current_minute, **kwargs}
+    if logged_on is not None:
+        body["logged_on"] = logged_on
+    response = client.post(f"/engagements/{engagement_id}/progress-logs", json=body)
     assert response.status_code == 201
     return cast(dict[str, Any], response.json())

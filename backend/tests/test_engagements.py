@@ -76,6 +76,20 @@ def test_create_engagement_multiple_editions_of_format_returns_409(
     assert response.status_code == 409
 
 
+def test_create_engagement_future_started_on_returns_422(client: TestClient) -> None:
+    book = _create_book(client)
+    future = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
+    response = client.post(
+        "/engagements",
+        json={
+            "book_id": book["id"],
+            "edition_format": "print",
+            "started_on": future,
+        },
+    )
+    assert response.status_code == 422
+
+
 def test_create_engagement_unknown_book_returns_404(client: TestClient) -> None:
     response = client.post(
         "/engagements", json={"book_id": str(uuid.uuid4()), "edition_format": "print"}
@@ -131,6 +145,33 @@ def test_patch_to_finished_stamps_finished_on(client: TestClient) -> None:
     assert data["status"] == "finished"
     assert data["finished_on"] is not None
     assert data["started_on"] == engagement["started_on"]
+
+
+def test_patch_status_with_future_effective_on_returns_422(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    future = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}",
+        json={"status": "finished", "effective_on": future},
+    )
+    assert response.status_code == 422
+
+
+def test_patch_to_finished_before_started_on_with_no_logs_returns_409(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-06-01")
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}",
+        json={"status": "finished", "effective_on": "2026-01-01"},
+    )
+    assert response.status_code == 409
 
 
 def test_patch_to_reading_clears_finished_on(client: TestClient) -> None:
@@ -233,6 +274,42 @@ def test_patch_to_dnf_sets_abandoned_on_to_today_when_no_logs(
     data = response.json()
     assert data["status"] == "dnf"
     assert data["abandoned_on"] == datetime.date.today().isoformat()
+
+
+def test_patch_to_dnf_with_effective_on_after_last_log_uses_effective_on(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 100)
+    _set_logged_at(
+        db, engagement["id"], datetime.datetime(2026, 5, 15, tzinfo=datetime.UTC)
+    )
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}",
+        json={"status": "dnf", "effective_on": "2026-05-20"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["abandoned_on"] == "2026-05-20"
+
+
+def test_patch_to_dnf_with_effective_on_before_last_log_returns_409(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 100)
+    _set_logged_at(
+        db, engagement["id"], datetime.datetime(2026, 5, 15, tzinfo=datetime.UTC)
+    )
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}",
+        json={"status": "dnf", "effective_on": "2026-05-10"},
+    )
+    assert response.status_code == 409
 
 
 def test_patch_to_dnf_does_not_create_progress_log(
@@ -361,7 +438,17 @@ def _set_logged_at(db: Session, engagement_id: str, when: datetime.datetime) -> 
     log = db.execute(
         select(ProgressLog).where(ProgressLog.engagement_id == uuid.UUID(engagement_id))
     ).scalar_one()
-    log.logged_at = when
+    log.logged_on = when.date()
+    db.commit()
+
+
+def _set_log_created_at(
+    db: Session, engagement_id: str, when: datetime.datetime
+) -> None:
+    log = db.execute(
+        select(ProgressLog).where(ProgressLog.engagement_id == uuid.UUID(engagement_id))
+    ).scalar_one()
+    log.created_at = when
     db.commit()
 
 
@@ -405,7 +492,9 @@ def test_list_reading_log_outranks_more_recently_marked(
 
     _set_updated_at(db, eng_a["id"], datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC))
     _set_updated_at(db, eng_b["id"], datetime.datetime(2024, 6, 1, tzinfo=datetime.UTC))
-    _set_logged_at(db, eng_a["id"], datetime.datetime(2024, 12, 1, tzinfo=datetime.UTC))
+    _set_log_created_at(
+        db, eng_a["id"], datetime.datetime(2024, 12, 1, tzinfo=datetime.UTC)
+    )
 
     data = client.get("/engagements?status=reading").json()
     assert [e["book"]["title"] for e in data] == ["Book A", "Book B"]
@@ -422,14 +511,14 @@ def test_list_reading_orders_multiple_logs_by_recency(
         engagements[title] = eng["id"]
 
     marked = datetime.datetime(2023, 1, 1, tzinfo=datetime.UTC)
-    log_times = {
+    log_created_times = {
         "Book A": datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
         "Book B": datetime.datetime(2024, 2, 1, tzinfo=datetime.UTC),
         "Book C": datetime.datetime(2024, 3, 1, tzinfo=datetime.UTC),
     }
     for title, eng_id in engagements.items():
         _set_updated_at(db, eng_id, marked)
-        _set_logged_at(db, eng_id, log_times[title])
+        _set_log_created_at(db, eng_id, log_created_times[title])
 
     data = client.get("/engagements?status=reading").json()
     assert [e["book"]["title"] for e in data] == ["Book C", "Book B", "Book A"]

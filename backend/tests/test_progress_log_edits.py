@@ -17,7 +17,7 @@ from tests.helpers import (
 )
 
 
-def test_patch_log_date_updates_logged_at(client: TestClient, db: Session) -> None:
+def test_patch_log_date_updates_logged_on(client: TestClient, db: Session) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
     log = _log_progress(client, engagement["id"], 100)
@@ -29,91 +29,13 @@ def test_patch_log_date_updates_logged_at(client: TestClient, db: Session) -> No
 
     response = client.patch(
         f"/engagements/{engagement['id']}/progress-logs/{log['id']}",
-        json={"logged_at": "2026-01-15"},
+        json={"logged_on": "2026-01-15"},
     )
 
     assert response.status_code == 200
     updated = db.get(ProgressLog, uuid.UUID(log["id"]))
     assert updated is not None
-    assert updated.logged_at.astimezone(datetime.UTC).date() == datetime.date(
-        2026, 1, 15
-    )
-
-
-def test_patch_log_date_preserves_time_of_day(client: TestClient, db: Session) -> None:
-    book = _create_book(client)
-    engagement = _create_engagement(client, book["id"])
-    log = _log_progress(client, engagement["id"], 100)
-
-    eng_obj = db.get(Engagement, uuid.UUID(engagement["id"]))
-    assert eng_obj is not None
-    eng_obj.started_on = datetime.date(2026, 1, 1)
-    db.commit()
-
-    original_log = db.get(ProgressLog, uuid.UUID(log["id"]))
-    assert original_log is not None
-    original_time = original_log.logged_at.astimezone(datetime.UTC)
-
-    client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{log['id']}",
-        json={"logged_at": "2026-01-15"},
-    )
-
-    db.refresh(original_log)
-    updated_time = original_log.logged_at.astimezone(datetime.UTC)
-    assert updated_time.hour == original_time.hour
-    assert updated_time.minute == original_time.minute
-    assert updated_time.second == original_time.second
-
-
-def test_patch_log_date_before_previous_log_returns_409(
-    client: TestClient, db: Session
-) -> None:
-    book = _create_book(client)
-    engagement = _create_engagement(client, book["id"])
-    first = _log_progress(client, engagement["id"], 100)
-    second = _log_progress(client, engagement["id"], 200)
-
-    eng_obj = db.get(Engagement, uuid.UUID(engagement["id"]))
-    first_obj = db.get(ProgressLog, uuid.UUID(first["id"]))
-    second_obj = db.get(ProgressLog, uuid.UUID(second["id"]))
-    assert eng_obj is not None and first_obj is not None and second_obj is not None
-    eng_obj.started_on = datetime.date(2026, 1, 1)
-    first_obj.logged_at = datetime.datetime(2026, 1, 10, 12, 0, 0, tzinfo=datetime.UTC)
-    second_obj.logged_at = datetime.datetime(2026, 1, 20, 12, 0, 0, tzinfo=datetime.UTC)
-    db.commit()
-
-    response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{second['id']}",
-        json={"logged_at": "2026-01-09"},
-    )
-
-    assert response.status_code == 409
-
-
-def test_patch_log_date_after_next_log_returns_409(
-    client: TestClient, db: Session
-) -> None:
-    book = _create_book(client)
-    engagement = _create_engagement(client, book["id"])
-    first = _log_progress(client, engagement["id"], 100)
-    second = _log_progress(client, engagement["id"], 200)
-
-    eng_obj = db.get(Engagement, uuid.UUID(engagement["id"]))
-    first_obj = db.get(ProgressLog, uuid.UUID(first["id"]))
-    second_obj = db.get(ProgressLog, uuid.UUID(second["id"]))
-    assert eng_obj is not None and first_obj is not None and second_obj is not None
-    eng_obj.started_on = datetime.date(2026, 1, 1)
-    first_obj.logged_at = datetime.datetime(2026, 1, 10, 12, 0, 0, tzinfo=datetime.UTC)
-    second_obj.logged_at = datetime.datetime(2026, 1, 20, 12, 0, 0, tzinfo=datetime.UTC)
-    db.commit()
-
-    response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
-        json={"logged_at": "2026-01-21"},
-    )
-
-    assert response.status_code == 409
+    assert updated.logged_on == datetime.date(2026, 1, 15)
 
 
 def test_patch_log_date_before_started_on_returns_409(
@@ -127,12 +49,12 @@ def test_patch_log_date_before_started_on_returns_409(
     log_obj = db.get(ProgressLog, uuid.UUID(log["id"]))
     assert eng_obj is not None and log_obj is not None
     eng_obj.started_on = datetime.date(2026, 1, 20)
-    log_obj.logged_at = datetime.datetime(2026, 1, 22, 12, 0, 0, tzinfo=datetime.UTC)
+    log_obj.logged_on = datetime.date(2026, 1, 22)
     db.commit()
 
     response = client.patch(
         f"/engagements/{engagement['id']}/progress-logs/{log['id']}",
-        json={"logged_at": "2026-01-19"},
+        json={"logged_on": "2026-01-19"},
     )
 
     assert response.status_code == 409
@@ -150,12 +72,12 @@ def test_patch_log_date_after_finished_on_returns_409(
     assert eng_obj is not None and log_obj is not None
     eng_obj.started_on = datetime.date(2026, 1, 1)
     eng_obj.finished_on = datetime.date(2026, 1, 20)
-    log_obj.logged_at = datetime.datetime(2026, 1, 18, 12, 0, 0, tzinfo=datetime.UTC)
+    log_obj.logged_on = datetime.date(2026, 1, 18)
     db.commit()
 
     response = client.patch(
         f"/engagements/{engagement['id']}/progress-logs/{log['id']}",
-        json={"logged_at": "2026-01-21"},
+        json={"logged_on": "2026-01-21"},
     )
 
     assert response.status_code == 409
@@ -291,3 +213,74 @@ def test_patch_log_unknown_log_returns_404(client: TestClient) -> None:
         json={"page_end": 100},
     )
     assert response.status_code == 404
+
+
+def test_patch_log_date_any_past_date_is_valid(client: TestClient, db: Session) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    _log_progress(client, engagement["id"], 100, logged_on="2026-01-10")
+    second = _log_progress(client, engagement["id"], 200, logged_on="2026-01-20")
+
+    eng_obj = db.get(Engagement, uuid.UUID(engagement["id"]))
+    assert eng_obj is not None
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{second['id']}",
+        json={"logged_on": "2026-01-05"},
+    )
+
+    assert response.status_code == 200
+
+
+def test_patch_backdated_log_is_not_most_recent_for_progress_edit(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    first = _log_progress(client, engagement["id"], 100, logged_on="2026-01-10")
+    _log_progress(client, engagement["id"], 200, logged_on="2026-01-20")
+
+    eng_obj = db.get(Engagement, uuid.UUID(engagement["id"]))
+    assert eng_obj is not None
+
+    client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        json={"logged_on": "2026-01-05"},
+    )
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        json={"page_end": 150},
+    )
+
+    assert response.status_code == 409
+
+
+def test_patch_log_date_and_progress_together_when_date_makes_it_latest(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    first = _log_progress(client, engagement["id"], 100, logged_on="2026-01-10")
+    _log_progress(client, engagement["id"], 200, logged_on="2026-01-20")
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        json={"logged_on": "2026-01-25", "page_end": 90},
+    )
+
+    assert response.status_code == 200
+
+
+def test_patch_log_date_in_future_returns_422(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    log = _log_progress(client, engagement["id"], 100)
+    future = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}/progress-logs/{log['id']}",
+        json={"logged_on": future},
+    )
+
+    assert response.status_code == 422

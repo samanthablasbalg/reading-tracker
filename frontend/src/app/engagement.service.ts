@@ -15,10 +15,17 @@ export interface Review {
   body: string | null;
 }
 
+export function localDateString(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export interface ProgressLog {
   id: string;
   engagement_id: string;
-  logged_at: string;
+  logged_on: string;
   unit: 'pages' | 'minutes';
   page_start: number | null;
   page_end: number | null;
@@ -85,20 +92,34 @@ export class EngagementService {
     return this.http.post<Engagement>('/api/engagements', {
       book_id: bookId,
       edition_format: format,
+      started_on: localDateString(),
       ...(audioLengthMinutes != null && { audio_length_minutes: audioLengthMinutes }),
     });
   }
 
   markFinished(engagementId: string): Observable<Engagement> {
-    return this.http.patch<Engagement>(`/api/engagements/${engagementId}`, { status: 'finished' });
+    return this.http.patch<Engagement>(`/api/engagements/${engagementId}`, {
+      status: 'finished',
+      effective_on: localDateString(),
+    });
   }
 
   markDnf(engagementId: string): Observable<Engagement> {
-    return this.http.patch<Engagement>(`/api/engagements/${engagementId}`, { status: 'dnf' });
+    return this.http.patch<Engagement>(`/api/engagements/${engagementId}`, {
+      status: 'dnf',
+      effective_on: localDateString(),
+    });
   }
 
-  logProgress(engagementId: string, payload: Record<string, number>): Observable<unknown> {
-    return this.http.post<unknown>(`/api/engagements/${engagementId}/progress-logs`, payload);
+  logProgress(
+    engagementId: string,
+    payload: Record<string, number>,
+    loggedOn?: string,
+  ): Observable<unknown> {
+    return this.http.post<unknown>(`/api/engagements/${engagementId}/progress-logs`, {
+      ...payload,
+      logged_on: loggedOn ?? localDateString(),
+    });
   }
 
   getEngagement(id: string): Observable<Engagement> {
@@ -112,7 +133,7 @@ export class EngagementService {
   patchProgressLog(
     engagementId: string,
     logId: string,
-    patch: { logged_at?: string; page_end?: number; minute_end?: number },
+    patch: { logged_on?: string; page_end?: number; minute_end?: number },
   ): Observable<ProgressLog> {
     return this.http.patch<ProgressLog>(
       `/api/engagements/${engagementId}/progress-logs/${logId}`,

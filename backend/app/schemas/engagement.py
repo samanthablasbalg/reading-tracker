@@ -15,10 +15,12 @@ class EngagementCreate(BaseModel):
     book_id: uuid.UUID
     edition_format: Format
     audio_length_minutes: int | None = None
+    started_on: datetime.date | None = None
 
 
 class EngagementStatusUpdate(BaseModel):
     status: Literal["reading", "finished", "dnf"]
+    effective_on: datetime.date | None = None
 
 
 class EngagementDatesUpdate(BaseModel):

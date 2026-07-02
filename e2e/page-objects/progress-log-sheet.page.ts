@@ -11,6 +11,8 @@ export class ProgressLogSheetPage {
   readonly finishButton: Locator;
   readonly giveUpButton: Locator;
   readonly giveUpConfirmationMessage: Locator;
+  readonly dateToggleButton: Locator;
+  readonly dateInput: Locator;
 
   /** @param page - The Playwright page the sheet is open on. */
   constructor(public readonly page: Page) {
@@ -21,6 +23,8 @@ export class ProgressLogSheetPage {
     this.finishButton = page.getByRole('button', { name: /finish/i });
     this.giveUpButton = page.getByRole('button', { name: /dnf/i });
     this.giveUpConfirmationMessage = page.getByText('Give up on');
+    this.dateToggleButton = page.getByRole('button', { name: 'Log for a different day' });
+    this.dateInput = page.getByRole('textbox', { name: 'Log date' });
   }
 
   /**
@@ -54,5 +58,18 @@ export class ProgressLogSheetPage {
    */
   async save(title: string): Promise<void> {
     await this.getSaveButton(title).click();
+  }
+
+  /** Reveals the log-date input for backdating a log to a past day. */
+  async openDatePicker(): Promise<void> {
+    await this.dateToggleButton.click();
+  }
+
+  /**
+   * Sets the log date, for backdating a log to a past day.
+   * @param date - The date in yyyy-mm-dd format.
+   */
+  async setDate(date: string): Promise<void> {
+    await this.dateInput.fill(date);
   }
 }
