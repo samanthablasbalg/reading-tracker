@@ -235,6 +235,42 @@ def test_patch_to_dnf_sets_abandoned_on_to_today_when_no_logs(
     assert data["abandoned_on"] == datetime.date.today().isoformat()
 
 
+def test_patch_to_dnf_with_effective_on_after_last_log_uses_effective_on(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 100)
+    _set_logged_at(
+        db, engagement["id"], datetime.datetime(2026, 5, 15, tzinfo=datetime.UTC)
+    )
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}",
+        json={"status": "dnf", "effective_on": "2026-05-20"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["abandoned_on"] == "2026-05-20"
+
+
+def test_patch_to_dnf_with_effective_on_before_last_log_returns_409(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    _log_progress(client, engagement["id"], 100)
+    _set_logged_at(
+        db, engagement["id"], datetime.datetime(2026, 5, 15, tzinfo=datetime.UTC)
+    )
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}",
+        json={"status": "dnf", "effective_on": "2026-05-10"},
+    )
+    assert response.status_code == 409
+
+
 def test_patch_to_dnf_does_not_create_progress_log(
     client: TestClient, db: Session
 ) -> None:

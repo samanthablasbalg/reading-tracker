@@ -245,14 +245,22 @@ def update_engagement_status(
                         )
                     )
         case ReadingStatus.dnf:
-            if engagement.progress_logs:
+            if not engagement.progress_logs:
+                engagement.abandoned_on = effective_on
+            else:
                 latest = max(
                     engagement.progress_logs,
                     key=lambda log: (log.logged_on, log.created_at),
                 )
-                engagement.abandoned_on = latest.logged_on
-            else:
-                engagement.abandoned_on = effective_on
+                if (
+                    payload.effective_on is not None
+                    and payload.effective_on < latest.logged_on
+                ):
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="abandoned_on cannot be before the latest progress log.",
+                    )
+                engagement.abandoned_on = payload.effective_on or latest.logged_on
 
     db.commit()
 
