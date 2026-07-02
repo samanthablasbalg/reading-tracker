@@ -116,6 +116,9 @@ def create_engagement(
     if book is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
+    if payload.started_on is not None and payload.started_on > datetime.date.today():
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
+
     duplicate = db.execute(
         select(Engagement)
         .join(EngagementEdition)

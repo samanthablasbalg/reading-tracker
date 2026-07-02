@@ -76,6 +76,20 @@ def test_create_engagement_multiple_editions_of_format_returns_409(
     assert response.status_code == 409
 
 
+def test_create_engagement_future_started_on_returns_422(client: TestClient) -> None:
+    book = _create_book(client)
+    future = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
+    response = client.post(
+        "/engagements",
+        json={
+            "book_id": book["id"],
+            "edition_format": "print",
+            "started_on": future,
+        },
+    )
+    assert response.status_code == 422
+
+
 def test_create_engagement_unknown_book_returns_404(client: TestClient) -> None:
     response = client.post(
         "/engagements", json={"book_id": str(uuid.uuid4()), "edition_format": "print"}
