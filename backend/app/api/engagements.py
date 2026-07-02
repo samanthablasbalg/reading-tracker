@@ -58,14 +58,20 @@ def _fetch(engagement_id: uuid.UUID, db: Session) -> Engagement:
     return engagement
 
 
+def _log_sort_key(log: ProgressLog) -> tuple[datetime.date, datetime.datetime]:
+    return (log.logged_on, log.created_at)
+
+
+def _latest_log(logs: list[ProgressLog]) -> ProgressLog | None:
+    return max(logs, key=_log_sort_key) if logs else None
+
+
 def _apply_date_change(
     engagement: Engagement,
     started_on: datetime.date | None,
     finished_on: datetime.date | None,
 ) -> None:
-    logs = sorted(
-        engagement.progress_logs, key=lambda log: (log.logged_on, log.created_at)
-    )
+    logs = sorted(engagement.progress_logs, key=_log_sort_key)
     earliest_log_date = logs[0].logged_on if logs else None
     latest_log_date = logs[-1].logged_on if logs else None
 
@@ -209,18 +215,15 @@ def update_engagement_status(
             engagement.finished_on = None
             engagement.abandoned_on = None
         case ReadingStatus.finished:
-            if engagement.progress_logs:
-                latest_log = max(
-                    engagement.progress_logs,
-                    key=lambda log: (log.logged_on, log.created_at),
+            latest_log = _latest_log(engagement.progress_logs)
+            if latest_log is not None and effective_on < latest_log.logged_on:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="finished_on cannot be before the latest progress log.",
                 )
-                if effective_on < latest_log.logged_on:
-                    raise HTTPException(
-                        status_code=status.HTTP_409_CONFLICT,
-                        detail="finished_on cannot be before the latest progress log.",
-                    )
             elif (
-                engagement.started_on is not None
+                latest_log is None
+                and engagement.started_on is not None
                 and effective_on < engagement.started_on
             ):
                 raise HTTPException(
@@ -258,13 +261,10 @@ def update_engagement_status(
                         )
                     )
         case ReadingStatus.dnf:
-            if not engagement.progress_logs:
+            latest = _latest_log(engagement.progress_logs)
+            if latest is None:
                 engagement.abandoned_on = effective_on
             else:
-                latest = max(
-                    engagement.progress_logs,
-                    key=lambda log: (log.logged_on, log.created_at),
-                )
                 if (
                     payload.effective_on is not None
                     and payload.effective_on < latest.logged_on
@@ -528,11 +528,8 @@ def update_progress_log(
 
     editing_progress = payload.page_end is not None or payload.minute_end is not None
     if editing_progress:
-        sorted_logs = sorted(
-            engagement.progress_logs,
-            key=lambda entry: (entry.logged_on, entry.created_at),
-        )
-        if log.id != sorted_logs[-1].id:
+        latest = _latest_log(engagement.progress_logs)
+        if latest is not None and log.id != latest.id:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Only the most recent entry's progress can be edited.",
