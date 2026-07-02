@@ -197,6 +197,8 @@ def update_engagement_status(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
     effective_on = payload.effective_on or datetime.date.today()
+    if effective_on > datetime.date.today():
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
 
     engagement.status = new_status
     match new_status:
@@ -214,6 +216,14 @@ def update_engagement_status(
                         status_code=status.HTTP_409_CONFLICT,
                         detail="finished_on cannot be before the latest progress log.",
                     )
+            elif (
+                engagement.started_on is not None
+                and effective_on < engagement.started_on
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="finished_on cannot be before started_on.",
+                )
             engagement.finished_on = effective_on
             if Format.audio not in engagement.formats:
                 page_count = engagement.book.default_page_count

@@ -133,6 +133,33 @@ def test_patch_to_finished_stamps_finished_on(client: TestClient) -> None:
     assert data["started_on"] == engagement["started_on"]
 
 
+def test_patch_status_with_future_effective_on_returns_422(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"])
+    future = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}",
+        json={"status": "finished", "effective_on": future},
+    )
+    assert response.status_code == 422
+
+
+def test_patch_to_finished_before_started_on_with_no_logs_returns_409(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-06-01")
+
+    response = client.patch(
+        f"/engagements/{engagement['id']}",
+        json={"status": "finished", "effective_on": "2026-01-01"},
+    )
+    assert response.status_code == 409
+
+
 def test_patch_to_reading_clears_finished_on(client: TestClient) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
