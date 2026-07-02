@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { ErrorStateMatcher } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -14,6 +15,12 @@ import {
   hhmmMinValidator,
   hhmmMaxValidator,
 } from '../hhmm';
+
+class DirtyErrorStateMatcher implements ErrorStateMatcher {
+  isErrorState(control: FormControl | null): boolean {
+    return !!(control && control.invalid && control.dirty);
+  }
+}
 
 export interface ProgressLogSheetData {
   engagementId: string;
@@ -49,9 +56,14 @@ export interface ProgressLogSheetData {
       }
       <h2 mat-dialog-title style="margin: 0; text-align: center;">{{ data.title }}</h2>
       @if (isAudio) {
-        <mat-form-field style="width: 100%;">
+        <mat-form-field style="width: 100%;" hideRequiredMarker>
           <mat-label>Current position</mat-label>
-          <input matInput [formControl]="minuteControl" placeholder="HH:MM" />
+          <input
+            matInput
+            [formControl]="minuteControl"
+            [errorStateMatcher]="errorMatcher"
+            placeholder="HH:MM"
+          />
           <button
             matSuffix
             type="button"
@@ -72,9 +84,15 @@ export interface ProgressLogSheetData {
           }
         </mat-form-field>
       } @else {
-        <mat-form-field style="width: 100%;">
+        <mat-form-field style="width: 100%;" hideRequiredMarker>
           <mat-label>Current page</mat-label>
-          <input matInput type="number" [attr.min]="effectiveMin" [formControl]="pageControl" />
+          <input
+            matInput
+            type="number"
+            [attr.min]="effectiveMin"
+            [formControl]="pageControl"
+            [errorStateMatcher]="errorMatcher"
+          />
           <button
             matSuffix
             type="button"
@@ -106,7 +124,7 @@ export interface ProgressLogSheetData {
         </mat-form-field>
       }
       @if (error()) {
-        <p role="alert">{{ error() }}</p>
+        <p role="alert" style="color: var(--mat-sys-error); margin: 0;">{{ error() }}</p>
       }
       @if (mode() === 'idle') {
         <button
@@ -171,6 +189,7 @@ export class ProgressLogSheetComponent {
   private readonly engagementService = inject(EngagementService);
 
   protected readonly formatHhmm = formatHhmm;
+  protected readonly errorMatcher = new DirtyErrorStateMatcher();
   protected readonly isAudio = this.data.formats.includes('audio');
   protected readonly defaultValue = this.isAudio
     ? this.data.default_audio_minutes
@@ -252,18 +271,21 @@ export class ProgressLogSheetComponent {
   }
 
   constructor() {
+    this.pageControl.valueChanges.subscribe(() => this.error.set(null));
+    this.minuteControl.valueChanges.subscribe(() => this.error.set(null));
+
     effect(() => {
       if (this.mode() === 'idle') {
         if (this.isAudio) {
-          this.minuteControl.enable();
+          this.minuteControl.enable({ emitEvent: false });
         } else {
-          this.pageControl.enable();
+          this.pageControl.enable({ emitEvent: false });
         }
       } else {
         if (this.isAudio) {
-          this.minuteControl.disable();
+          this.minuteControl.disable({ emitEvent: false });
         } else {
-          this.pageControl.disable();
+          this.pageControl.disable({ emitEvent: false });
         }
       }
     });
@@ -281,6 +303,7 @@ export class ProgressLogSheetComponent {
     const value = (event.target as HTMLInputElement).value;
     if (value) {
       this.logDate.set(value);
+      this.error.set(null);
     }
   }
 

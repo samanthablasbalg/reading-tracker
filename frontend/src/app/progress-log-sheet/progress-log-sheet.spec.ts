@@ -86,10 +86,22 @@ describe('ProgressLogSheetComponent', () => {
     ).toBe(true);
   });
 
-  it('shows a min error when page is at or below resume_from_page', async () => {
+  it('does not show a min error for the pre-filled value before any edit', async () => {
     await setup();
     fireEvent.blur(screen.getByRole('spinbutton'));
+    expect(screen.queryByText(/must be greater than page 50/i)).toBeNull();
+  });
+
+  it('shows a min error once the page is edited to a value at or below resume_from_page', async () => {
+    await setup();
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '50' } });
     expect(screen.getByText(/must be greater than page 50/i)).toBeTruthy();
+  });
+
+  it('does not show a min error just from toggling the date picker', async () => {
+    await setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Log for a different day' }));
+    expect(screen.queryByText(/must be greater than page 50/i)).toBeNull();
   });
 
   it('save calls logProgress with the engagement id and entered page', async () => {
@@ -264,6 +276,27 @@ describe('ProgressLogSheetComponent', () => {
     fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
     expect(screen.getByRole('alert').textContent).toContain('A log already exists on a later day.');
+  });
+
+  it('clears a stale save error once the page is edited again', async () => {
+    await setup({}, { logProgress: vi.fn(() => throwError(() => ({ status: 409, error: {} }))) });
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
+    expect(screen.getByRole('alert')).toBeTruthy();
+
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '120' } });
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('clears a stale save error once the log date is edited again', async () => {
+    await setup({}, { logProgress: vi.fn(() => throwError(() => ({ status: 409, error: {} }))) });
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
+    expect(screen.getByRole('alert')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Log for a different day' }));
+    fireEvent.change(screen.getByLabelText('Log date'), { target: { value: '2026-06-10' } });
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('closes the sheet without saving when cancel is clicked', async () => {

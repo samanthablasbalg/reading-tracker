@@ -82,12 +82,24 @@ def apply_cover_urls() -> None:
                 )
 
 
-def start_reading(book_id: str, fmt: str) -> str:
-    return str(post("/engagements", {"book_id": book_id, "edition_format": fmt})["id"])
+def start_reading(
+    book_id: str, fmt: str, audio_length_minutes: int | None = None
+) -> str:
+    body: dict[str, object] = {"book_id": book_id, "edition_format": fmt}
+    if audio_length_minutes is not None:
+        body["audio_length_minutes"] = audio_length_minutes
+    return str(post("/engagements", body)["id"])
 
 
 def log_progress(engagement_id: str, current_page: int) -> None:
     post(f"/engagements/{engagement_id}/progress-logs", {"current_page": current_page})
+
+
+def log_audio_progress(engagement_id: str, current_minute: int) -> None:
+    post(
+        f"/engagements/{engagement_id}/progress-logs",
+        {"current_minute": current_minute},
+    )
 
 
 def finish(engagement_id: str) -> None:
@@ -145,8 +157,8 @@ eng = start_reading(
 )
 log_progress(eng, 120)
 
-# Currently reading — no progress (audio)
-start_reading(
+# Currently reading — audio, with progress
+eng = start_reading(
     add_book(
         "The House in the Cerulean Sea",
         "TJ Klune",
@@ -154,7 +166,9 @@ start_reading(
         "http://books.google.com/books/content?id=O0iSDwAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api",
     ),
     "audio",
+    audio_length_minutes=600,
 )
+log_audio_progress(eng, 180)
 
 # Finished
 finish(
