@@ -919,3 +919,51 @@ def test_completion_pct_uses_canonical_order_latest(
 
     response = client.get("/engagements?status=reading")
     assert response.json()[0]["completion_pct"] == 33
+
+
+# --- Delete progress logs ---
+
+
+def test_delete_progress_log_returns_204(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    log = _log_progress(client, engagement["id"], 200, logged_on="2026-01-10")
+
+    response = client.delete(
+        f"/engagements/{engagement['id']}/progress-logs/{log['id']}"
+    )
+    assert response.status_code == 204
+
+
+def test_delete_progress_log_removes_it_from_list(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    log = _log_progress(client, engagement["id"], 200, logged_on="2026-01-10")
+
+    client.delete(f"/engagements/{engagement['id']}/progress-logs/{log['id']}")
+
+    response = client.get(f"/engagements/{engagement['id']}/progress-logs/")
+    assert response.json() == []
+
+
+def test_delete_penultimate_progress_log_returns_409(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    first = _log_progress(client, engagement["id"], 100, logged_on="2026-01-10")
+    _log_progress(client, engagement["id"], 200, logged_on="2026-01-20")
+
+    response = client.delete(
+        f"/engagements/{engagement['id']}/progress-logs/{first['id']}"
+    )
+    assert response.status_code == 409
+
+
+def test_delete_unknown_progress_log_returns_404(client: TestClient) -> None:
+    book = _create_book(client)
+    engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
+    _log_progress(client, engagement["id"], 200, logged_on="2026-01-20")
+
+    response = client.delete(
+        f"/engagements/{engagement['id']}/progress-logs/{uuid.uuid4()}"
+    )
+    assert response.status_code == 404
