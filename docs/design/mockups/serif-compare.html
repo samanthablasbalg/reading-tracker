@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Newsreader vs Lora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{ background:#cfc7c2; font-family:"Plus Jakarta Sans",sans-serif; color:#241c22; padding:30px 18px 60px; }
+  .head{ max-width:960px; margin:0 auto 20px; } .head h1{font-size:22px;} .head p{color:#6b5f66;font-size:14px;margin-top:2px;}
+  .cols{ display:grid; grid-template-columns:1fr 1fr; gap:24px; max-width:960px; margin:0 auto; }
+  @media(max-width:820px){ .cols{grid-template-columns:1fr;} }
+  h2{ font-size:14px; margin-bottom:10px; }
+  .card{ border-radius:22px; padding:22px; margin-bottom:16px; }
+  .light{ background:#FBF6EE; color:#241C22; box-shadow:0 6px 20px rgba(90,60,40,.12);}
+  .dark{ background:#18131B; color:#F3E9EE; box-shadow:0 6px 20px rgba(0,0,0,.35);}
+  .tag{ font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.5;margin-bottom:12px; }
+  .ptitle{ font-size:32px; line-height:1.08; margin-bottom:4px; }
+  .glyphs{ font-size:26px; margin:6px 0 16px; opacity:.9; }
+  .btitle{ font-size:20px; line-height:1.15; }
+  .bauthor{ font-family:"Plus Jakarta Sans";font-size:13px;opacity:.65;margin:3px 0 16px; }
+  .prosecap{ font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.45;margin-bottom:5px; }
+  .prose{ font-size:16px; line-height:1.6; }
+  .prose em{ font-style:italic; }
+
+  .N .ptitle,.N .glyphs,.N .btitle,.N .prose{ font-family:"Newsreader",serif; }
+  .N .ptitle,.N .btitle{ font-weight:600; }
+  .L .ptitle,.L .glyphs,.L .btitle,.L .prose{ font-family:"Lora",serif; }
+  .L .ptitle,.L .btitle{ font-weight:600; }
+</style>
+</head>
+<body>
+  <div class="head"><h1>Serif comparison — same content, your colors</h1>
+  <p>Newsreader (left) vs Lora (right). Watch the <b>f, j, g, italics</b> and the overall warmth.</p></div>
+
+  <div class="cols">
+    <div class="N">
+      <h2>Newsreader</h2>
+      <div class="card dark">
+        <div class="tag">Dark</div>
+        <div class="ptitle">Hello, Samantha</div>
+        <div class="glyphs">fjgy &amp; The Adjective — 1893</div>
+        <div class="btitle">The House in the Cerulean Sea</div>
+        <div class="bauthor">TJ Klune · audiobook</div>
+        <div class="prosecap">Review prose</div>
+        <div class="prose">A <em>warm hug</em> of a book — the kind you finish slowly on purpose, just to justify staying in it a little longer.</div>
+      </div>
+      <div class="card light">
+        <div class="tag">Light</div>
+        <div class="ptitle">Your Year in Books</div>
+        <div class="glyphs">fjgy &amp; The Adjective — 1893</div>
+        <div class="btitle">Piranesi</div>
+        <div class="bauthor">Susanna Clarke · print</div>
+        <div class="prosecap">Review prose</div>
+        <div class="prose">Strange and quiet and <em>enormous</em>. I keep thinking about the halls.</div>
+      </div>
+    </div>
+
+    <div class="L">
+      <h2>Lora</h2>
+      <div class="card dark">
+        <div class="tag">Dark</div>
+        <div class="ptitle">Hello, Samantha</div>
+        <div class="glyphs">fjgy &amp; The Adjective — 1893</div>
+        <div class="btitle">The House in the Cerulean Sea</div>
+        <div class="bauthor">TJ Klune · audiobook</div>
+        <div class="prosecap">Review prose</div>
+        <div class="prose">A <em>warm hug</em> of a book — the kind you finish slowly on purpose, just to justify staying in it a little longer.</div>
+      </div>
+      <div class="card light">
+        <div class="tag">Light</div>
+        <div class="ptitle">Your Year in Books</div>
+        <div class="glyphs">fjgy &amp; The Adjective — 1893</div>
+        <div class="btitle">Piranesi</div>
+        <div class="bauthor">Susanna Clarke · print</div>
+        <div class="prosecap">Review prose</div>
+        <div class="prose">Strange and quiet and <em>enormous</em>. I keep thinking about the halls.</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
