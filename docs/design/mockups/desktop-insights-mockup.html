@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Reading Tracker — Desktop (Insights)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{ background:#cfc7c2; font-family:"Plus Jakarta Sans",sans-serif; color:#241c22; padding:26px 18px 60px; }
+  .head{max-width:1180px;margin:0 auto 18px;} .head h1{font-size:22px;} .head p{color:#6b5f66;font-size:14px;margin-top:2px;}
+
+  .window{ max-width:1180px; margin:0 auto; border-radius:16px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.4);
+    --surface:#241C26; --surface2:#2E2432; --muted:#B7A7B0; --track:#3A2F3F; --accent:#FF5FAB; --accent2:#FFA24D;
+    --line:rgba(255,255,255,.09); --shadow:0 2px 14px rgba(0,0,0,.3);
+    --c1:#F472B6;--c2:#FB923C;--c3:#A78BFA;--c4:#2DD4BF;--c5:#60A5FA;--c6:#A3E635;--c7:#FBBF24;--c8:#FB7185; }
+  .winbar{ height:34px; background:#120d15; display:flex; align-items:center; gap:8px; padding:0 14px; }
+  .winbar i{ width:12px;height:12px;border-radius:50%; } .winbar .r{background:#ff5f57}.winbar .y{background:#febc2e}.winbar .g{background:#28c840}
+  .winbar .url{ margin-left:16px; font-size:12px; color:#8a7f88; background:#221b26; border-radius:7px; padding:5px 14px; }
+
+  .app{ display:flex; background:#18131B; color:#F3E9EE; min-height:760px; }
+
+  /* sidebar */
+  .sidebar{ width:236px; flex:none; background:#140F17; border-right:1px solid var(--line); display:flex; flex-direction:column; padding:20px 14px; }
+  .brand{ display:flex; align-items:center; gap:10px; padding:4px 8px 20px; }
+  .brand .logo{ width:32px;height:32px;border-radius:9px;background:linear-gradient(140deg,#FF7A2F,#E11584); display:flex;align-items:center;justify-content:center; }
+  .brand .logo svg{ width:18px;height:18px; }
+  .brand .nm{ font-family:"Lora",serif; font-weight:600; font-size:18px; }
+  .navlist{ display:flex; flex-direction:column; gap:3px; }
+  .navlist a{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:11px; text-decoration:none; color:#F3E9EE; opacity:.62; font-size:14px; font-weight:600; }
+  .navlist a svg{ width:20px;height:20px; }
+  .navlist a:hover{ opacity:.85; background:rgba(255,255,255,.04); }
+  .navlist a.on{ opacity:1; background:rgba(255,95,171,.14); color:#FF8FC5; }
+  .spacer{ flex:1; }
+  .account{ display:flex; align-items:center; gap:10px; padding:10px 8px; border-radius:12px; cursor:pointer; }
+  .account:hover{ background:rgba(255,255,255,.04); }
+  .account .av{ width:34px;height:34px;border-radius:50%;background:linear-gradient(140deg,#FF7A2F,#E11584);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;flex:none; }
+  .account .who{ flex:1; } .account .who .n{ font-size:13px;font-weight:700; } .account .who .s{ font-size:11px;color:var(--muted); }
+  .account svg{ width:16px;height:16px;color:var(--muted); }
+
+  /* main */
+  .main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .topbar{ display:flex; align-items:center; gap:16px; padding:20px 30px; border-bottom:1px solid var(--line); }
+  .topbar h2{ font-family:"Lora",serif; font-weight:600; font-size:26px; flex:1; }
+  .seg{ display:inline-flex; background:var(--surface); border-radius:99px; padding:3px; font-size:12.5px; font-weight:700; }
+  .seg span{ padding:7px 15px; border-radius:99px; opacity:.6; cursor:pointer; }
+  .seg span.on{ background:var(--accent); color:#23111B; opacity:1; }
+  .search{ width:230px; background:var(--surface); border-radius:11px; padding:9px 13px; display:flex; align-items:center; gap:9px; color:var(--muted); font-size:13px; }
+  .search svg{ width:16px;height:16px; }
+
+  .content{ padding:24px 30px 34px; overflow-y:auto; }
+
+  .statgrid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:18px; }
+  .stat{ background:var(--surface); border-radius:18px; padding:18px 18px; box-shadow:var(--shadow); }
+  .stat .n{ font-weight:800; font-size:32px; font-variant-numeric:tabular-nums; line-height:1; }
+  .stat .l{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-top:8px; }
+  .stat .d{ font-size:12px; font-weight:700; color:#4ade80; margin-top:8px; }
+
+  .bento{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .card{ background:var(--surface); border-radius:18px; padding:18px; box-shadow:var(--shadow); }
+  .card.w2{ grid-column:span 2; } .card.w3{ grid-column:span 3; }
+  .ctitle{ font-family:"Lora",serif; font-weight:600; font-size:17px; margin-bottom:14px; }
+  .ctitle small{ font-family:"Plus Jakarta Sans"; font-weight:600; font-size:11px; color:var(--muted); float:right; margin-top:5px; }
+
+  .trend{ width:100%; height:150px; display:block; }
+  .xlabels{ display:flex; justify-content:space-between; font-size:10px; color:var(--muted); margin-top:6px; }
+
+  .donutrow{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .donut{ width:130px;height:130px;border-radius:50%; position:relative;
+    background:conic-gradient(var(--c1) 0 24%,var(--c2) 24% 42%,var(--c3) 42% 58%,var(--c4) 58% 72%,var(--c5) 72% 84%,var(--c6) 84% 94%,var(--c7) 94% 100%); }
+  .donut::after{ content:""; position:absolute; inset:28px; border-radius:50%; background:var(--surface); }
+  .donut .mid{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .donut .mid b{ font-size:22px; } .donut .mid span{ font-size:10px; color:var(--muted); }
+  .legend{ width:100%; display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; font-size:12px; }
+  .legend span{ display:flex; align-items:center; gap:7px; } .dot{ width:9px;height:9px;border-radius:3px;flex:none; }
+  .legend b{ margin-left:auto; font-variant-numeric:tabular-nums; opacity:.6; font-weight:600; }
+
+  .hb{ display:flex; align-items:center; gap:10px; margin-bottom:11px; font-size:12.5px; }
+  .hb .name{ width:88px; flex:none; } .hb .track{ flex:1; height:9px; border-radius:99px; background:var(--track); overflow:hidden; }
+  .hb .track>i{ display:block; height:100%; border-radius:99px; background:var(--accent); }
+  .hb .v{ width:34px; text-align:right; font-variant-numeric:tabular-nums; color:var(--muted); font-weight:600; }
+
+  .split{ display:flex; height:14px; border-radius:99px; overflow:hidden; gap:3px; margin-bottom:14px; }
+  .split>div{ height:100%; border-radius:4px; }
+
+  .divrow{ display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:12.5px; }
+  .divrow .name{ width:130px; flex:none; } .divrow .track{ flex:1;height:9px;border-radius:99px;background:var(--track);overflow:hidden; }
+  .divrow .track>i{ display:block;height:100%;border-radius:99px; }
+  .divrow .v{ width:34px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums; }
+
+  .heat{ display:grid; grid-template-columns:repeat(30,1fr); gap:5px; }
+  .heat i{ aspect-ratio:1; border-radius:3px; background:var(--track); }
+
+  .caption{text-align:center;font-size:12px;opacity:.6;margin-top:16px;font-weight:600;max-width:1180px;margin-left:auto;margin-right:auto;}
+</style>
+</head>
+<body>
+<div class="head"><h1>Desktop — Insights (wide)</h1><p>Bottom nav → sidebar · stacked cards → bento grid · account moves to the sidebar footer, search to the top bar</p></div>
+
+<div class="window">
+  <div class="winbar"><i class="r"></i><i class="y"></i><i class="g"></i><span class="url">reading.local / insights</span></div>
+  <div class="app">
+
+    <!-- sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v16H4z"/><path d="M10 4h6v16h-6z"/><path d="M16 4l4 .8-3 15.5-4-.8"/></svg></div>
+        <div class="nm">Reading</div>
+      </div>
+      <nav class="navlist">
+        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg>Home</a>
+        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v16H4z"/><path d="M10 4h6v16h-6z"/><path d="M16 4l4 .8-3 15.5-4-.8"/></svg>Library</a>
+        <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>Insights</a>
+        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/></svg>Challenges</a>
+      </nav>
+      <div class="spacer"></div>
+      <div class="account">
+        <div class="av">S</div>
+        <div class="who"><div class="n">Samantha</div><div class="s">Account &amp; settings</div></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </div>
+    </aside>
+
+    <!-- main -->
+    <div class="main">
+      <div class="topbar">
+        <h2>Insights</h2>
+        <div class="seg"><span class="on">This year</span><span>2025</span><span>All time</span></div>
+        <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg> Search…</div>
+      </div>
+
+      <div class="content">
+        <div class="statgrid">
+          <div class="stat"><div class="n">37</div><div class="l">Books</div><div class="d">▲ 6 vs 2025</div></div>
+          <div class="stat"><div class="n">11,240</div><div class="l">Pages</div><div class="d">▲ 12%</div></div>
+          <div class="stat"><div class="n">214</div><div class="l">Hours</div><div class="d">▲ 30</div></div>
+          <div class="stat"><div class="n">4.1</div><div class="l">Avg rating</div><div class="d" style="color:var(--muted)">— steady</div></div>
+        </div>
+
+        <div class="bento">
+          <div class="card w2">
+            <div class="ctitle">Pages read <small>per month</small></div>
+            <svg class="trend" viewBox="0 0 600 150" preserveAspectRatio="none">
+              <defs><linearGradient id="gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF5FAB" stop-opacity=".42"/><stop offset="1" stop-color="#FF5FAB" stop-opacity="0"/></linearGradient></defs>
+              <path d="M0,110 L55,84 L109,96 L164,58 L218,72 L273,42 L327,62 L382,30 L436,52 L491,24 L545,46 L600,28 L600,150 L0,150 Z" fill="url(#gd)"/>
+              <path d="M0,110 L55,84 L109,96 L164,58 L218,72 L273,42 L327,62 L382,30 L436,52 L491,24 L545,46 L600,28" fill="none" stroke="#FF5FAB" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+            <div class="xlabels"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span></div>
+          </div>
+
+          <div class="card">
+            <div class="ctitle">Genres <small>7</small></div>
+            <div class="donutrow">
+              <div class="donut"><div class="mid"><b>37</b><span>books</span></div></div>
+              <div class="legend">
+                <span><i class="dot" style="background:var(--c1)"></i>Fantasy<b>9</b></span>
+                <span><i class="dot" style="background:var(--c2)"></i>Literary<b>7</b></span>
+                <span><i class="dot" style="background:var(--c3)"></i>Romance<b>6</b></span>
+                <span><i class="dot" style="background:var(--c4)"></i>Sci-fi<b>5</b></span>
+                <span><i class="dot" style="background:var(--c5)"></i>Mystery<b>4</b></span>
+                <span><i class="dot" style="background:var(--c6)"></i>Nonfic<b>4</b></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="ctitle">Top moods</div>
+            <div class="hb"><span class="name">Adventurous</span><span class="track"><i style="width:88%"></i></span><span class="v">88%</span></div>
+            <div class="hb"><span class="name">Emotional</span><span class="track"><i style="width:71%"></i></span><span class="v">71%</span></div>
+            <div class="hb"><span class="name">Reflective</span><span class="track"><i style="width:64%"></i></span><span class="v">64%</span></div>
+            <div class="hb"><span class="name">Mysterious</span><span class="track"><i style="width:52%"></i></span><span class="v">52%</span></div>
+            <div class="hb"><span class="name">Hopeful</span><span class="track"><i style="width:40%"></i></span><span class="v">40%</span></div>
+          </div>
+
+          <div class="card">
+            <div class="ctitle">Format</div>
+            <div class="split"><div style="background:var(--c3);width:46%"></div><div style="background:var(--c4);width:34%"></div><div style="background:var(--c7);width:20%"></div></div>
+            <div class="legend" style="grid-template-columns:1fr 1fr 1fr">
+              <span><i class="dot" style="background:var(--c3)"></i>Audio<b>46%</b></span>
+              <span><i class="dot" style="background:var(--c4)"></i>Ebook<b>34%</b></span>
+              <span><i class="dot" style="background:var(--c7)"></i>Print<b>20%</b></span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="ctitle">Diversity <small>private tags</small></div>
+            <div class="divrow"><span class="name">Women authors</span><span class="track"><i style="width:62%;background:var(--c1)"></i></span><span class="v">62%</span></div>
+            <div class="divrow"><span class="name">Authors of color</span><span class="track"><i style="width:31%;background:var(--c3)"></i></span><span class="v">31%</span></div>
+            <div class="divrow"><span class="name">In translation</span><span class="track"><i style="width:18%;background:var(--c5)"></i></span><span class="v">18%</span></div>
+            <div class="divrow"><span class="name">Countries</span><span class="track"><i style="width:47%;background:var(--c4)"></i></span><span class="v">14</span></div>
+          </div>
+
+          <div class="card w3">
+            <div class="ctitle">Reading activity <small>this year</small></div>
+            <div class="heat" id="heat"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<p class="caption">Same four destinations as the phone's bottom nav — now a persistent sidebar. Insights' stacked phone cards reflow into a bento grid; wide charts (trend, heatmap) span columns.</p>
+
+<script>
+  const el=document.getElementById('heat');
+  for(let i=0;i<30*7;i++){ const c=document.createElement('i'); const r=Math.random();
+    const lvl=r<0.3?0:r<0.52?0.25:r<0.74?0.5:r<0.9?0.75:1;
+    if(lvl>0){ c.style.background='#FF5FAB'; c.style.opacity=0.2+lvl*0.8; } el.appendChild(c); }
+</script>
+</body>
+</html>

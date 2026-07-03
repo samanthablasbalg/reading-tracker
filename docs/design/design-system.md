@@ -173,20 +173,70 @@ Lora 600 · prose 15–16px Lora 400 · stat number 26–30px sans 800 · labels
   **collapsible** (collapsed = name + count + a peek of covers) so many months stay tidy. Below the
   lanes sits **All to-read** — the full pile with search, sort, and filter chips (Owned / Format /
   Genre / Tag) and per-book "＋ to a lane." Default: current/near month expanded, others collapsed.
+- **Desktop layout** —
+  [`mockups/desktop-insights-mockup.html`](./mockups/desktop-insights-mockup.html). Proof of
+  "genuinely both": the same four destinations move from a **bottom bar** to a **persistent left
+  sidebar** (account → sidebar footer, search → top bar), and single-column phone content **reflows
+  into a bento grid** (wide charts span columns; the heatmap shows a full year). One component set,
+  adapted by shell + grid — standard Angular Material responsive layout, not a second app.
 
-## 8. Accessibility (non-negotiables)
+## 8. Search & adding books
+
+Two distinct searches, kept separate (conflating them was the MVP's jankiest part):
+
+- **Global book search** — find or add _any_ book, across your library **+** the app catalog **+**
+  Google Books. One consistent home (top bar on phone, top-right on desktop); same behavior on every
+  screen. Present everywhere for consistency; collapses to an icon where it isn't the point.
+- **Local list filter** — narrows _this_ list; appears only on list screens (the TBR pile, a shelf),
+  scoped and labeled ("Search your TBR…"). It filters, it doesn't navigate.
+
+A result is in one of **four states**, and the state drives what its actions mean:
+
+| State                        | Row action                         | "Open" (tap the row)                          |
+| ---------------------------- | ---------------------------------- | --------------------------------------------- |
+| 1 · in **my** library        | — (status shown)                   | real Book page                                |
+| 2 · in the **app**, not mine | **Add** (to my library, w/ status) | real Book page                                |
+| 3 · **not** in the app       | **Import** (into the catalog)      | **provisional** Book page (Google, read-only) |
+| 4 · not in Google            | **Add manually** (form)            | —                                             |
+
+**Implement now — separated import / add**
+([`mockups/book-search-separated-mockup.html`](./mockups/book-search-separated-mockup.html)):
+importing a book into the shared catalog and adding it to _your_ library are **two deliberate acts**
+— with two users curating one catalog, "import but don't personally add it" is a real intent. Google
+rows say **Import**; already-in-app rows say **Add**. The provisional page's CTA is **Import**;
+after import, a sheet offers two first-class exits — **Add to my library** (with a status, default
+"Want to read") or **just import**. Grounding: per [ADR-0002] "my library" is a _derived_
+relationship, so "add to my library" = creating that relationship; per [ADR-0015] the provisional
+page renders from the search payload (no extra call) and import re-fetches by id, cache-served (~1
+external call for the whole flow).
+
+**Documented future alternative — combined one-tap add**
+([`mockups/book-search-states-mockup.html`](./mockups/book-search-states-mockup.html)): if the
+double-tap grates, collapse import + add into a single atomic **Add** (import-if-needed → relate →
+set status). Reversible either direction — it's a UI choice with no migration.
+
+**Landmines to resolve when the import path is built** (flagged, not designed here):
+
+- **Source dedup** — search must reconcile Google hits against existing `books` rows (by
+  `google_books_id` / ISBN) so a state-2 book never _also_ appears as a state-3 result, and adding
+  it can't mint a duplicate record.
+- **Work identity on import** — different Google _volumes_ of one work have different ids; naive
+  import creates duplicate `books` rows (ADR-0009 / ADR-0013 hold the identity machinery).
+
+## 9. Accessibility (non-negotiables)
 
 - Text contrast ≥ 4.5:1 (body) in **both** themes; verify dark independently.
 - Color is never the only signal — pair with label, number, icon, or pattern.
 - Touch targets ≥ 44px; visible focus states; respect `prefers-reduced-motion`.
 - Charts get a text/table alternative and a screen-reader summary of the key insight.
 
-## 9. Parked — captured, not yet designed
+## 10. Parked — captured, not yet designed
 
 Structure accommodates these; they get designed when pulled.
 
-- **Screens not yet drawn:** desktop/sidebar layout, Challenges, Author page (with privately-tagged
-  demographics).
+- **Screens not yet drawn:** Challenges, Author page (with privately-tagged demographics).
+- **Admin / import surface** — a future place that pulls "import to the catalog" out of the main
+  app, so day-to-day there's barely any in/out-of-app affordance.
 - **Streak mechanics** — the feature is placed on Home; the rules are undesigned.
 - **Blog** — Substack migration, possibly owner-only; lands in the reserved 5th nav slot, with
   cross-linking to reviews/journal. Serif prose already has a home.
