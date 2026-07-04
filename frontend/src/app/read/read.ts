@@ -88,6 +88,13 @@ import { ReviewSheetComponent, ReviewSheetData } from '../review-sheet/review-sh
             >
               {{ engagement.review ? 'Edit review' : 'Add review' }}
             </button>
+            <button
+              mat-icon-button
+              [attr.aria-label]="'Delete ' + engagement.book.title"
+              (click)="deleteEngagement(engagement)"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
           </span>
         </mat-list-item>
         @if (!$last) {
@@ -134,5 +141,14 @@ export class ReadComponent {
     } else {
       this.dialog.open(ReviewSheetComponent, { data });
     }
+  }
+
+  protected deleteEngagement(engagement: Engagement): void {
+    if (!confirm("Delete this engagement? This can't be undone.")) {
+      return;
+    }
+    this.engagementService.deleteEngagement(engagement.id).subscribe(() => {
+      this.engagementService.reloadEngagements();
+    });
   }
 }
