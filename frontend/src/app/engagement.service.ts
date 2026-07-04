@@ -141,6 +141,10 @@ export class EngagementService {
     );
   }
 
+  deleteProgressLog(engagementId: string, logId: string): Observable<void> {
+    return this.http.delete<void>(`/api/engagements/${engagementId}/progress-logs/${logId}`);
+  }
+
   patchEngagementDates(
     id: string,
     patch: { started_on?: string; finished_on?: string },

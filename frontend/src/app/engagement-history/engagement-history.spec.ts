@@ -338,6 +338,72 @@ describe('EngagementHistoryComponent', () => {
     });
   });
 
+  describe('log deletion', () => {
+    it('only the most recent log row has a delete button', () => {
+      const fixture = TestBed.createComponent(EngagementHistoryComponent);
+      flushLoad();
+      fixture.detectChanges();
+
+      const rows = fixture.nativeElement.querySelectorAll('.log-row');
+      expect(rows[0].querySelector('button[aria-label="Delete progress log"]')).toBeNull();
+      expect(rows[1].querySelector('button[aria-label="Delete progress log"]')).toBeTruthy();
+    });
+
+    it('declining the confirm dialog sends no request', () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(false);
+      const fixture = TestBed.createComponent(EngagementHistoryComponent);
+      flushLoad();
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Delete progress log"]').click();
+      fixture.detectChanges();
+
+      httpTesting.expectNone('/api/engagements/eng-1/progress-logs/log-2');
+    });
+
+    it('confirming calls DELETE on the log then refreshes', () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      const fixture = TestBed.createComponent(EngagementHistoryComponent);
+      flushLoad();
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Delete progress log"]').click();
+      fixture.detectChanges();
+
+      const req = httpTesting.expectOne('/api/engagements/eng-1/progress-logs/log-2');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null, { status: 204, statusText: 'No Content' });
+
+      flushLoad(mockEngagement, [mockLogs[0]]);
+      fixture.detectChanges();
+
+      const rows = fixture.nativeElement.querySelectorAll('.log-row');
+      expect(rows.length).toBe(1);
+    });
+
+    it('shows a 409 error when deletion is rejected', () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      const fixture = TestBed.createComponent(EngagementHistoryComponent);
+      flushLoad();
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Delete progress log"]').click();
+      fixture.detectChanges();
+
+      httpTesting
+        .expectOne('/api/engagements/eng-1/progress-logs/log-2')
+        .flush(
+          { detail: 'Only the most recent progress log can be deleted.' },
+          { status: 409, statusText: 'Conflict' },
+        );
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.field-error').textContent).toContain(
+        'Only the most recent progress log can be deleted.',
+      );
+    });
+  });
+
   describe('log page editing', () => {
     it('most recent log row has an editable range button', () => {
       const fixture = TestBed.createComponent(EngagementHistoryComponent);
