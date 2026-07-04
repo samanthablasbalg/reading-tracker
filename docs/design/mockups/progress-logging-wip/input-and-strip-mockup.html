@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Reading Tracker — one-container From→To (page/audio parity) + two-row strip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{ background:#cfc7c2; font-family:"Plus Jakarta Sans",sans-serif; color:#241c22; padding:30px 16px 60px; }
+  .head{max-width:1320px;margin:0 auto 22px;} .head h1{font-size:22px;} .head p{color:#6b5f66;font-size:14px;margin-top:2px;max-width:960px;}
+  .stage{ display:flex; gap:28px; justify-content:center; flex-wrap:wrap; }
+  .labeled{ text-align:center; } .labeled > .cap{ font-size:12px; font-weight:700; color:#4a4046; margin-bottom:10px; max-width:388px; }
+  .labeled > .cap b{ color:#c02a7a; }
+
+  .phone{ width:388px; border-radius:44px; padding:14px; background:#0e0a10; box-shadow:0 20px 50px rgba(0,0,0,.5); }
+  .screen{ border-radius:32px; overflow:hidden; height:812px; display:flex; flex-direction:column; position:relative;
+    background:#18131B; color:#F3E9EE;
+    --surface:#241C26; --surface2:#2E2432; --muted:#B7A7B0; --track:#3A2F3F; --accent:#FF5FAB; --accent2:#FFA24D;
+    --line:rgba(255,255,255,.09); --blue:#9AB4E6; --covered:#7a6374; }
+  .bgpeek{ position:absolute; inset:0; padding:56px 20px; opacity:.16; } .bgpeek .h{ font-family:"Lora",serif; font-size:26px; }
+  .scrim{ position:absolute; inset:0; background:rgba(0,0,0,.55); }
+
+  .sheet{ position:absolute; left:0; right:0; bottom:0; background:var(--surface); border-radius:28px 28px 0 0; padding:8px 20px 24px; box-shadow:0 -14px 44px rgba(0,0,0,.5); }
+  .grab{ width:38px;height:4px;border-radius:99px;background:var(--track);margin:8px auto 16px; }
+  .bookhead{ display:flex; align-items:center; gap:13px; margin-bottom:18px; }
+  .cv{ border-radius:9px; box-shadow:0 3px 10px rgba(0,0,0,.4); flex:none; }
+  .bookhead .cv{ width:44px;height:66px; }
+  .bookhead .t{ font-family:"Lora",serif; font-weight:600; font-size:18px; line-height:1.15; }
+  .bookhead .a{ font-size:12.5px; color:var(--muted); margin-top:2px; }
+
+  .fmtswitch{ display:flex; gap:9px; margin-bottom:18px; }
+  .fmtpill{ flex:1; background:var(--surface2); border-radius:14px; padding:10px 12px; display:flex; flex-direction:column; gap:2px; border:1.5px solid transparent; }
+  .fmtpill.on{ border-color:var(--accent); background:rgba(255,95,171,.1); }
+  .fmtpill .top{ display:flex; align-items:center; gap:6px; font-size:13px; font-weight:800; } .fmtpill .top svg{ width:14px;height:14px; }
+  .fmtpill.on .top{ color:#FF8FC5; }
+  .fmtpill .sub{ font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+
+  /* ---- session header + unit toggle ---- */
+  .sesshead{ display:flex; align-items:center; margin-bottom:11px; }
+  .sesshead .lbl{ font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .unit{ margin-left:auto; display:flex; background:var(--surface2); border-radius:99px; padding:3px; }
+  .unit span{ font-size:11px; font-weight:800; padding:5px 12px; border-radius:99px; color:var(--muted); }
+  .unit span.on{ background:var(--accent); color:#23111B; }
+
+  /* ============ ONE-CONTAINER FROM → TO ============ */
+  .rangebox{ display:flex; align-items:center; gap:14px; background:var(--surface2); border-radius:16px; padding:15px 18px; }
+  .rb-col{ display:flex; flex-direction:column; gap:5px; }
+  .rb-lbl{ font-size:9.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .rb-from .val{ font-size:21px; font-weight:800; color:var(--muted); font-variant-numeric:tabular-nums;
+    border-bottom:2px dotted rgba(183,167,176,.55); padding-bottom:3px; width:max-content; }
+  .rb-from.edited .rb-lbl{ color:var(--accent2); }
+  .rb-from.edited .val{ color:#FF8FC5; border-bottom-color:rgba(255,95,171,.7); }
+  .rb-arrow{ color:var(--muted); align-self:flex-end; padding-bottom:8px; } .rb-arrow svg{ width:19px;height:19px; }
+  .rb-to .val{ font-size:34px; font-weight:800; color:#F3E9EE; font-variant-numeric:tabular-nums;
+    border-bottom:2.5px solid var(--accent); padding-bottom:2px; line-height:1; width:max-content; }
+  .rb-to .val.ph{ color:#5b4d59; border-bottom-color:var(--track); }
+  .rb-of{ margin-left:auto; align-self:flex-end; font-size:13px; color:var(--muted); font-weight:700; padding-bottom:6px; font-variant-numeric:tabular-nums; }
+
+  .hint{ font-size:11.5px; color:var(--muted); margin:10px 4px 0; line-height:1.4; }
+  .hint b{ color:#E4D8DE; }
+  .rereadlink{ font-size:11.5px; color:var(--muted); margin:10px 4px 0; }
+  .rereadlink u{ text-decoration-style:dotted; text-underline-offset:3px; }
+
+  /* ============ TWO-ROW STRIP ============ */
+  .strip{ margin-top:18px; }
+  .striprow{ margin-bottom:12px; }
+  .striprow:last-child{ margin-bottom:0; }
+  .srhead{ display:flex; align-items:baseline; margin-bottom:7px; }
+  .srhead .k{ font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .srhead .v{ margin-left:auto; font-size:13px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .srhead .v.pct{ color:#F3E9EE; } .srhead .v.hold{ color:var(--muted); font-weight:700; }
+  .srhead .v.new{ color:#FF8FC5; } .srhead .v.re{ color:var(--accent2); }
+  /* completion row */
+  .ctrack{ height:10px; border-radius:99px; background:var(--track); position:relative; overflow:hidden; }
+  .cfill{ position:absolute; left:0; top:0; bottom:0; border-radius:99px; background:var(--accent); }
+  /* session row: same scale, segment sits UNDER where you were */
+  .strack{ height:8px; border-radius:99px; background:rgba(255,255,255,.04); position:relative; }
+  .sseg{ position:absolute; top:0; bottom:0; border-radius:99px; }
+  .sseg.new{ background:var(--accent); }
+  .sseg.re{ background:var(--accent2); }
+  .sseg.tick{ box-shadow:0 0 0 2px var(--surface) ; }
+  .caretlbl{ position:absolute; top:12px; font-size:10px; font-weight:700; color:var(--muted); white-space:nowrap; transform:translateX(-50%); }
+
+  .note .add{ display:flex; align-items:center; gap:9px; color:var(--muted); font-size:13.5px; font-weight:700; padding:6px 2px; margin-top:16px; } .note .add svg{ width:17px;height:17px; }
+  .daterow{ display:flex; align-items:center; gap:9px; margin-top:16px; }
+  .dchip{ font-size:12.5px; font-weight:700; padding:8px 14px; border-radius:99px; background:var(--surface2); color:var(--muted); }
+  .dchip.on{ background:rgba(255,95,171,.16); color:#FF8FC5; }
+  .dcal{ margin-left:auto; width:36px;height:36px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;color:var(--muted); } .dcal svg{ width:17px;height:17px; }
+  .actions{ display:flex; flex-direction:column; gap:10px; margin-top:18px; }
+  .save{ border:none; border-radius:14px; padding:15px; font-weight:800; font-size:15px; background:var(--accent); color:#23111B; }
+  .save.off{ background:var(--surface2); color:#5b4d59; }
+  .finish{ border:none; background:none; color:var(--muted); font-weight:700; font-size:13.5px; padding:4px; }
+
+  .foot{ max-width:1320px; margin:22px auto 0; text-align:center; color:#6b5f66; font-size:12.5px; line-height:1.55; }
+  .foot b{ color:#4a4046; }
+</style>
+</head>
+<body>
+<div class="head">
+  <h1>One container · page/audio parity · two-row strip</h1>
+  <p><b>FROM → TO·NOW</b> live in a single box (your liked design), now built to hold audio too — seconds dropped, so <code>3:40 → 4:15 of 7:10</code> is the same shape as <code>180 → 214 of 560</code>. From is editable via a <b>dotted underline</b> (no pencil); when you change it, it just <b>turns pink</b> — no "· Edited" bumping the layout. The strip is now <b>two aligned rows</b>: total on top, this-session below.</p>
+</div>
+<div class="stage">
+
+  <!-- ===== PHONE 1: AUDIO, empty To — parity + paper-cut ===== -->
+  <div class="labeled">
+    <div class="cap">1 · <b>Audio fits now.</b> Same container as pages; From shows 3:40 so the box is never a mystery blank</div>
+    <div class="phone"><div class="screen">
+      <div class="bgpeek"><div class="h">Currently reading</div></div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="bookhead">
+          <div class="cv" style="width:44px;height:66px;background:linear-gradient(150deg,#6a4bb0,#241033)"></div>
+          <div><div class="t">The Fifth Season</div><div class="a">N. K. Jemisin</div></div>
+        </div>
+
+        <div class="sesshead"><span class="lbl">This session · Audio</span>
+          <div class="unit"><span class="on">Time</span><span>%</span></div></div>
+        <div class="rangebox">
+          <div class="rb-col rb-from"><div class="rb-lbl">From</div><div class="val">3:40</div></div>
+          <div class="rb-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+          <div class="rb-col rb-to"><div class="rb-lbl">To · Now</div><div class="val ph">–:––</div></div>
+          <div class="rb-of">of 7:10</div>
+        </div>
+        <div class="hint">You last logged <b>3:40</b> — tap <b>Now</b> to enter where you are.</div>
+
+        <div class="strip">
+          <div class="striprow">
+            <div class="srhead"><span class="k">Completion</span><span class="v pct">40%</span></div>
+            <div class="ctrack"><div class="cfill" style="width:40%"></div></div>
+          </div>
+          <div class="striprow">
+            <div class="srhead"><span class="k">This session</span><span class="v hold">—</span></div>
+            <div class="strack"></div>
+          </div>
+        </div>
+
+        <div class="note"><div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18 10l-4-4L4 16z"/></svg>Add a note</div></div>
+        <div class="daterow"><span class="dchip on">Today</span><span class="dchip">Yesterday</span><div class="dcal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg></div></div>
+        <div class="actions"><button class="save off">Save</button><button class="finish">I finished the book</button></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ===== PHONE 2: PRINT linear — new ground ===== -->
+  <div class="labeled">
+    <div class="cap">2 · <b>The 90% case.</b> New ground: completion grows, session segment is pink under the new stretch</div>
+    <div class="phone"><div class="screen">
+      <div class="bgpeek"><div class="h">Currently reading</div></div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="bookhead">
+          <div class="cv" style="width:44px;height:66px;background:linear-gradient(150deg,#b7b7b7,#6d6d6d)"></div>
+          <div><div class="t">Babel</div><div class="a">R. F. Kuang</div></div>
+        </div>
+
+        <div class="sesshead"><span class="lbl">This session · Print</span>
+          <div class="unit"><span class="on">Pages</span><span>%</span></div></div>
+        <div class="rangebox">
+          <div class="rb-col rb-from"><div class="rb-lbl">From</div><div class="val">180</div></div>
+          <div class="rb-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+          <div class="rb-col rb-to"><div class="rb-lbl">To · Now</div><div class="val">214</div></div>
+          <div class="rb-of">of 560</div>
+        </div>
+        <div class="rereadlink">Started before p.180? <u>Re-reading / jumped</u></div>
+
+        <div class="strip">
+          <div class="striprow">
+            <div class="srhead"><span class="k">Completion</span><span class="v pct">38% <span style="color:var(--muted);font-weight:700;">▲ from 32%</span></span></div>
+            <div class="ctrack"><div class="cfill" style="width:38%"></div></div>
+          </div>
+          <div class="striprow">
+            <div class="srhead"><span class="k">This session</span><span class="v new">+34 new pages</span></div>
+            <div class="strack"><div class="sseg new tick" style="left:32%;width:6%"></div></div>
+          </div>
+        </div>
+
+        <div class="note"><div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18 10l-4-4L4 16z"/></svg>Add a note</div></div>
+        <div class="daterow"><span class="dchip on">Today</span><span class="dchip">Yesterday</span><div class="dcal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg></div></div>
+        <div class="actions"><button class="save">Save</button><button class="finish">I finished the book</button></div>
+      </div>
+    </div></div>
+  </div>
+
+  <!-- ===== PHONE 3: MULTI-FORMAT re-read — edited From + re-coverage ===== -->
+  <div class="labeled">
+    <div class="cap">3 · <b>Re-reading (edited From, amber session).</b> Completion holds; the two rows never overlap</div>
+    <div class="phone"><div class="screen">
+      <div class="bgpeek"><div class="h">Currently reading</div></div>
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="bookhead">
+          <div class="cv" style="width:44px;height:66px;background:linear-gradient(150deg,#2f7d54,#111)"></div>
+          <div><div class="t">Green City Wars</div><div class="a">Adrian Tchaikovsky</div></div>
+        </div>
+        <div class="fmtswitch">
+          <div class="fmtpill"><div class="top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>Audio</div><div class="sub">last 3:40</div></div>
+          <div class="fmtpill on"><div class="top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z"/></svg>Print</div><div class="sub">last p. 52</div></div>
+        </div>
+
+        <div class="sesshead"><span class="lbl">This session · Print</span>
+          <div class="unit"><span class="on">Pages</span><span>%</span></div></div>
+        <div class="rangebox">
+          <div class="rb-col rb-from edited"><div class="rb-lbl">From</div><div class="val">24</div></div>
+          <div class="rb-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+          <div class="rb-col rb-to"><div class="rb-lbl">To · Now</div><div class="val">52</div></div>
+          <div class="rb-of">of ~380</div>
+        </div>
+        <div class="hint">You pulled <b>From</b> back to re-read chapter 2.</div>
+
+        <div class="strip">
+          <div class="striprow">
+            <div class="srhead"><span class="k">Completion</span><span class="v hold">40% · unchanged</span></div>
+            <div class="ctrack"><div class="cfill" style="width:40%"></div></div>
+          </div>
+          <div class="striprow">
+            <div class="srhead"><span class="k">This session</span><span class="v re">re-reading · +28 pp read</span></div>
+            <div class="strack"><div class="sseg re tick" style="left:6%;width:8%"></div></div>
+          </div>
+        </div>
+
+        <div class="note"><div class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18 10l-4-4L4 16z"/></svg>Add a note</div></div>
+        <div class="daterow"><span class="dchip on">Today</span><span class="dchip">Yesterday</span><div class="dcal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg></div></div>
+        <div class="actions"><button class="save">Save</button><button class="finish">I finished the book</button></div>
+      </div>
+    </div></div>
+  </div>
+
+</div>
+
+<div class="foot">
+  <b>The strip, decoded:</b> top row <b>Completion</b> is the only thing that shows your % — one fill, right edge = the number.
+  Bottom row <b>This session</b> sits on the same scale and marks just where you were this sitting: <b style="color:#c02a7a">pink = new ground</b> (phone 2, extends the total),
+  <b style="color:#b5701f">amber = re-reading</b> (phone 3, sits behind, total unchanged). No dot-vs-line guessing.
+</div>
+</body>
+</html>

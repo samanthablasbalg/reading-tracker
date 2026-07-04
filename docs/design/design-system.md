@@ -180,7 +180,56 @@ Lora 600 · prose 15–16px Lora 400 · stat number 26–30px sans 800 · labels
   into a bento grid** (wide charts span columns; the heatmap shows a full year). One component set,
   adapted by shell + grid — standard Angular Material responsive layout, not a second app.
 
-## 8. Search & adding books
+## 8. Progress logging
+
+The app's primary daily action. Logging happens in a **focused sheet** (`MatBottomSheet` on phone,
+`MatDialog` on web) launched from a Currently Reading row — never inline, never a separate page
+[ADR-0019]. One sheet hosts the whole act: a format-aware range input, the date, notes, live
+completion feedback, and Finish. Mockups:
+[`mockups/progress-logging-wip/input-and-strip-mockup.html`](./mockups/progress-logging-wip/input-and-strip-mockup.html)
+(the input) and
+[`add-format-via-menu-mockup.html`](./mockups/progress-logging-wip/add-format-via-menu-mockup.html)
+(going multi-format).
+
+**One input shape for every log.** Every log is a range **`From → To`** in a chosen format, in a
+single container: `From` and `To · Now` side by side with the total trailing — `180 → 214 of 560`.
+The same shape holds audio once seconds are dropped — `3:40 → 4:15 of 7:10` — so pages and audio
+have **parity**. `To · Now` carries the visual weight; it's the ~90% input. `From` is **always
+visible but subordinate**: its value is the reference (where you left off) — the fix to StoryGraph's
+blank-box-on- audio paper cut, and the answer to "did I already log this?" It's editable via a quiet
+**dotted underline** (no pencil); an edited `From` is signalled by **colour alone**, so the layout
+never shifts. Because `From` carries the reference, `To` can open empty.
+
+**From and Format collapse by default — so re-reads aren't a separate mode.** Two sub-controls
+modulate the range and both stay collapsed on a normal linear log: **From** pre-fills to your last
+spot _in that format_ and is only touched to re-read a section (pull it back), restart at 0, or fix
+a non-linear resume; **Format** is fixed and quiet on a single-format read. So linear log, re-cover,
+jump, and switch-format are one mechanism in different control states — not distinct screens.
+
+**Completion is a covered _set_, not a position.** A log is a tagged range whose `new_ground` is
+derived in the API [ADR-0007]; completion is the measure of the **union of covered intervals**, not
+a high-water mark. That is what lets a non-linear read (a comics omnibus read out of published
+order) climb correctly to 100% instead of sticking. The sheet shows **live new-vs-re-covered
+feedback** before Save — new ground advances the %, re-coverage holds it and counts as reading
+volume. _The visual form of that feedback bar is parked (see §11)._ The **unit** offered is the
+format's **native unit vs. percent** (pages/minutes, or % when a source lacks page counts) — not a
+pages↔minutes toggle.
+
+**Multi-format is a pull, never a push.** Nothing advertises multi-format on a single-format log.
+Reading a book in a second edition is entered deliberately from the card's **`⋯` menu** → an
+**edition picker** (pick from the book's editions — all three formats exist from add-time
+[ADR-0022]; "want a specific one?" → the book page; no edition creation in the modal). Only _after_
+binding does the sheet grow a **format switch**, for that engagement only. Each format keeps its own
+last spot; switching re-projects From, the unit, and the feedback onto the selected format.
+
+**Status changes split by their tie to a logging session.** **Finish** is session-bound ("I just
+read the last page"), so it lives in the sheet as the secondary action, and the finished book
+**lingers** on Currently Reading with a dismissible "rate & review?" until refresh — no forced
+review [ADR-0016]. **Pause / DNF / Undo-finish** are _not_ session-bound (you're setting the book
+down, not logging), so they live in the card `⋯` menu and the book page — never the sheet.
+**Read-again** on a finished book is a _new engagement_ [ADR-0005], so it lives on the book page.
+
+## 9. Search & adding books
 
 Two distinct searches, kept separate (conflating them was the MVP's jankiest part):
 
@@ -223,14 +272,14 @@ set status). Reversible either direction — it's a UI choice with no migration.
 - **Work identity on import** — different Google _volumes_ of one work have different ids; naive
   import creates duplicate `books` rows (ADR-0009 / ADR-0013 hold the identity machinery).
 
-## 9. Accessibility (non-negotiables)
+## 10. Accessibility (non-negotiables)
 
 - Text contrast ≥ 4.5:1 (body) in **both** themes; verify dark independently.
 - Color is never the only signal — pair with label, number, icon, or pattern.
 - Touch targets ≥ 44px; visible focus states; respect `prefers-reduced-motion`.
 - Charts get a text/table alternative and a screen-reader summary of the key insight.
 
-## 10. Parked — captured, not yet designed
+## 11. Parked — captured, not yet designed
 
 Structure accommodates these; they get designed when pulled.
 
