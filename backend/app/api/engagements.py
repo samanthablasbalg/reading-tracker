@@ -606,6 +606,18 @@ def get_engagement(
     return EngagementRead.model_validate(_fetch(engagement_id, db))
 
 
+@router.delete("/{engagement_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_engagement(
+    engagement_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> None:
+    engagement = db.get(Engagement, engagement_id)
+    if engagement is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    db.delete(engagement)
+    db.commit()
+
+
 @router.put("/{engagement_id}/review", response_model=EngagementRead)
 def upsert_review(
     engagement_id: uuid.UUID,
