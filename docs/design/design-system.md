@@ -134,7 +134,10 @@ Lora 600 · prose 15–16px Lora 400 · stat number 26–30px sans 800 · labels
 - **Rounded cards on a calm background** carry everything — this is what keeps a dense screen
   reading as "rich," not "loud." Radii ≈ cards 18–20px, buttons 12–14px, pills fully round.
 - **One primary CTA per screen** (filled pink); secondary actions are subordinate (ghost/surface).
-- **Progress bars** in primary pink on the `track` color; a `%` label alongside (tabular).
+- **Progress bars** in primary pink on the `track` color; a `%` label alongside (tabular). At **100%
+  (finished)** the fill becomes a **pink→gold gradient** and the label turns gold — the one small
+  reward flourish that marks a completed book, used consistently wherever a finished book's bar
+  appears.
 - **Streak** is the one place both brand colors go full-volume — a pink→orange gradient hero on Home
   (a reward should feel like one). Everything else stays calm around it.
 - **Icons:** one line-icon family, consistent ~2px stroke, **no emoji as icons** (mockups use
@@ -189,7 +192,9 @@ completion feedback, and Finish. Mockups:
 [`mockups/progress-logging-wip/input-and-strip-mockup.html`](./mockups/progress-logging-wip/input-and-strip-mockup.html)
 (the input) and
 [`add-format-via-menu-mockup.html`](./mockups/progress-logging-wip/add-format-via-menu-mockup.html)
-(going multi-format).
+(going multi-format), and
+[`finish-and-linger-card-mockup.html`](./mockups/progress-logging-wip/finish-and-linger-card-mockup.html)
+(the finished card).
 
 **One input shape for every log.** Every log is a range **`From → To`** in a chosen format, in a
 single container: `From` and `To · Now` side by side with the total trailing — `180 → 214 of 560`.
