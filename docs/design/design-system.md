@@ -142,7 +142,8 @@ Lora 600 · prose 15–16px Lora 400 · stat number 26–30px sans 800 · labels
   (a reward should feel like one). Everything else stays calm around it.
 - **Icons:** one line-icon family, consistent ~2px stroke, **no emoji as icons** (mockups use
   Lucide-style; Material Symbols is the natural Angular pairing). Format icons (audio/ebook/print)
-  recur on book rows.
+  recur on book rows. Format is always carried by **icon, never colour** — in the logging surfaces
+  colour is reserved for **new ground (pink) vs re-read (amber)**, so the two never collide.
 - **Adaptive nav:** bottom bar (phone) ⇄ sidebar (desktop), identical destinations; drill-in pages
   keep the nav and add a back affordance.
 
@@ -194,7 +195,13 @@ completion feedback, and Finish. Mockups:
 [`add-format-via-menu-mockup.html`](./mockups/progress-logging-wip/add-format-via-menu-mockup.html)
 (going multi-format), and
 [`finish-and-linger-card-mockup.html`](./mockups/progress-logging-wip/finish-and-linger-card-mockup.html)
-(the finished card).
+(the finished card). The reading log and its edit/delete:
+[`progress-logs-list-mockup.html`](./mockups/progress-logging-wip/progress-logs-list-mockup.html).
+The covered-set model in the hard cases:
+[`omnibus-out-of-order-log-mockup.html`](./mockups/progress-logging-wip/omnibus-out-of-order-log-mockup.html)
+(non-linear) and
+[`multiformat-alternating-log-mockup.html`](./mockups/progress-logging-wip/multiformat-alternating-log-mockup.html)
+(alternating formats).
 
 **One input shape for every log.** Every log is a range **`From → To`** in a chosen format, in a
 single container: `From` and `To · Now` side by side with the total trailing — `180 → 214 of 560`.
@@ -233,6 +240,14 @@ read the last page"), so it lives in the sheet as the secondary action, and the 
 review [ADR-0016]. **Pause / DNF / Undo-finish** are _not_ session-bound (you're setting the book
 down, not logging), so they live in the card `⋯` menu and the book page — never the sheet.
 **Read-again** on a finished book is a _new engagement_ [ADR-0005], so it lives on the book page.
+
+**Editing history is a timeline, and reflow is confirmed.** Every engagement has a **reading log** —
+its logged sessions, reverse-chron on a dated rail, from the card `⋯`. Each row is a session you
+entered (not the API's atomic splits); **new-vs-re-read shows as a per-row span bar** (pink extends
+the frontier, amber sits behind it), not a tag. Tapping a row **reopens the same log sheet** in edit
+mode (Delete lives there); a subordinate **"Add a past session"** opens it on a back-date. Because a
+back-dated or edited log can re-derive the logs that continued from it, any such save raises a
+**reflow confirmation** itemising the knock-on — never a silent recompute.
 
 ## 9. Search & adding books
 
