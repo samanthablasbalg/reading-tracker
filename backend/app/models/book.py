@@ -47,7 +47,9 @@ class Book(TimestampMixin, Base):
     def authors(self) -> list[Author]:
         return [ba.author for ba in self.book_authors]
 
-    editions: Mapped[list[Edition]] = relationship(back_populates="book")
+    editions: Mapped[list[Edition]] = relationship(
+        back_populates="book", cascade="all, delete-orphan"
+    )
     standalone_entries: Mapped[list[StandaloneEntry]] = relationship(
         back_populates="book"
     )
