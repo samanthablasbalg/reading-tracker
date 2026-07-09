@@ -54,4 +54,13 @@ export class EngagementHistoryPage {
   getLogEditProgressRangeButton(n: number): Locator {
     return this.getLogRow(n).getByRole('button', { name: 'Edit progress range' });
   }
+
+  getLogDeleteButton(n: number): Locator {
+    return this.getLogRow(n).getByRole('button', { name: 'Delete progress log' });
+  }
+
+  async deleteLog(n: number): Promise<void> {
+    this.page.once('dialog', (dialog) => dialog.accept());
+    await this.getLogDeleteButton(n).click();
+  }
 }

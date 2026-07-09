@@ -44,4 +44,22 @@ export class ReadPage {
   getReviewSummary(title: string): Locator {
     return this.page.getByLabel(`Review summary for ${title}`);
   }
+
+  /**
+   * Locates the "Delete" button for an engagement on the Read page.
+   * @param title - The book's title.
+   * @returns The delete button locator for that engagement.
+   */
+  getDeleteButton(title: string): Locator {
+    return this.page.getByRole('button', { name: `Delete ${title}`, exact: true });
+  }
+
+  /**
+   * Deletes an engagement from the Read page, accepting the native confirm dialog.
+   * @param title - The book's title.
+   */
+  async deleteEngagement(title: string): Promise<void> {
+    this.page.once('dialog', (dialog) => dialog.accept());
+    await this.getDeleteButton(title).click();
+  }
 }

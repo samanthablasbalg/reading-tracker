@@ -1,4 +1,5 @@
 import { expect, test } from '../../fixtures/api-client';
+import { CatalogPage } from '../../page-objects/catalog.page';
 import { ReadPage } from '../../page-objects/read.page';
 import { ReviewSheetPage } from '../../page-objects/review-sheet.page';
 
@@ -49,7 +50,9 @@ test('Saving a rating and review text persists them and shows a summary', async 
   });
 
   await test.step('Verify review summary and "Edit review" button are visible', async () => {
-    await expect(read.getReviewSummary('Normal People')).toHaveText('4.25 ★ · Quiet and devastating.');
+    await expect(read.getReviewSummary('Normal People')).toHaveText(
+      '4.25 ★ · Quiet and devastating.'
+    );
     await expect(read.getEditReviewButton('Normal People')).toBeVisible();
   });
 });
@@ -82,10 +85,7 @@ test('Saving a rating without review text shows only the star rating in the summ
   });
 });
 
-test('Editing an existing review replaces the displayed summary', async ({
-  page,
-  apiClient,
-}) => {
+test('Editing an existing review replaces the displayed summary', async ({ page, apiClient }) => {
   const read = new ReadPage(page);
   const sheet = new ReviewSheetPage(page);
 
@@ -112,6 +112,35 @@ test('Editing an existing review replaces the displayed summary', async ({
 
   await test.step('Verify summary updated to the new rating only', async () => {
     await expect(read.getReviewSummary('Babel')).toHaveText('5.00 ★');
+  });
+});
+
+test('Deleting a finished engagement with a review removes it and leaves the book in the catalog', async ({
+  page,
+  apiClient,
+}) => {
+  const read = new ReadPage(page);
+  const catalog = new CatalogPage(page);
+
+  await test.step('Seed a finished book with a review', async () => {
+    const bookId = await apiClient.createBook('Babel', 'R.F. Kuang');
+    const engId = await apiClient.markAsReading(bookId);
+    await apiClient.markAsFinished(engId);
+    await apiClient.upsertReview(engId, 3.0, 'Good but dense.');
+  });
+
+  await test.step('Delete the engagement from the Read page', async () => {
+    await read.goto();
+    await read.deleteEngagement('Babel');
+  });
+
+  await test.step('Verify it no longer appears under Read', async () => {
+    await expect(read.getFinishedEntry('Babel')).toHaveCount(0);
+  });
+
+  await test.step('Verify the book remains in the catalog', async () => {
+    await catalog.goto();
+    await expect(catalog.getMarkAsReadingButton('Babel')).toBeVisible();
   });
 });
 

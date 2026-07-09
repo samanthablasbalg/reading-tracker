@@ -82,10 +82,28 @@ export class CatalogPage {
   async markAsReading(
     title: string,
     format: PickableFormat = 'Print',
-    audioLengthHhmm?: string,
+    audioLengthHhmm?: string
   ): Promise<void> {
     await this.getMarkAsReadingButton(title).click();
     await new FormatPickSheetPage(this.page).pick(title, format, audioLengthHhmm);
+  }
+
+  /**
+   * Locates the "Delete" button for a book in the library list.
+   * @param title - The library book's title.
+   * @returns The delete button locator for that book.
+   */
+  getDeleteButton(title: string): Locator {
+    return this.page.getByRole('button', { name: `Delete ${title}`, exact: true });
+  }
+
+  /**
+   * Deletes a library book, accepting the native confirm dialog.
+   * @param title - The library book's title.
+   */
+  async deleteBook(title: string): Promise<void> {
+    this.page.once('dialog', (dialog) => dialog.accept());
+    await this.getDeleteButton(title).click();
   }
 
   /**
