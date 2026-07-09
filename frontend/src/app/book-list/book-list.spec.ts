@@ -135,4 +135,59 @@ describe('BookListComponent', () => {
       },
     });
   });
+
+  describe('book deletion', () => {
+    it('declining the confirm dialog sends no request', () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(false);
+      const fixture = TestBed.createComponent(BookListComponent);
+      httpTesting.expectOne('/api/books').flush([mockBook]);
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Delete Dune"]').click();
+      fixture.detectChanges();
+
+      httpTesting.expectNone('/api/books/book-1');
+    });
+
+    it('confirming calls DELETE then reloads the book list', () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      const fixture = TestBed.createComponent(BookListComponent);
+      httpTesting.expectOne('/api/books').flush([mockBook]);
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Delete Dune"]').click();
+      fixture.detectChanges();
+
+      const req = httpTesting.expectOne('/api/books/book-1');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null, { status: 204, statusText: 'No Content' });
+
+      httpTesting.expectOne('/api/books').flush([]);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelectorAll('mat-list-item')).toHaveLength(0);
+    });
+
+    it('shows a 409 error under the book row when deletion is rejected', () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      const fixture = TestBed.createComponent(BookListComponent);
+      httpTesting.expectOne('/api/books').flush([mockBook]);
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Delete Dune"]').click();
+      fixture.detectChanges();
+
+      httpTesting
+        .expectOne('/api/books/book-1')
+        .flush(
+          { detail: 'Remove its engagements first.' },
+          { status: 409, statusText: 'Conflict' },
+        );
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.field-error').textContent).toContain(
+        'Remove its engagements first.',
+      );
+    });
+  });
 });

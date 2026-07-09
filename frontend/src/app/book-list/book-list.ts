@@ -1,10 +1,11 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatDivider } from '@angular/material/divider';
+import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { Book, BookService } from '../book.service';
@@ -15,7 +16,15 @@ import {
 
 @Component({
   selector: 'app-book-list',
-  imports: [NgOptimizedImage, MatListModule, MatButtonModule, MatDivider],
+  imports: [NgOptimizedImage, MatListModule, MatButtonModule, MatIconModule, MatDivider],
+  styles: [
+    `
+      .field-error {
+        font-size: 0.75rem;
+        color: var(--mat-sys-error);
+      }
+    `,
+  ],
   template: `
     <mat-list>
       @for (book of books(); track book.id) {
@@ -31,14 +40,27 @@ import {
           }
           <span matListItemTitle>{{ book.title }}</span>
           <span matListItemLine>{{ book.authors.map((a) => a.name).join(', ') }}</span>
-          <button
-            mat-stroked-button
-            matListItemMeta
-            [attr.aria-label]="'Mark ' + book.title + ' as reading'"
-            (click)="openFormatPicker(book)"
-          >
-            Mark as reading
-          </button>
+          @if (deleteError()?.bookId === book.id) {
+            <span matListItemLine class="field-error" role="alert">{{
+              deleteError()?.message
+            }}</span>
+          }
+          <span matListItemMeta>
+            <button
+              mat-stroked-button
+              [attr.aria-label]="'Mark ' + book.title + ' as reading'"
+              (click)="openFormatPicker(book)"
+            >
+              Mark as reading
+            </button>
+            <button
+              mat-icon-button
+              [attr.aria-label]="'Delete ' + book.title"
+              (click)="deleteBook(book)"
+            >
+              <mat-icon>delete</mat-icon>
+            </button>
+          </span>
         </mat-list-item>
         @if (!$last) {
           <mat-divider />
@@ -54,6 +76,7 @@ export class BookListComponent {
   private readonly breakpointObserver = inject(BreakpointObserver);
 
   protected readonly books = toSignal(this.bookService.books$, { initialValue: [] });
+  protected readonly deleteError = signal<{ bookId: string; message: string } | null>(null);
 
   protected openFormatPicker(book: Book): void {
     const data: FormatPickSheetData = {
@@ -68,5 +91,22 @@ export class BookListComponent {
     } else {
       this.dialog.open(FormatPickSheetComponent, { data });
     }
+  }
+
+  protected deleteBook(book: Book): void {
+    if (!confirm(`Delete "${book.title}"? This can't be undone.`)) {
+      return;
+    }
+    this.deleteError.set(null);
+    this.bookService.deleteBook(book.id).subscribe({
+      next: () => {
+        this.bookService.reloadBooks();
+      },
+      error: (err) => {
+        if (err.status === 409) {
+          this.deleteError.set({ bookId: book.id, message: err.error?.detail ?? 'Conflict' });
+        }
+      },
+    });
   }
 }

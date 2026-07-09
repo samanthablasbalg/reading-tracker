@@ -55,4 +55,8 @@ export class BookService {
   importBook(googleBooksId: string): Observable<Book> {
     return this.http.post<Book>('/api/books/import', { google_books_id: googleBooksId });
   }
+
+  deleteBook(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/books/${id}`);
+  }
 }
