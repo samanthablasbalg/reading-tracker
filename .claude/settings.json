@@ -12,13 +12,12 @@
     ]
   },
   "hooks": {
-    "PostToolUse": [
+    "Stop": [
       {
-        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "f=$(jq -r \".tool_input.file_path // .tool_response.filePath // empty\"); [ -n \"$f\" ] || exit 0; PC=/Users/samanthablasbalg/repos/reading-tracker/backend/venv/bin/pre-commit; root=$(git -C \"$(dirname \"$f\")\" rev-parse --show-toplevel 2>/dev/null) || exit 0; cd \"$root\" || exit 0; \"$PC\" run --files \"$f\" >/dev/null 2>&1 || { out=$(\"$PC\" run --files \"$f\" 2>&1) || { printf \"%s\\n\" \"$out\" >&2; exit 2; }; }",
+            "command": "root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0\ncd \"$root\" || exit 0\nPC=\"$root/backend/venv/bin/pre-commit\"\n[ -x \"$PC\" ] || exit 0\nlist=$( { git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u )\n[ -n \"$list\" ] || exit 0\noldIFS=$IFS\nIFS=\"\n\"\nset --\nfor f in $list; do\n  set -- \"$@\" \"$f\"\ndone\nIFS=$oldIFS\n\"$PC\" run --files \"$@\" >/dev/null 2>&1 || { out=$(\"$PC\" run --files \"$@\" 2>&1) || { printf \"%s\\n\" \"$out\" >&2; exit 2; }; }",
             "statusMessage": "pre-commit"
           }
         ]

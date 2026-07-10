@@ -119,3 +119,40 @@ test('Editing the engagement start date persists and renders the new date', asyn
     await expect(history.startDateButton).toHaveText('Jan 1, 2025');
   });
 });
+
+test('Deleting the most recent log reverts progress to the prior log', async ({
+  page,
+  apiClient,
+}) => {
+  const currentlyReading = new CurrentlyReadingPage(page);
+  const history = new EngagementHistoryPage(page);
+
+  let engId = '';
+
+  await test.step('Seed a book logged to page 100 then page 200', async () => {
+    const bookId = await apiClient.createBook('Dune', 'Frank Herbert', 412);
+    engId = await apiClient.markAsReading(bookId);
+    await apiClient.logProgress(engId, 100);
+    await apiClient.logProgress(engId, 200);
+  });
+
+  await test.step('Navigate to the history page', async () => {
+    await history.goto(engId);
+  });
+
+  await test.step('Delete the most recent log', async () => {
+    await history.deleteLog(2);
+  });
+
+  await test.step('Verify only the prior log remains', async () => {
+    await expect(history.getLogRow(2)).toHaveCount(0);
+    await expect(history.getLogRow(1)).toBeVisible();
+  });
+
+  await test.step('Verify the progress bar reverted to the prior log', async () => {
+    await currentlyReading.goto();
+    await expect(currentlyReading.getProgressBar('Dune')).toHaveAccessibleName(
+      'Dune progress: 24%'
+    );
+  });
+});

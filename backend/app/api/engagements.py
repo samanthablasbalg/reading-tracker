@@ -569,12 +569,53 @@ def update_progress_log(
     return ProgressLogRead.model_validate(log)
 
 
+@router.delete(
+    "/{engagement_id}/progress-logs/{log_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_progress_log(
+    engagement_id: uuid.UUID,
+    log_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> None:
+    engagement = _fetch(engagement_id, db)
+
+    log = next(
+        (entry for entry in engagement.progress_logs if entry.id == log_id),
+        None,
+    )
+    if log is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    latest = _latest_log(engagement.progress_logs)
+    if latest is not None and log.id != latest.id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only the most recent progress log can be deleted.",
+        )
+
+    db.delete(log)
+    db.commit()
+
+
 @router.get("/{engagement_id}", response_model=EngagementRead)
 def get_engagement(
     engagement_id: uuid.UUID,
     db: Session = Depends(get_db),
 ) -> EngagementRead:
     return EngagementRead.model_validate(_fetch(engagement_id, db))
+
+
+@router.delete("/{engagement_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_engagement(
+    engagement_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> None:
+    engagement = db.get(Engagement, engagement_id)
+    if engagement is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    db.delete(engagement)
+    db.commit()
 
 
 @router.put("/{engagement_id}/review", response_model=EngagementRead)

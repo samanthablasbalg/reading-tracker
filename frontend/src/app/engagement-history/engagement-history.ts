@@ -69,8 +69,10 @@ function formatRange(log: ProgressLog): string {
       }
 
       .log-row {
-        display: flex;
-        align-items: flex-start;
+        display: grid;
+        grid-template-columns: 1fr auto 40px;
+        align-items: center;
+        min-height: 40px;
         gap: 16px;
         padding: 10px 0;
         border-bottom: 1px solid var(--mat-sys-outline-variant);
@@ -240,7 +242,20 @@ function formatRange(log: ProgressLog): string {
                   </button>
                 }
               </div>
+              @if (mostRecentLogId() === log.id) {
+                <button
+                  type="button"
+                  mat-icon-button
+                  aria-label="Delete progress log"
+                  (click)="deleteLog(log)"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              }
             </div>
+            @if (deleteError() && mostRecentLogId() === log.id) {
+              <span class="field-error" role="alert">{{ deleteError() }}</span>
+            }
           } @empty {
             <p>No progress logged yet.</p>
           }
@@ -269,6 +284,7 @@ export class EngagementHistoryComponent {
   protected readonly editingPageLogId = signal<string | null>(null);
   protected readonly dateError = signal<string | null>(null);
   protected readonly pageError = signal<string | null>(null);
+  protected readonly deleteError = signal<string | null>(null);
 
   protected readonly data = toSignal<HistoryData>(
     combineLatest([this.route.paramMap, this.refresh$]).pipe(
@@ -382,6 +398,23 @@ export class EngagementHistoryComponent {
       error: (err) => {
         if (err.status === 409) {
           this.pageError.set(err.error?.detail ?? 'Conflict');
+        }
+      },
+    });
+  }
+
+  protected deleteLog(log: ProgressLog): void {
+    if (!confirm('Delete this progress log?')) {
+      return;
+    }
+    this.deleteError.set(null);
+    this.engagementService.deleteProgressLog(log.engagement_id, log.id).subscribe({
+      next: () => {
+        this.refresh$.next();
+      },
+      error: (err) => {
+        if (err.status === 409) {
+          this.deleteError.set(err.error?.detail ?? 'Conflict');
         }
       },
     });

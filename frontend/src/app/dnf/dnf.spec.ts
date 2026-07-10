@@ -268,4 +268,37 @@ describe('DNFComponent', () => {
       }),
     );
   });
+
+  describe('engagement deletion', () => {
+    it('declining the confirm dialog sends no request', () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(false);
+      const fixture = TestBed.createComponent(DNFComponent);
+      flushDnfList();
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Delete Dune"]').click();
+      fixture.detectChanges();
+
+      httpTesting.expectNone('/api/engagements/eng-1');
+    });
+
+    it('confirming calls DELETE then reloads the engagement lists', () => {
+      vi.spyOn(window, 'confirm').mockReturnValue(true);
+      const fixture = TestBed.createComponent(DNFComponent);
+      flushDnfList();
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Delete Dune"]').click();
+      fixture.detectChanges();
+
+      const req = httpTesting.expectOne('/api/engagements/eng-1');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null, { status: 204, statusText: 'No Content' });
+
+      flushDnfList([]);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('No DNFed books yet');
+    });
+  });
 });

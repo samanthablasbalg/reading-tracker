@@ -194,6 +194,13 @@ import { formatIcon } from '../format-icon';
                 >
                   <mat-icon>history</mat-icon>
                 </button>
+                <button
+                  mat-icon-button
+                  [attr.aria-label]="'Delete ' + engagement.book.title"
+                  (click)="deleteEngagement(engagement)"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
               </div>
             </div>
           </mat-card-content>
@@ -245,5 +252,14 @@ export class CurrentlyReadingComponent {
     } else {
       this.dialog.open(ProgressLogSheetComponent, { data });
     }
+  }
+
+  protected deleteEngagement(engagement: Engagement): void {
+    if (!confirm("Delete this engagement? This can't be undone.")) {
+      return;
+    }
+    this.engagementService.deleteEngagement(engagement.id).subscribe(() => {
+      this.engagementService.reloadEngagements();
+    });
   }
 }

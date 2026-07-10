@@ -66,7 +66,7 @@ class Engagement(TimestampMixin, Base):
         back_populates="engagement", cascade="all, delete-orphan"
     )
     review: Mapped[Review | None] = relationship(
-        back_populates="engagement", uselist=False
+        back_populates="engagement", uselist=False, cascade="all, delete-orphan"
     )
 
     @property

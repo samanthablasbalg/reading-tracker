@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
@@ -184,3 +185,19 @@ def list_books(db: Session = Depends(get_db)) -> list[BookRead]:
         .all()
     )
     return [_to_book_read(book) for book in books]
+
+
+@router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_book(book_id: uuid.UUID, db: Session = Depends(get_db)) -> None:
+    book = db.get(Book, book_id)
+    if book is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    if book.engagements or book.standalone_entries:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Remove its engagements first.",
+        )
+
+    db.delete(book)
+    db.commit()

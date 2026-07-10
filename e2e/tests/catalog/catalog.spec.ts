@@ -104,3 +104,23 @@ test('Starting a book as audio shows the audio icon on the Currently Reading row
     await expect(currentlyReading.getFormatIcon('Piranesi', 'audio')).toBeVisible();
   });
 });
+
+test('Deleting a book with no engagements removes it from the library', async ({
+  page,
+  apiClient,
+}) => {
+  const catalog = new CatalogPage(page);
+
+  await test.step('Create a book with no engagements', async () => {
+    await apiClient.createBook('Piranesi', 'Susanna Clarke');
+  });
+
+  await test.step('Delete the book from the catalog', async () => {
+    await catalog.goto();
+    await catalog.deleteBook('Piranesi');
+  });
+
+  await test.step('Verify it no longer appears in the library', async () => {
+    await expect(catalog.getMarkAsReadingButton('Piranesi')).toHaveCount(0);
+  });
+});

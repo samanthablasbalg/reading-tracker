@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import functools
 import uuid
 from collections.abc import Callable
@@ -12,10 +13,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.author import Author
-from app.models.book import Book
+from app.models.book import Book, BookAuthor
 from app.models.edition import Edition
 from app.models.enums import Format
+from app.models.standalone_entry import StandaloneEntry
 from tests.conftest import engine
+from tests.helpers import _create_bare_book, _create_book, _create_engagement
 
 
 def _fake_volume(
@@ -365,3 +368,84 @@ def test_list_books_empty(client: TestClient) -> None:
     response = client.get("/books")
     assert response.status_code == 200
     assert response.json() == []
+
+
+# --- Delete book ---
+
+
+def test_delete_book_returns_204(client: TestClient) -> None:
+    book = _create_book(client)
+
+    response = client.delete(f"/books/{book['id']}")
+    assert response.status_code == 204
+
+
+def test_delete_book_removes_it_from_list(client: TestClient) -> None:
+    book = _create_book(client)
+
+    client.delete(f"/books/{book['id']}")
+
+    response = client.get("/books")
+    assert response.status_code == 200
+    assert all(b["id"] != book["id"] for b in response.json())
+
+
+def test_delete_book_cascades_editions_and_authors(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_book(client)
+    book_id = uuid.UUID(book["id"])
+
+    client.delete(f"/books/{book['id']}")
+
+    editions = (
+        db.execute(select(Edition).where(Edition.book_id == book_id)).scalars().all()
+    )
+    assert editions == []
+
+    book_authors = (
+        db.execute(select(BookAuthor).where(BookAuthor.book_id == book_id))
+        .scalars()
+        .all()
+    )
+    assert book_authors == []
+
+
+def test_delete_book_with_engagement_returns_409(client: TestClient) -> None:
+    book = _create_book(client)
+    _create_engagement(client, book["id"])
+
+    response = client.delete(f"/books/{book['id']}")
+    assert response.status_code == 409
+
+
+def test_delete_book_with_engagement_leaves_book_intact(client: TestClient) -> None:
+    book = _create_book(client)
+    _create_engagement(client, book["id"])
+
+    client.delete(f"/books/{book['id']}")
+
+    response = client.get("/books")
+    assert any(b["id"] == book["id"] for b in response.json())
+
+
+def test_delete_book_with_standalone_entry_returns_409(
+    client: TestClient, db: Session
+) -> None:
+    book = _create_bare_book(client)
+    book_id = uuid.UUID(book["id"])
+    db.add(
+        StandaloneEntry(
+            book_id=book_id,
+            read_on=datetime.date(2026, 1, 1),
+        )
+    )
+    db.commit()
+
+    response = client.delete(f"/books/{book['id']}")
+    assert response.status_code == 409
+
+
+def test_delete_unknown_book_returns_404(client: TestClient) -> None:
+    response = client.delete(f"/books/{uuid.uuid4()}")
+    assert response.status_code == 404
