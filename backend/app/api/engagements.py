@@ -248,7 +248,7 @@ def update_engagement_status(
                         )
                     )
             else:
-                audio_length = engagement._resolve_length(Format.audio)
+                audio_length = engagement.resolve_length(Format.audio)
                 if (
                     audio_length is not None
                     and engagement.resume_from_minute != audio_length
@@ -543,7 +543,7 @@ def update_progress_log(
                 detail="Page must be higher than this session's starting page.",
             )
         fmt = next((f for f in engagement.formats if f != Format.audio), Format.print)
-        book_length = engagement._resolve_length(fmt)
+        book_length = engagement.resolve_length(fmt)
         if book_length is not None and payload.page_end > book_length:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -557,7 +557,7 @@ def update_progress_log(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Minute must be higher than this session's starting minute.",
             )
-        audio_length = engagement._resolve_length(Format.audio)
+        audio_length = engagement.resolve_length(Format.audio)
         if audio_length is not None and payload.minute_end > audio_length:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
