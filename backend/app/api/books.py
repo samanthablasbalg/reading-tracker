@@ -12,7 +12,7 @@ from app.models.author import Author
 from app.models.book import Book, BookAuthor
 from app.models.edition import Edition
 from app.models.enums import BookAuthorRole, DatePrecision, Format
-from app.schemas.book import (
+from app.schemas import (
     BookCreate,
     BookImportRequest,
     BookRead,

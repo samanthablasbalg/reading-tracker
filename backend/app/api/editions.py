@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.book import Book
 from app.models.edition import Edition
-from app.schemas.edition import EditionCreate, EditionRead, EditionUpdate
+from app.schemas import EditionCreate, EditionRead, EditionUpdate
 
 router = APIRouter(prefix="/editions", tags=["editions"])
 

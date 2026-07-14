@@ -14,19 +14,18 @@ from app.models.engagement import Engagement
 from app.models.enums import Format, LogUnit, ReadingStatus
 from app.models.progress_log import ProgressLog
 from app.models.review import Review
-from app.schemas.edition import EngagementEditionCreate, EngagementEditionRead
-from app.schemas.engagement import (
+from app.schemas import (
     EngagementCreate,
     EngagementDatesUpdate,
+    EngagementEditionCreate,
+    EngagementEditionRead,
     EngagementRead,
     EngagementStatusUpdate,
-)
-from app.schemas.progress_log import (
     ProgressLogCreate,
     ProgressLogRead,
     ProgressLogUpdate,
+    ReviewUpsert,
 )
-from app.schemas.review import ReviewUpsert
 
 router = APIRouter(prefix="/engagements", tags=["engagements"])
 
