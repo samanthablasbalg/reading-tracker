@@ -49,6 +49,11 @@ def _capture_audio_length(book: Book, edition: Edition, length: int) -> None:
         edition.audio_minutes = length
 
 
+def _reject_future_date(value: datetime.date | None) -> None:
+    if value is not None and value > datetime.date.today():
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
+
+
 def _fetch(engagement_id: uuid.UUID, db: Session) -> Engagement:
     engagement = db.execute(
         select(Engagement).where(Engagement.id == engagement_id).options(*_LOAD_OPTIONS)
@@ -122,8 +127,7 @@ def create_engagement(
     if book is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    if payload.started_on is not None and payload.started_on > datetime.date.today():
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
+    _reject_future_date(payload.started_on)
 
     duplicate = db.execute(
         select(Engagement)
@@ -206,8 +210,7 @@ def update_engagement_status(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
     effective_on = payload.effective_on or datetime.date.today()
-    if effective_on > datetime.date.today():
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
+    _reject_future_date(effective_on)
 
     engagement.status = new_status
     match new_status:
@@ -318,8 +321,7 @@ def log_progress(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
     logged_on = payload.logged_on or datetime.date.today()
-    if logged_on > datetime.date.today():
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
+    _reject_future_date(logged_on)
     if engagement.started_on is not None and logged_on < engagement.started_on:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -512,8 +514,7 @@ def update_progress_log(
 
     if payload.logged_on is not None:
         new_date = payload.logged_on
-        if new_date > datetime.date.today():
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
+        _reject_future_date(new_date)
         if engagement.started_on is not None and new_date < engagement.started_on:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
