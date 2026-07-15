@@ -32,9 +32,9 @@ def test_create_engagement_stamps_current_user(
     assert engagement.user_id == seed_user.id
 
 
-def test_engagement_requires_user_id(client: TestClient, db: Session) -> None:
+def test_engagement_requires_user_id(client: TestClient, owner_db: Session) -> None:
     book = _create_book(client)
-    db.add(
+    owner_db.add(
         Engagement(
             book_id=uuid.UUID(book["id"]),
             status=ReadingStatus.reading,
@@ -42,28 +42,30 @@ def test_engagement_requires_user_id(client: TestClient, db: Session) -> None:
         )
     )
     with pytest.raises(IntegrityError):
-        db.commit()
-    db.rollback()
+        owner_db.commit()
+    owner_db.rollback()
 
 
-def test_standalone_entry_requires_user_id(client: TestClient, db: Session) -> None:
+def test_standalone_entry_requires_user_id(
+    client: TestClient, owner_db: Session
+) -> None:
     book = _create_book(client)
-    db.add(
+    owner_db.add(
         StandaloneEntry(
             book_id=uuid.UUID(book["id"]),
             read_on=datetime.date(2026, 1, 1),
         )
     )
     with pytest.raises(IntegrityError):
-        db.commit()
-    db.rollback()
+        owner_db.commit()
+    owner_db.rollback()
 
 
-def test_blog_post_requires_user_id(db: Session) -> None:
-    db.add(BlogPost(title="Test Post"))
+def test_blog_post_requires_user_id(owner_db: Session) -> None:
+    owner_db.add(BlogPost(title="Test Post"))
     with pytest.raises(IntegrityError):
-        db.commit()
-    db.rollback()
+        owner_db.commit()
+    owner_db.rollback()
 
 
 def test_progress_log_via_api_copies_owner_from_engagement(
@@ -83,15 +85,15 @@ def test_progress_log_via_api_copies_owner_from_engagement(
 
 
 def test_progress_log_rejects_owner_mismatched_with_engagement(
-    client: TestClient, db: Session
+    client: TestClient, owner_db: Session
 ) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
     other_user = User(email="someone-else@example.com")
-    db.add(other_user)
-    db.commit()
+    owner_db.add(other_user)
+    owner_db.commit()
 
-    db.add(
+    owner_db.add(
         ProgressLog(
             engagement_id=uuid.UUID(engagement["id"]),
             user_id=other_user.id,
@@ -102,5 +104,5 @@ def test_progress_log_rejects_owner_mismatched_with_engagement(
         )
     )
     with pytest.raises(IntegrityError):
-        db.commit()
-    db.rollback()
+        owner_db.commit()
+    owner_db.rollback()
