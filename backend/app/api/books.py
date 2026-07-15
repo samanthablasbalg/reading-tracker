@@ -12,7 +12,7 @@ from app.models.author import Author
 from app.models.book import Book, BookAuthor
 from app.models.edition import Edition
 from app.models.enums import BookAuthorRole, DatePrecision, Format
-from app.schemas.book import (
+from app.schemas import (
     BookCreate,
     BookImportRequest,
     BookRead,
@@ -149,8 +149,8 @@ def import_book(
         Edition(
             book_id=book.id,
             edition_format=Format.digital,
-            cover_url=volume.cover_url,
             page_count=volume.page_count,
+            cover_url=volume.cover_url,
         )
     )
     db.add(

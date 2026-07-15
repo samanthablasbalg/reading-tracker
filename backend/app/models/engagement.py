@@ -104,7 +104,7 @@ class Engagement(TimestampMixin, Base):
         end = self._latest_minute_end()
         return end if end is not None else 0
 
-    def _resolve_length(self, fmt: Format) -> int | None:
+    def resolve_length(self, fmt: Format) -> int | None:
         for ee in self.engagement_editions:
             if ee.edition.edition_format == fmt:
                 if ee.length_override is not None:
@@ -128,13 +128,13 @@ class Engagement(TimestampMixin, Base):
             position = self._latest_minute_end()
             if position is None:
                 return None
-            denominator = self._resolve_length(Format.audio)
+            denominator = self.resolve_length(Format.audio)
         else:
             position = self._latest_page_end()
             if position is None:
                 return None
             fmt = next((f for f in self.formats if f != Format.audio), Format.print)
-            denominator = self._resolve_length(fmt)
+            denominator = self.resolve_length(fmt)
         if not denominator:
             return None
         return max(0, min(100, round(position / denominator * 100)))

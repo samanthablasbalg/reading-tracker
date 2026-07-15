@@ -14,19 +14,18 @@ from app.models.engagement import Engagement
 from app.models.enums import Format, LogUnit, ReadingStatus
 from app.models.progress_log import ProgressLog
 from app.models.review import Review
-from app.schemas.edition import EngagementEditionCreate, EngagementEditionRead
-from app.schemas.engagement import (
+from app.schemas import (
     EngagementCreate,
     EngagementDatesUpdate,
+    EngagementEditionCreate,
+    EngagementEditionRead,
     EngagementRead,
     EngagementStatusUpdate,
-)
-from app.schemas.progress_log import (
     ProgressLogCreate,
     ProgressLogRead,
     ProgressLogUpdate,
+    ReviewUpsert,
 )
-from app.schemas.review import ReviewUpsert
 
 router = APIRouter(prefix="/engagements", tags=["engagements"])
 
@@ -47,6 +46,11 @@ def _capture_audio_length(book: Book, edition: Edition, length: int) -> None:
         book.default_audio_minutes = length
     if edition.audio_minutes is None:
         edition.audio_minutes = length
+
+
+def _reject_future_date(value: datetime.date | None) -> None:
+    if value is not None and value > datetime.date.today():
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
 
 
 def _fetch(engagement_id: uuid.UUID, db: Session) -> Engagement:
@@ -122,8 +126,7 @@ def create_engagement(
     if book is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    if payload.started_on is not None and payload.started_on > datetime.date.today():
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
+    _reject_future_date(payload.started_on)
 
     duplicate = db.execute(
         select(Engagement)
@@ -206,8 +209,7 @@ def update_engagement_status(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
     effective_on = payload.effective_on or datetime.date.today()
-    if effective_on > datetime.date.today():
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
+    _reject_future_date(effective_on)
 
     engagement.status = new_status
     match new_status:
@@ -245,7 +247,7 @@ def update_engagement_status(
                         )
                     )
             else:
-                audio_length = engagement._resolve_length(Format.audio)
+                audio_length = engagement.resolve_length(Format.audio)
                 if (
                     audio_length is not None
                     and engagement.resume_from_minute != audio_length
@@ -318,8 +320,7 @@ def log_progress(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
     logged_on = payload.logged_on or datetime.date.today()
-    if logged_on > datetime.date.today():
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
+    _reject_future_date(logged_on)
     if engagement.started_on is not None and logged_on < engagement.started_on:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -512,8 +513,7 @@ def update_progress_log(
 
     if payload.logged_on is not None:
         new_date = payload.logged_on
-        if new_date > datetime.date.today():
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
+        _reject_future_date(new_date)
         if engagement.started_on is not None and new_date < engagement.started_on:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -542,7 +542,7 @@ def update_progress_log(
                 detail="Page must be higher than this session's starting page.",
             )
         fmt = next((f for f in engagement.formats if f != Format.audio), Format.print)
-        book_length = engagement._resolve_length(fmt)
+        book_length = engagement.resolve_length(fmt)
         if book_length is not None and payload.page_end > book_length:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -556,7 +556,7 @@ def update_progress_log(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Minute must be higher than this session's starting minute.",
             )
-        audio_length = engagement._resolve_length(Format.audio)
+        audio_length = engagement.resolve_length(Format.audio)
         if audio_length is not None and payload.minute_end > audio_length:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
