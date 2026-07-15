@@ -73,8 +73,8 @@ export class CurrentlyReadingPage {
    * aria-label on each listitem card.
    */
   async getCardTitlesInOrder(): Promise<string[]> {
-    return this.page
-      .getByRole('listitem')
-      .evaluateAll((els) => els.map((el) => el.getAttribute('aria-label') ?? ''));
+    const cards = this.page.getByRole('listitem');
+    await cards.first().waitFor();
+    return cards.evaluateAll((els) => els.map((el) => el.getAttribute('aria-label') ?? ''));
   }
 }
