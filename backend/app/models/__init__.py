@@ -14,6 +14,7 @@ from app.models.enums import (
 from app.models.progress_log import ProgressLog
 from app.models.review import Review
 from app.models.standalone_entry import StandaloneEntry
+from app.models.user import User
 
 __all__ = [
     "Author",
@@ -32,4 +33,5 @@ __all__ = [
     "ReadingStatus",
     "Review",
     "StandaloneEntry",
+    "User",
 ]
