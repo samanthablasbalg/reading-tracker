@@ -179,7 +179,13 @@ def create_engagement(
             ),
         )
     edition = candidates[0]
-    db.add(EngagementEdition(engagement_id=engagement.id, edition_id=edition.id))
+    db.add(
+        EngagementEdition(
+            engagement_id=engagement.id,
+            edition_id=edition.id,
+            user_id=engagement.user_id,
+        )
+    )
 
     if payload.audio_length_minutes is not None:
         _capture_audio_length(book, edition, payload.audio_length_minutes)
@@ -244,6 +250,7 @@ def update_engagement_status(
                     db.add(
                         ProgressLog(
                             engagement_id=engagement.id,
+                            user_id=engagement.user_id,
                             logged_on=effective_on,
                             unit=LogUnit.pages,
                             page_start=engagement.resume_from_page,
@@ -260,6 +267,7 @@ def update_engagement_status(
                     db.add(
                         ProgressLog(
                             engagement_id=engagement.id,
+                            user_id=engagement.user_id,
                             logged_on=effective_on,
                             unit=LogUnit.minutes,
                             minute_start=engagement.resume_from_minute,
@@ -342,6 +350,7 @@ def log_progress(
 
     log = ProgressLog(
         engagement_id=engagement_id,
+        user_id=engagement.user_id,
         logged_on=logged_on,
         unit=unit,
         minute_start=resume if is_audio else None,
@@ -424,6 +433,7 @@ def create_binding(
     binding = EngagementEdition(
         engagement_id=engagement_id,
         edition_id=edition.id,
+        user_id=engagement.user_id,
         origin_id=payload.origin_id,
         length_override=payload.length_override,
     )
@@ -639,6 +649,7 @@ def upsert_review(
         db.add(
             Review(
                 engagement_id=engagement.id,
+                user_id=engagement.user_id,
                 rating=payload.rating,
                 body=payload.body,
                 written_at=now,

@@ -4,7 +4,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, Index, text
+from sqlalchemy import ForeignKey, ForeignKeyConstraint, Index, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -47,13 +47,17 @@ class Edition(TimestampMixin, Base):
 
 class EngagementEdition(Base):
     __tablename__ = "engagement_editions"
-
-    engagement_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("engagements.id"), primary_key=True
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["engagement_id", "user_id"], ["engagements.id", "engagements.user_id"]
+        ),
     )
+
+    engagement_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
     edition_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("editions.id"), primary_key=True
     )
+    user_id: Mapped[uuid.UUID]
     origin_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("book_sources.id"))
     length_override: Mapped[int | None]
 

@@ -5,7 +5,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, Text
+from sqlalchemy import ForeignKeyConstraint, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -18,9 +18,15 @@ if TYPE_CHECKING:
 
 class ProgressLog(TimestampMixin, Base):
     __tablename__ = "progress_logs"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["engagement_id", "user_id"], ["engagements.id", "engagements.user_id"]
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    engagement_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("engagements.id"))
+    engagement_id: Mapped[uuid.UUID]
+    user_id: Mapped[uuid.UUID]
     logged_on: Mapped[datetime.date]
     unit: Mapped[LogUnit] = mapped_column(SAEnum(LogUnit, name="log_unit"))
     page_start: Mapped[int | None]
