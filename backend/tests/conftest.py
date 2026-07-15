@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Generator
+import uuid
+from collections.abc import Callable, Generator
 from pathlib import Path
 
 import pytest
@@ -9,7 +10,7 @@ from alembic import command
 from alembic.config import Config
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
+from sqlalchemy import Connection, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.database import Base, get_db
@@ -44,11 +45,18 @@ def _reset_schema() -> None:
     Base.metadata.drop_all(owner_engine)
 
 
+def _truncate_all() -> None:
+    table_names = ", ".join(table.name for table in Base.metadata.sorted_tables)
+    with owner_engine.begin() as conn:
+        conn.execute(text(f"TRUNCATE {table_names} RESTART IDENTITY CASCADE"))
+
+
 @pytest.fixture(scope="session", autouse=True)
 def create_tables() -> Generator[None]:
     os.environ["DATABASE_URL"] = TEST_DATABASE_URL
     _reset_schema()
     command.upgrade(Config(str(ALEMBIC_INI)), "head")
+    _truncate_all()
     yield
     _reset_schema()
 
@@ -56,9 +64,7 @@ def create_tables() -> Generator[None]:
 @pytest.fixture(autouse=True)
 def clean_data(create_tables: None) -> Generator[None]:
     yield
-    table_names = ", ".join(table.name for table in Base.metadata.sorted_tables)
-    with owner_engine.begin() as conn:
-        conn.execute(text(f"TRUNCATE {table_names} RESTART IDENTITY CASCADE"))
+    _truncate_all()
 
 
 @pytest.fixture(autouse=True)
@@ -96,6 +102,29 @@ def owner_db(seed_user: User) -> Generator[Session]:
         yield session
     finally:
         session.close()
+
+
+@pytest.fixture
+def app_session(
+    seed_user: User,
+) -> Generator[Callable[[uuid.UUID], Session]]:
+    opened: list[tuple[Session, Connection]] = []
+
+    def _make(user_id: uuid.UUID) -> Session:
+        connection = app_engine.connect()
+        connection.execute(
+            text("SELECT set_config('app.current_user_id', :uid, false)"),
+            {"uid": str(user_id)},
+        )
+        connection.commit()
+        session = Session(bind=connection)
+        opened.append((session, connection))
+        return session
+
+    yield _make
+    for session, connection in opened:
+        session.close()
+        connection.close()
 
 
 @pytest.fixture
