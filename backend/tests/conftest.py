@@ -11,8 +11,11 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.database import Base, get_db
 from app.main import app
+from app.models.user import User
 
 load_dotenv()
+
+SEED_USER_EMAIL = "test-user@example.com"
 
 _test_database_url = os.getenv("TEST_DATABASE_URL")
 if not _test_database_url:
@@ -36,6 +39,17 @@ def clean_data(create_tables: None) -> Generator[None]:
         for table in reversed(Base.metadata.sorted_tables):
             session.execute(table.delete())
         session.commit()
+
+
+@pytest.fixture(autouse=True)
+def seed_user(clean_data: None) -> Generator[User]:
+    session = TestingSessionLocal()
+    user = User(email=SEED_USER_EMAIL)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    session.close()
+    yield user
 
 
 @pytest.fixture

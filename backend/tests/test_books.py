@@ -17,6 +17,7 @@ from app.models.book import Book, BookAuthor
 from app.models.edition import Edition
 from app.models.enums import Format
 from app.models.standalone_entry import StandaloneEntry
+from app.models.user import User
 from tests.conftest import engine
 from tests.helpers import _create_bare_book, _create_book, _create_engagement
 
@@ -430,13 +431,14 @@ def test_delete_book_with_engagement_leaves_book_intact(client: TestClient) -> N
 
 
 def test_delete_book_with_standalone_entry_returns_409(
-    client: TestClient, db: Session
+    client: TestClient, db: Session, seed_user: User
 ) -> None:
     book = _create_bare_book(client)
     book_id = uuid.UUID(book["id"])
     db.add(
         StandaloneEntry(
             book_id=book_id,
+            user_id=seed_user.id,
             read_on=datetime.date(2026, 1, 1),
         )
     )

@@ -8,12 +8,14 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.models.book import Book, BookAuthor
 from app.models.edition import Edition, EngagementEdition
 from app.models.engagement import Engagement
 from app.models.enums import Format, LogUnit, ReadingStatus
 from app.models.progress_log import ProgressLog
 from app.models.review import Review
+from app.models.user import User
 from app.schemas import (
     EngagementCreate,
     EngagementDatesUpdate,
@@ -120,7 +122,9 @@ def _apply_date_change(
 
 @router.post("", response_model=EngagementRead, status_code=status.HTTP_201_CREATED)
 def create_engagement(
-    payload: EngagementCreate, db: Session = Depends(get_db)
+    payload: EngagementCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> EngagementRead:
     book = db.get(Book, payload.book_id)
     if book is None:
@@ -143,6 +147,7 @@ def create_engagement(
 
     engagement = Engagement(
         book_id=payload.book_id,
+        user_id=current_user.id,
         status=ReadingStatus.reading,
         started_on=payload.started_on or datetime.date.today(),
     )
