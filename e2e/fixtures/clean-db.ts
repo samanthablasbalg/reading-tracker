@@ -3,8 +3,10 @@ import { Client } from 'pg';
 
 // Base of the fixtures chain. Every spec imports `test`/`expect` from a fixture
 // in this dir (never from @playwright/test directly); this one wipes the e2e
-// database before each test so tests never see each other's data. Scenario
-// fixtures (e.g. a "five books in the library" one) extend this to inherit the wipe.
+// database and reseeds a baseline user before each test, so tests never see each
+// other's data and the backend's get_current_user placeholder (standing in for
+// real auth until #121) always finds exactly one row to return. Scenario
+// fixtures (e.g. a "five books in the library" one) extend this to inherit both.
 
 const dbUrl = process.env['E2E_DATABASE_URL'];
 if (!dbUrl) throw new Error('E2E_DATABASE_URL is not set');
@@ -35,8 +37,13 @@ export const test = base.extend<{ cleanDb: void }>({
         await client.query(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
       }
 
+      await client.query(
+        `INSERT INTO users (id, email, created_at, updated_at)
+         VALUES (gen_random_uuid(), 'test-user@example.com', now(), now())`,
+      );
+
       await client.end();
-      await use(); // hand control to the test, now against an empty database
+      await use(); // hand control to the test, now against a freshly seeded database
     },
     { auto: true },
   ],

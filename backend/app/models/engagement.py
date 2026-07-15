@@ -5,7 +5,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -22,13 +22,16 @@ if TYPE_CHECKING:
     from app.models.edition import EngagementEdition
     from app.models.progress_log import ProgressLog
     from app.models.review import Review
+    from app.models.user import User
 
 
 class Engagement(TimestampMixin, Base):
     __tablename__ = "engagements"
+    __table_args__ = (UniqueConstraint("id", "user_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     book_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("books.id"))
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     status: Mapped[ReadingStatus] = mapped_column(
         SAEnum(ReadingStatus, name="reading_status")
     )
@@ -59,6 +62,7 @@ class Engagement(TimestampMixin, Base):
     )
 
     book: Mapped[Book] = relationship(back_populates="engagements")
+    user: Mapped[User] = relationship(back_populates="engagements")
     progress_logs: Mapped[list[ProgressLog]] = relationship(
         back_populates="engagement", cascade="all, delete-orphan"
     )

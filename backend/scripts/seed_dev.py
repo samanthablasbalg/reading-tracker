@@ -51,6 +51,10 @@ def reset() -> None:
             tables = ", ".join(row[0] for row in cur.fetchall())
             if tables:
                 cur.execute(f"TRUNCATE {tables} CASCADE")
+            cur.execute(
+                "INSERT INTO users (id, email, created_at, updated_at) "
+                "VALUES (gen_random_uuid(), 'blasbalgs@gmail.com', now(), now())"
+            )
 
 
 _cover_urls: dict[str, str] = {}

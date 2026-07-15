@@ -8,12 +8,14 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
+from app.dependencies import get_current_user
 from app.models.book import Book, BookAuthor
 from app.models.edition import Edition, EngagementEdition
 from app.models.engagement import Engagement
 from app.models.enums import Format, LogUnit, ReadingStatus
 from app.models.progress_log import ProgressLog
 from app.models.review import Review
+from app.models.user import User
 from app.schemas import (
     EngagementCreate,
     EngagementDatesUpdate,
@@ -120,7 +122,9 @@ def _apply_date_change(
 
 @router.post("", response_model=EngagementRead, status_code=status.HTTP_201_CREATED)
 def create_engagement(
-    payload: EngagementCreate, db: Session = Depends(get_db)
+    payload: EngagementCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> EngagementRead:
     book = db.get(Book, payload.book_id)
     if book is None:
@@ -143,6 +147,7 @@ def create_engagement(
 
     engagement = Engagement(
         book_id=payload.book_id,
+        user_id=current_user.id,
         status=ReadingStatus.reading,
         started_on=payload.started_on or datetime.date.today(),
     )
@@ -174,7 +179,13 @@ def create_engagement(
             ),
         )
     edition = candidates[0]
-    db.add(EngagementEdition(engagement_id=engagement.id, edition_id=edition.id))
+    db.add(
+        EngagementEdition(
+            engagement_id=engagement.id,
+            edition_id=edition.id,
+            user_id=engagement.user_id,
+        )
+    )
 
     if payload.audio_length_minutes is not None:
         _capture_audio_length(book, edition, payload.audio_length_minutes)
@@ -239,6 +250,7 @@ def update_engagement_status(
                     db.add(
                         ProgressLog(
                             engagement_id=engagement.id,
+                            user_id=engagement.user_id,
                             logged_on=effective_on,
                             unit=LogUnit.pages,
                             page_start=engagement.resume_from_page,
@@ -255,6 +267,7 @@ def update_engagement_status(
                     db.add(
                         ProgressLog(
                             engagement_id=engagement.id,
+                            user_id=engagement.user_id,
                             logged_on=effective_on,
                             unit=LogUnit.minutes,
                             minute_start=engagement.resume_from_minute,
@@ -337,6 +350,7 @@ def log_progress(
 
     log = ProgressLog(
         engagement_id=engagement_id,
+        user_id=engagement.user_id,
         logged_on=logged_on,
         unit=unit,
         minute_start=resume if is_audio else None,
@@ -419,6 +433,7 @@ def create_binding(
     binding = EngagementEdition(
         engagement_id=engagement_id,
         edition_id=edition.id,
+        user_id=engagement.user_id,
         origin_id=payload.origin_id,
         length_override=payload.length_override,
     )
@@ -634,6 +649,7 @@ def upsert_review(
         db.add(
             Review(
                 engagement_id=engagement.id,
+                user_id=engagement.user_id,
                 rating=payload.rating,
                 body=payload.body,
                 written_at=now,
