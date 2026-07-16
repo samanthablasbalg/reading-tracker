@@ -24,7 +24,7 @@ def create_edition(
     edition = Edition(**payload.model_dump())
     db.add(edition)
     try:
-        db.flush()
+        db.commit()
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT) from None
@@ -53,6 +53,6 @@ def update_edition(
     for field in payload.model_fields_set:
         setattr(edition, field, getattr(payload, field))
 
-    db.flush()
+    db.commit()
     db.refresh(edition)
     return EditionRead.model_validate(edition)

@@ -62,7 +62,7 @@ def create_book(payload: BookCreate, db: Session = Depends(get_db)) -> BookRead:
     db.flush()
 
     db.add(BookAuthor(book_id=book.id, author_id=author.id, role=BookAuthorRole.author))
-    db.flush()
+    db.commit()
 
     loaded = db.execute(
         select(Book)
@@ -161,7 +161,7 @@ def import_book(
         )
     )
 
-    db.flush()
+    db.commit()
 
     loaded = db.execute(
         select(Book)
@@ -200,4 +200,4 @@ def delete_book(book_id: uuid.UUID, db: Session = Depends(get_db)) -> None:
         )
 
     db.delete(book)
-    db.flush()
+    db.commit()

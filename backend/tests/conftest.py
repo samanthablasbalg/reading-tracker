@@ -130,20 +130,21 @@ def app_session(
 @pytest.fixture
 def client(seed_user: User) -> Generator[TestClient]:
     def override_get_db() -> Generator[Session]:
-        session = TestingSessionLocal()
+        connection = app_engine.connect()
         try:
-            user_id = session.execute(text("SELECT id FROM users")).scalar_one()
-            session.execute(
-                text("SELECT set_config('app.current_user_id', :uid, true)"),
+            user_id = connection.execute(text("SELECT id FROM users")).scalar_one()
+            connection.execute(
+                text("SELECT set_config('app.current_user_id', :uid, false)"),
                 {"uid": str(user_id)},
             )
-            yield session
-            session.commit()
-        except Exception:
-            session.rollback()
-            raise
+            connection.commit()
+            session = Session(bind=connection)
+            try:
+                yield session
+            finally:
+                session.close()
         finally:
-            session.close()
+            connection.close()
 
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as c:

@@ -190,7 +190,7 @@ def create_engagement(
     if payload.audio_length_minutes is not None:
         _capture_audio_length(book, edition, payload.audio_length_minutes)
 
-    db.flush()
+    db.commit()
 
     return EngagementRead.model_validate(_fetch(engagement.id, db))
 
@@ -290,8 +290,7 @@ def update_engagement_status(
                     )
                 engagement.abandoned_on = payload.effective_on or latest.logged_on
 
-    db.flush()
-    db.expire_all()
+    db.commit()
 
     return EngagementRead.model_validate(_fetch(engagement_id, db))
 
@@ -304,7 +303,7 @@ def update_engagement_dates(
 ) -> EngagementRead:
     engagement = _fetch(engagement_id, db)
     _apply_date_change(engagement, payload.started_on, payload.finished_on)
-    db.flush()
+    db.commit()
     return EngagementRead.model_validate(_fetch(engagement_id, db))
 
 
@@ -376,7 +375,7 @@ def log_progress(
                 engagement.book, audio_ee.edition, payload.audio_length_minutes
             )
 
-    db.flush()
+    db.commit()
     db.refresh(log)
 
     return ProgressLogRead.model_validate(log)
@@ -439,7 +438,7 @@ def create_binding(
         length_override=payload.length_override,
     )
     db.add(binding)
-    db.flush()
+    db.commit()
 
     loaded = db.execute(
         select(EngagementEdition)
@@ -486,7 +485,7 @@ def delete_binding(
     if binding is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     db.delete(binding)
-    db.flush()
+    db.commit()
 
 
 @router.get("/{engagement_id}/progress-logs", response_model=list[ProgressLogRead])
@@ -580,7 +579,7 @@ def update_progress_log(
             )
         log.minute_end = payload.minute_end
 
-    db.flush()
+    db.commit()
     db.refresh(log)
     return ProgressLogRead.model_validate(log)
 
@@ -611,7 +610,7 @@ def delete_progress_log(
         )
 
     db.delete(log)
-    db.flush()
+    db.commit()
 
 
 @router.get("/{engagement_id}", response_model=EngagementRead)
@@ -631,7 +630,7 @@ def delete_engagement(
     if engagement is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     db.delete(engagement)
-    db.flush()
+    db.commit()
 
 
 @router.put("/{engagement_id}/review", response_model=EngagementRead)
@@ -661,8 +660,7 @@ def upsert_review(
         engagement.review.body = payload.body
         engagement.review.written_at = now
 
-    db.flush()
-    db.expire_all()
+    db.commit()
     return EngagementRead.model_validate(_fetch(engagement_id, db))
 
 

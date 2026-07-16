@@ -21,17 +21,18 @@ class Base(DeclarativeBase):
 
 
 def get_db() -> Generator[Session]:
-    db = SessionLocal()
+    connection = engine.connect()
     try:
-        user_id = db.execute(text("SELECT id FROM users")).scalar_one()
-        db.execute(
-            text("SELECT set_config('app.current_user_id', :uid, true)"),
+        user_id = connection.execute(text("SELECT id FROM users")).scalar_one()
+        connection.execute(
+            text("SELECT set_config('app.current_user_id', :uid, false)"),
             {"uid": str(user_id)},
         )
-        yield db
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
+        connection.commit()
+        db = Session(bind=connection)
+        try:
+            yield db
+        finally:
+            db.close()
     finally:
-        db.close()
+        connection.close()
