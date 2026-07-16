@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 
+from app.main import app
 from app.models.user import User
 from app.oauth import oauth
 
@@ -72,6 +73,12 @@ def test_callback_rejects_unverified_email(
 
 def test_me_requires_a_session(client: TestClient) -> None:
     assert client.get("/auth/me").status_code == 401
+
+
+def test_business_endpoint_rejects_a_request_with_no_session() -> None:
+    with TestClient(app) as unauthenticated_client:
+        response = unauthenticated_client.get("/books")
+    assert response.status_code == 401
 
 
 def test_logout_clears_the_session(
