@@ -84,6 +84,22 @@ def test_search_returns_candidates(
     assert candidate["language"] == "en"
 
 
+def test_search_upgrades_http_cover_to_https(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    volume = _fake_volume(cover_url="http://books.google.com/books/content?id=x&img=1")
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json={"items": [volume]})
+
+    _patch_google(monkeypatch, handler)
+
+    response = client.get("/api/books/search?q=piranesi")
+    assert response.status_code == 200
+    candidate = response.json()[0]
+    assert candidate["cover_url"] == "https://books.google.com/books/content?id=x&img=1"
+
+
 def test_search_empty_results(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
