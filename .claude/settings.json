@@ -9,7 +9,25 @@
       "Bash(cd * && python -m pytest *)",
       "Bash(* /tmp/*)",
       "Write(/tmp/*)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/*secret*)",
+      "Read(**/*.pem)",
+      "Bash(cat *.env*)",
+      "Bash(* .env*)"
     ]
+  },
+  "sandbox": {
+    "credentials": {
+      "files": [
+        { "path": ".env", "mode": "deny" },
+        { "path": "backend/.env", "mode": "deny" },
+        { "path": "e2e/.env", "mode": "deny" },
+        { "path": "frontend/.env", "mode": "deny" }
+      ]
+    }
   },
   "hooks": {
     "Stop": [
