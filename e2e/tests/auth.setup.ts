@@ -12,7 +12,7 @@ setup('log in as the e2e test user', async ({ request }) => {
 
   // Direct to the backend — the origin ApiClient calls, bypassing the proxy —
   // so it needs its own copy of the cookie under that origin.
-  await request.post(`${BACKEND_URL}/auth/test-login`);
+  await request.post(`${BACKEND_URL}/api/auth/test-login`);
 
   await request.storageState({ path: AUTH_FILE });
 });

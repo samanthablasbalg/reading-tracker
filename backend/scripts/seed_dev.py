@@ -19,7 +19,7 @@ def _request(
 ) -> dict[str, object]:
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(
-        f"{BASE_URL}{path}",
+        f"{BASE_URL}/api{path}",
         data=data,
         headers={"Content-Type": "application/json"} if data else {},
         method=method,

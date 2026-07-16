@@ -21,7 +21,7 @@ def test_patch_dates_started_on_persists(client: TestClient) -> None:
     engagement = _create_engagement(client, book["id"])
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/dates",
+        f"/api/engagements/{engagement['id']}/dates",
         json={"started_on": "2026-01-01"},
     )
 
@@ -34,7 +34,7 @@ def test_patch_dates_finished_on_persists(client: TestClient) -> None:
     engagement = _create_engagement(client, book["id"])
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/dates",
+        f"/api/engagements/{engagement['id']}/dates",
         json={"finished_on": "2026-12-01"},
     )
 
@@ -47,7 +47,7 @@ def test_patch_dates_both_persist(client: TestClient) -> None:
     engagement = _create_engagement(client, book["id"])
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/dates",
+        f"/api/engagements/{engagement['id']}/dates",
         json={"started_on": "2026-01-01", "finished_on": "2026-06-01"},
     )
 
@@ -59,7 +59,7 @@ def test_patch_dates_both_persist(client: TestClient) -> None:
 
 def test_patch_dates_unknown_engagement_returns_404(client: TestClient) -> None:
     response = client.patch(
-        f"/engagements/{uuid.uuid4()}/dates",
+        f"/api/engagements/{uuid.uuid4()}/dates",
         json={"started_on": "2026-01-01"},
     )
     assert response.status_code == 404
@@ -70,7 +70,7 @@ def test_patch_dates_does_not_change_status(client: TestClient) -> None:
     engagement = _create_engagement(client, book["id"])
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/dates",
+        f"/api/engagements/{engagement['id']}/dates",
         json={"started_on": "2026-01-01", "finished_on": "2026-06-01"},
     )
 
@@ -85,7 +85,7 @@ def test_patch_dates_finished_before_started_in_payload_returns_409(
     engagement = _create_engagement(client, book["id"])
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/dates",
+        f"/api/engagements/{engagement['id']}/dates",
         json={"started_on": "2026-06-01", "finished_on": "2026-01-01"},
     )
     assert response.status_code == 409
@@ -102,7 +102,7 @@ def test_patch_dates_finished_before_existing_started_returns_409(
     db.commit()
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/dates",
+        f"/api/engagements/{engagement['id']}/dates",
         json={"finished_on": "2026-01-01"},
     )
     assert response.status_code == 409
@@ -124,7 +124,7 @@ def test_patch_dates_started_after_earliest_log_returns_409(
     db.commit()
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/dates",
+        f"/api/engagements/{engagement['id']}/dates",
         json={"started_on": "2026-04-01"},
     )
     assert response.status_code == 409
@@ -146,7 +146,7 @@ def test_patch_dates_finished_before_latest_log_returns_409(
     db.commit()
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/dates",
+        f"/api/engagements/{engagement['id']}/dates",
         json={"finished_on": "2026-03-01"},
     )
     assert response.status_code == 409

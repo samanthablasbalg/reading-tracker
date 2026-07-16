@@ -28,7 +28,7 @@ def test_patch_log_date_updates_logged_on(client: TestClient, db: Session) -> No
     db.commit()
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{log['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{log['id']}",
         json={"logged_on": "2026-01-15"},
     )
 
@@ -53,7 +53,7 @@ def test_patch_log_date_before_started_on_returns_409(
     db.commit()
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{log['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{log['id']}",
         json={"logged_on": "2026-01-19"},
     )
 
@@ -76,7 +76,7 @@ def test_patch_log_date_after_finished_on_returns_409(
     db.commit()
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{log['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{log['id']}",
         json={"logged_on": "2026-01-21"},
     )
 
@@ -92,7 +92,7 @@ def test_patch_log_page_on_most_recent_updates_page_end(
     latest = _log_progress(client, engagement["id"], 200)
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{latest['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{latest['id']}",
         json={"page_end": 250},
     )
 
@@ -109,7 +109,7 @@ def test_patch_log_page_on_non_recent_returns_409(client: TestClient) -> None:
     _log_progress(client, engagement["id"], 200)
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{first['id']}",
         json={"page_end": 150},
     )
 
@@ -123,7 +123,7 @@ def test_patch_log_page_at_or_below_start_returns_409(client: TestClient) -> Non
     latest = _log_progress(client, engagement["id"], 200)
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{latest['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{latest['id']}",
         json={"page_end": 100},
     )
 
@@ -132,17 +132,19 @@ def test_patch_log_page_at_or_below_start_returns_409(client: TestClient) -> Non
 
 def test_patch_log_page_exceeds_book_length_returns_409(client: TestClient) -> None:
     book_resp = client.post(
-        "/books",
+        "/api/books",
         json={"title": "Piranesi", "author": "Susanna Clarke", "page_count": 200},
     )
     assert book_resp.status_code == 201
     book = book_resp.json()
-    client.post("/editions", json={"book_id": book["id"], "edition_format": "print"})
+    client.post(
+        "/api/editions", json={"book_id": book["id"], "edition_format": "print"}
+    )
     engagement = _create_engagement(client, book["id"])
     latest = _log_progress(client, engagement["id"], 150)
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{latest['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{latest['id']}",
         json={"page_end": 250},
     )
 
@@ -158,7 +160,7 @@ def test_patch_log_minute_on_most_recent_updates_minute_end(
     latest = _log_audio_progress(client, engagement["id"], 120)
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{latest['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{latest['id']}",
         json={"minute_end": 150},
     )
 
@@ -175,7 +177,7 @@ def test_patch_log_minute_at_or_below_start_returns_409(client: TestClient) -> N
     latest = _log_audio_progress(client, engagement["id"], 120)
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{latest['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{latest['id']}",
         json={"minute_end": 60},
     )
 
@@ -189,7 +191,7 @@ def test_patch_log_minute_exceeds_audio_length_returns_409(client: TestClient) -
     latest = _log_audio_progress(client, engagement["id"], 120)
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{latest['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{latest['id']}",
         json={"minute_end": 250},
     )
 
@@ -198,7 +200,7 @@ def test_patch_log_minute_exceeds_audio_length_returns_409(client: TestClient) -
 
 def test_patch_log_unknown_engagement_returns_404(client: TestClient) -> None:
     response = client.patch(
-        f"/engagements/{uuid.uuid4()}/progress-logs/{uuid.uuid4()}",
+        f"/api/engagements/{uuid.uuid4()}/progress-logs/{uuid.uuid4()}",
         json={"page_end": 100},
     )
     assert response.status_code == 404
@@ -209,7 +211,7 @@ def test_patch_log_unknown_log_returns_404(client: TestClient) -> None:
     engagement = _create_engagement(client, book["id"])
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{uuid.uuid4()}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{uuid.uuid4()}",
         json={"page_end": 100},
     )
     assert response.status_code == 404
@@ -225,7 +227,7 @@ def test_patch_log_date_any_past_date_is_valid(client: TestClient, db: Session) 
     assert eng_obj is not None
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{second['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{second['id']}",
         json={"logged_on": "2026-01-05"},
     )
 
@@ -244,12 +246,12 @@ def test_patch_backdated_log_is_not_most_recent_for_progress_edit(
     assert eng_obj is not None
 
     client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{first['id']}",
         json={"logged_on": "2026-01-05"},
     )
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{first['id']}",
         json={"page_end": 150},
     )
 
@@ -265,7 +267,7 @@ def test_patch_log_date_and_progress_together_when_date_makes_it_latest(
     _log_progress(client, engagement["id"], 200, logged_on="2026-01-20")
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{first['id']}",
         json={"logged_on": "2026-01-25", "page_end": 90},
     )
 
@@ -279,7 +281,7 @@ def test_patch_log_date_in_future_returns_422(client: TestClient) -> None:
     future = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
 
     response = client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{log['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{log['id']}",
         json={"logged_on": future},
     )
 
