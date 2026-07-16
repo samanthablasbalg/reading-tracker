@@ -15,6 +15,7 @@ jobs:
 
     env:
       E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/reading_tracker_e2e
+      SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
 
     services:
       postgres:

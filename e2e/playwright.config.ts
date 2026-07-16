@@ -86,6 +86,7 @@ export default defineConfig({
         // be the place RLS is exercised as the restricted role.
         DATABASE_URL: process.env['E2E_DATABASE_URL'] ?? '',
         APP_DATABASE_URL: process.env['E2E_DATABASE_URL'] ?? '',
+        SESSION_SECRET: process.env['SESSION_SECRET'] ?? '',
         // Enables POST /auth/test-login, the Google-bypass the auth setup
         // project uses. Scoped to this dedicated :8001 process only — never
         // set for dev (:8000) or the pytest suite.
