@@ -25,7 +25,10 @@ setup('provision e2e database', async () => {
   const backendDir = path.resolve(__dirname, '../../backend');
   execSync('python -m alembic upgrade head', {
     cwd: backendDir,
-    env: { ...process.env, DATABASE_URL: dbUrl },
+    // app/database.py requires APP_DATABASE_URL at import time, and alembic's
+    // env.py imports it for Base — even though migrations use DATABASE_URL. The
+    // e2e app is single-user, so point both at the same database.
+    env: { ...process.env, DATABASE_URL: dbUrl, APP_DATABASE_URL: dbUrl },
     stdio: 'inherit',
   });
 });

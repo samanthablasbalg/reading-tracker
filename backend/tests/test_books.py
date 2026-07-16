@@ -18,7 +18,7 @@ from app.models.edition import Edition
 from app.models.enums import Format
 from app.models.standalone_entry import StandaloneEntry
 from app.models.user import User
-from tests.conftest import engine
+from tests.conftest import owner_engine
 from tests.helpers import _create_bare_book, _create_book, _create_engagement
 
 
@@ -143,7 +143,7 @@ def test_import_already_in_catalog_returns_200_no_duplicate(
     assert second.status_code == 200
     assert second.json()["id"] == first.json()["id"]
 
-    with Session(engine) as db:
+    with Session(owner_engine) as db:
         books = db.execute(select(Book)).scalars().all()
     assert len(books) == 1
 
@@ -218,7 +218,7 @@ def test_import_reuses_existing_author(
     client.post("/books/import", json={"google_books_id": "id1"})
     client.post("/books/import", json={"google_books_id": "id2"})
 
-    with Session(engine) as db:
+    with Session(owner_engine) as db:
         authors = db.execute(select(Author)).scalars().all()
     assert len(authors) == 1
 
@@ -346,7 +346,7 @@ def test_create_book_reuses_existing_author(client: TestClient) -> None:
         json={"title": "A Desolation Called Peace", "author": "Arkady Martine"},
     )
 
-    with Session(engine) as db:
+    with Session(owner_engine) as db:
         authors = db.execute(select(Author)).scalars().all()
     assert len(authors) == 1
 

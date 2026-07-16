@@ -67,7 +67,12 @@ export default defineConfig({
       url: 'http://127.0.0.1:8001/docs',
       reuseExistingServer: !process.env['CI'],
       env: {
+        // The app connects via APP_DATABASE_URL (RLS-restricted role in prod).
+        // e2e is single-user, so RLS filtering changes nothing observable here;
+        // we reuse the e2e database URL directly and let the backend test suite
+        // be the place RLS is exercised as the restricted role.
         DATABASE_URL: process.env['E2E_DATABASE_URL'] ?? '',
+        APP_DATABASE_URL: process.env['E2E_DATABASE_URL'] ?? '',
       },
     },
     {
