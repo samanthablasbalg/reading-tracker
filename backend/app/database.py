@@ -36,3 +36,11 @@ def get_db() -> Generator[Session]:
             db.close()
     finally:
         connection.close()
+
+
+def get_unscoped_db() -> Generator[Session]:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

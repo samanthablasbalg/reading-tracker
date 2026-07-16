@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Connection, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.database import Base, get_db
+from app.database import Base, get_db, get_unscoped_db
 from app.main import app
 from app.models.user import User
 
@@ -146,7 +146,15 @@ def client(seed_user: User) -> Generator[TestClient]:
         finally:
             connection.close()
 
+    def override_get_unscoped_db() -> Generator[Session]:
+        session = TestingSessionLocal()
+        try:
+            yield session
+        finally:
+            session.close()
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_unscoped_db] = override_get_unscoped_db
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
