@@ -942,7 +942,7 @@ def test_delete_progress_log_removes_it_from_list(client: TestClient) -> None:
 
     client.delete(f"/api/engagements/{engagement['id']}/progress-logs/{log['id']}")
 
-    response = client.get(f"/api/engagements/{engagement['id']}/progress-logs/")
+    response = client.get(f"/api/engagements/{engagement['id']}/progress-logs")
     assert response.json() == []
 
 

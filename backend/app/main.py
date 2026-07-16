@@ -1,6 +1,8 @@
 import os
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api import router
@@ -16,3 +18,23 @@ app.add_middleware(
     secret_key=SESSION_SECRET,
 )
 app.include_router(router, prefix="/api")
+
+FRONTEND_DIST = (
+    Path(__file__).resolve().parent.parent.parent
+    / "frontend"
+    / "dist"
+    / "reading-tracker-app"
+    / "browser"
+)
+
+if FRONTEND_DIST.is_dir():
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str) -> FileResponse:
+        if full_path == "api" or full_path.startswith("api/"):
+            raise HTTPException(status_code=404)
+
+        candidate = (FRONTEND_DIST / full_path).resolve()
+        if candidate.is_file() and candidate.is_relative_to(FRONTEND_DIST.resolve()):
+            return FileResponse(candidate)
+        return FileResponse(FRONTEND_DIST / "index.html")
