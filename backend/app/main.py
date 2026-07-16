@@ -16,6 +16,7 @@ app = FastAPI(title="Reading Tracker")
 app.add_middleware(
     SessionMiddleware,
     secret_key=SESSION_SECRET,
+    https_only=os.getenv("SESSION_COOKIE_SECURE", "").lower() == "true",
 )
 app.include_router(router, prefix="/api")
 
