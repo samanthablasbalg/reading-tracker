@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Book } from './book.service';
+import { environment } from '../environments/environment';
 
 export type EngagementStatus = 'reading' | 'finished' | 'dnf';
 
@@ -63,7 +64,7 @@ export class EngagementService {
 
   private fetch(status: EngagementStatus): void {
     this.http
-      .get<Engagement[]>('/api/engagements', { params: { status } })
+      .get<Engagement[]>(`${environment.apiBaseUrl}/engagements`, { params: { status } })
       .subscribe((list) => this.subject(status).next(list));
   }
 
@@ -89,7 +90,7 @@ export class EngagementService {
     format = 'print',
     audioLengthMinutes?: number,
   ): Observable<Engagement> {
-    return this.http.post<Engagement>('/api/engagements', {
+    return this.http.post<Engagement>(`${environment.apiBaseUrl}/engagements`, {
       book_id: bookId,
       edition_format: format,
       started_on: localDateString(),
@@ -98,14 +99,14 @@ export class EngagementService {
   }
 
   markFinished(engagementId: string): Observable<Engagement> {
-    return this.http.patch<Engagement>(`/api/engagements/${engagementId}`, {
+    return this.http.patch<Engagement>(`${environment.apiBaseUrl}/engagements/${engagementId}`, {
       status: 'finished',
       effective_on: localDateString(),
     });
   }
 
   markDnf(engagementId: string): Observable<Engagement> {
-    return this.http.patch<Engagement>(`/api/engagements/${engagementId}`, {
+    return this.http.patch<Engagement>(`${environment.apiBaseUrl}/engagements/${engagementId}`, {
       status: 'dnf',
       effective_on: localDateString(),
     });
@@ -116,18 +117,23 @@ export class EngagementService {
     payload: Record<string, number>,
     loggedOn?: string,
   ): Observable<unknown> {
-    return this.http.post<unknown>(`/api/engagements/${engagementId}/progress-logs`, {
-      ...payload,
-      logged_on: loggedOn ?? localDateString(),
-    });
+    return this.http.post<unknown>(
+      `${environment.apiBaseUrl}/engagements/${engagementId}/progress-logs`,
+      {
+        ...payload,
+        logged_on: loggedOn ?? localDateString(),
+      },
+    );
   }
 
   getEngagement(id: string): Observable<Engagement> {
-    return this.http.get<Engagement>(`/api/engagements/${id}`);
+    return this.http.get<Engagement>(`${environment.apiBaseUrl}/engagements/${id}`);
   }
 
   getProgressLogs(id: string): Observable<ProgressLog[]> {
-    return this.http.get<ProgressLog[]>(`/api/engagements/${id}/progress-logs`);
+    return this.http.get<ProgressLog[]>(
+      `${environment.apiBaseUrl}/engagements/${id}/progress-logs`,
+    );
   }
 
   patchProgressLog(
@@ -136,24 +142,26 @@ export class EngagementService {
     patch: { logged_on?: string; page_end?: number; minute_end?: number },
   ): Observable<ProgressLog> {
     return this.http.patch<ProgressLog>(
-      `/api/engagements/${engagementId}/progress-logs/${logId}`,
+      `${environment.apiBaseUrl}/engagements/${engagementId}/progress-logs/${logId}`,
       patch,
     );
   }
 
   deleteProgressLog(engagementId: string, logId: string): Observable<void> {
-    return this.http.delete<void>(`/api/engagements/${engagementId}/progress-logs/${logId}`);
+    return this.http.delete<void>(
+      `${environment.apiBaseUrl}/engagements/${engagementId}/progress-logs/${logId}`,
+    );
   }
 
   deleteEngagement(id: string): Observable<void> {
-    return this.http.delete<void>(`/api/engagements/${id}`);
+    return this.http.delete<void>(`${environment.apiBaseUrl}/engagements/${id}`);
   }
 
   patchEngagementDates(
     id: string,
     patch: { started_on?: string; finished_on?: string },
   ): Observable<Engagement> {
-    return this.http.patch<Engagement>(`/api/engagements/${id}/dates`, patch);
+    return this.http.patch<Engagement>(`${environment.apiBaseUrl}/engagements/${id}/dates`, patch);
   }
 
   upsertReview(
@@ -161,6 +169,9 @@ export class EngagementService {
     rating: number | null,
     body: string | null,
   ): Observable<Engagement> {
-    return this.http.put<Engagement>(`/api/engagements/${engagementId}/review`, { rating, body });
+    return this.http.put<Engagement>(
+      `${environment.apiBaseUrl}/engagements/${engagementId}/review`,
+      { rating, body },
+    );
   }
 }
