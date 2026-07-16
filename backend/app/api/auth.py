@@ -14,6 +14,17 @@ from app.oauth import oauth
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+E2E_TEST_USER_EMAIL = "test-user@example.com"
+
+
+def _get_or_create_user(db: Session, email: str) -> User:
+    user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
+    if user is None:
+        user = User(email=email)
+        db.add(user)
+        db.commit()
+    return user
+
 
 def _allowlist() -> set[str]:
     raw = os.getenv("ALLOWED_EMAILS", "")
@@ -49,11 +60,7 @@ async def callback(
             detail="This account is not on the allowlist.",
         )
 
-    user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
-    if user is None:
-        user = User(email=email)
-        db.add(user)
-        db.commit()
+    user = _get_or_create_user(db, email)
 
     request.session["user_id"] = str(user.id)
     request.session["email"] = email
@@ -71,4 +78,16 @@ def me(request: Request) -> dict[str, str | None]:
 @router.post("/logout")
 def logout(request: Request) -> dict[str, bool]:
     request.session.clear()
+    return {"ok": True}
+
+
+@router.post("/test-login")
+def test_login(
+    request: Request, db: Session = Depends(get_unscoped_db)
+) -> dict[str, bool]:
+    if os.getenv("E2E_TEST_AUTH") != "true":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    user = _get_or_create_user(db, E2E_TEST_USER_EMAIL)
+    request.session["user_id"] = str(user.id)
+    request.session["email"] = E2E_TEST_USER_EMAIL
     return {"ok": True}

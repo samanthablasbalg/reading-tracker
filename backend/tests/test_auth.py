@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 
+from app.api.auth import E2E_TEST_USER_EMAIL
 from app.main import app
 from app.models.user import User
 from app.oauth import oauth
@@ -90,3 +91,44 @@ def test_logout_clears_the_session(
 
     assert client.post("/auth/logout").status_code == 200
     assert client.get("/auth/me").status_code == 401
+
+
+def test_test_login_is_absent_without_the_e2e_flag(client: TestClient) -> None:
+    assert client.post("/auth/test-login").status_code == 404
+
+
+def test_test_login_starts_a_session_when_e2e_flagged(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("E2E_TEST_AUTH", "true")
+
+    response = client.post("/auth/test-login")
+    assert response.status_code == 200
+
+    user = db.execute(
+        select(User).where(User.email == E2E_TEST_USER_EMAIL)
+    ).scalar_one()
+
+    me = client.get("/auth/me")
+    assert me.status_code == 200
+    assert me.json() == {"id": str(user.id), "email": E2E_TEST_USER_EMAIL}
+
+
+def test_test_login_reuses_the_same_user_on_repeat_calls(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("E2E_TEST_AUTH", "true")
+
+    client.post("/auth/test-login")
+    first_id = client.get("/auth/me").json()["id"]
+
+    client.post("/auth/test-login")
+    second_id = client.get("/auth/me").json()["id"]
+
+    assert first_id == second_id
+    users = (
+        db.execute(select(User).where(User.email == E2E_TEST_USER_EMAIL))
+        .scalars()
+        .all()
+    )
+    assert len(users) == 1
