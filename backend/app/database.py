@@ -1,7 +1,9 @@
 import os
+import uuid
 from collections.abc import Generator
 
 from dotenv import load_dotenv
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
@@ -20,10 +22,16 @@ class Base(DeclarativeBase):
     pass
 
 
-def get_db() -> Generator[Session]:
+def get_current_user_id(request: Request) -> uuid.UUID:
+    raw_user_id = request.session.get("user_id")
+    if raw_user_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    return uuid.UUID(raw_user_id)
+
+
+def get_db(user_id: uuid.UUID = Depends(get_current_user_id)) -> Generator[Session]:
     connection = engine.connect()
     try:
-        user_id = connection.execute(text("SELECT id FROM users")).scalar_one()
         connection.execute(
             text("SELECT set_config('app.current_user_id', :uid, false)"),
             {"uid": str(user_id)},
@@ -36,3 +44,11 @@ def get_db() -> Generator[Session]:
             db.close()
     finally:
         connection.close()
+
+
+def get_unscoped_db() -> Generator[Session]:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

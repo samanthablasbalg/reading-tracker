@@ -3,9 +3,7 @@ import { Client } from 'pg';
 
 // Base of the fixtures chain. Every spec imports `test`/`expect` from a fixture
 // in this dir (never from @playwright/test directly); this one wipes the e2e
-// database and reseeds a baseline user before each test, so tests never see each
-// other's data and the backend's get_current_user placeholder (standing in for
-// real auth until #121) always finds exactly one row to return. Scenario
+// database before each test, so tests never see each other's data. Scenario
 // fixtures (e.g. a "five books in the library" one) extend this to inherit both.
 
 const dbUrl = process.env['E2E_DATABASE_URL'];
@@ -21,11 +19,14 @@ export const test = base.extend<{ cleanDb: void }>({
 
       // Ask Postgres which tables exist instead of hand-maintaining a list, so new
       // tables get wiped automatically. `pg_tables` is a built-in catalog; `public`
-      // is the schema our app's tables live in. Skip `alembic_version` — it records
-      // which migrations have run, so wiping it would make the DB look un-migrated.
+      // is the schema our app's tables live in. Skip `alembic_version` (records which
+      // migrations have run) and `users` (the auth setup project logs in once for the
+      // whole run via a find-or-create test-login call; truncating it here would orphan
+      // that session — CASCADE only truncates tables that reference the ones listed, so
+      // leaving `users` out doesn't stop `engagements` etc. from being wiped).
       const { rows } = await client.query<{ tablename: string }>(
         `SELECT tablename FROM pg_tables
-         WHERE schemaname = 'public' AND tablename <> 'alembic_version'`,
+         WHERE schemaname = 'public' AND tablename NOT IN ('alembic_version', 'users')`,
       );
 
       // Quote each name (guards against casing/reserved words) and empty them all in
@@ -37,13 +38,8 @@ export const test = base.extend<{ cleanDb: void }>({
         await client.query(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
       }
 
-      await client.query(
-        `INSERT INTO users (id, email, created_at, updated_at)
-         VALUES (gen_random_uuid(), 'test-user@example.com', now(), now())`,
-      );
-
       await client.end();
-      await use(); // hand control to the test, now against a freshly seeded database
+      await use(); // hand control to the test, now against a freshly wiped database
     },
     { auto: true },
   ],

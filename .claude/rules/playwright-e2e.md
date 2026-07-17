@@ -22,21 +22,29 @@ external Playwright-docs default.
 
 ## Auth & seed
 
-This app has **no auth yet** — nothing is login-gated, so there is no `auth.setup.ts` and no stored
-state. (Auth lands with deployment, #71; revisit this section then.) Two pieces stand in for it:
+Every route is login-gated (Google OAuth). The `auth setup` project (`tests/auth.setup.ts`) logs in
+once per run via the env-gated `POST /auth/test-login` bypass (active only when `E2E_TEST_AUTH=true`,
+set for the e2e backend only) and saves the session to `e2e/.auth/user.json`; `chromium`/`firefox`/
+`mobile` load it as `storageState`, so every `page`/`request` starts already authenticated.
 
 - **Schema** is provisioned by the `db setup` project (`tests/db.setup.ts`): it creates the e2e
   database if missing and runs `alembic upgrade head`. Every other project depends on it.
 - **Data isolation** is per-test truncation. Specs import `test`/`expect` from the `fixtures/`
   tree — never `@playwright/test` directly — and the base `test` carries an `auto` fixture that
-  truncates every table before each test. With `workers: 1` that means each test starts from an
-  empty DB, so tests use **fixed** identifiers and need **no** per-test cleanup or unique suffixes.
+  truncates every table before each test **except `users`** — truncating it would orphan the
+  session `auth setup` already established. With `workers: 1` that means each test starts from an
+  otherwise-empty DB, so tests use **fixed** identifiers and need **no** per-test cleanup or unique
+  suffixes.
 - **Data setup** goes through `ApiClient` (`e2e/api/api-client.ts`), built from the `request`
   fixture, hitting the e2e backend on :8001 directly.
 
 The **authoring seed** (`tests/seed.spec.ts`, the `seed` project) navigates to `/` and
 `page.pause()`s so `playwright-cli` can drive one live session under `--debug=cli`. It is excluded
-from the suite via `testIgnore` and runs with `timeout: 0`. The authoring loop is in the skill.
+from the browser projects via `testIgnore`, from CI via a `process.env['CI']` check in
+`playwright.config.ts` (it's an interactive tool, not a regression check), and runs with
+`timeout: 0`. The authoring loop is in the skill. Note: `seed_dev.py`, the dev-data seeder it runs,
+doesn't yet authenticate its own HTTP calls — currently broken for both this project and standalone
+local dev seeding; unresolved, tracked as follow-up work.
 
 > Forward note: serial truncation is the **current** model, not the destination. Parallelism is a
 > known future direction (#65) and will retire the global truncate in favour of

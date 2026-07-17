@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 import dotenv from 'dotenv'
 import path from 'path'
+import { AUTH_FILE } from './auth-file'
 
 dotenv.config({ path: path.resolve(__dirname, '.env') })
 
@@ -25,15 +26,23 @@ export default defineConfig({
       testMatch: /db\.setup\.ts/,
     },
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      // Logs in once via the env-gated /auth/test-login bypass and saves the
+      // session to AUTH_FILE; the projects below load it as storageState so
+      // every page/request starts already authenticated.
+      name: 'auth setup',
+      testMatch: /auth\.setup\.ts/,
       dependencies: ['db setup'],
+    },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'], storageState: AUTH_FILE },
+      dependencies: ['db setup', 'auth setup'],
       testIgnore: /seed\.spec\.ts/,
     },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-      dependencies: ['db setup'],
+      use: { ...devices['Desktop Firefox'], storageState: AUTH_FILE },
+      dependencies: ['db setup', 'auth setup'],
       testIgnore: /seed\.spec\.ts/,
     },
     {
@@ -42,20 +51,24 @@ export default defineConfig({
       // (412px wide, touch) trips that breakpoint. (Firefox can't do mobile
       // device emulation, so the mobile project is Chromium-engine.)
       name: 'mobile',
-      use: { ...devices['Pixel 7'] },
-      dependencies: ['db setup'],
+      use: { ...devices['Pixel 7'], storageState: AUTH_FILE },
+      dependencies: ['db setup', 'auth setup'],
       testIgnore: /seed\.spec\.ts/,
     },
-    {
-      // Authoring seed for the playwright-new-test skill: a single paused
-      // session to drive with playwright-cli under --debug=cli. Excluded from
-      // the suite above; timeout: 0 so the pause never expires.
-      name: 'seed',
-      testMatch: /seed\.spec\.ts/,
-      timeout: 0,
-      use: { ...devices['Desktop Chrome'] },
-      dependencies: ['db setup'],
-    },
+    // Authoring seed for the playwright-new-test skill: a single paused
+    // session to drive with playwright-cli under --debug=cli. timeout: 0 so
+    // the pause never expires — never run in CI, only interactively.
+    ...(process.env['CI']
+      ? []
+      : [
+          {
+            name: 'seed',
+            testMatch: /seed\.spec\.ts/,
+            timeout: 0,
+            use: { ...devices['Desktop Chrome'] },
+            dependencies: ['db setup'],
+          },
+        ]),
   ],
   webServer: [
     {
@@ -73,6 +86,11 @@ export default defineConfig({
         // be the place RLS is exercised as the restricted role.
         DATABASE_URL: process.env['E2E_DATABASE_URL'] ?? '',
         APP_DATABASE_URL: process.env['E2E_DATABASE_URL'] ?? '',
+        SESSION_SECRET: process.env['SESSION_SECRET'] ?? '',
+        // Enables POST /auth/test-login, the Google-bypass the auth setup
+        // project uses. Scoped to this dedicated :8001 process only — never
+        // set for dev (:8000) or the pytest suite.
+        E2E_TEST_AUTH: 'true',
       },
     },
     {

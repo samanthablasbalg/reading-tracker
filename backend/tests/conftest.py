@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Connection, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.database import Base, get_db
+from app.database import Base, get_current_user_id, get_db, get_unscoped_db
 from app.main import app
 from app.models.user import User
 
@@ -129,13 +129,15 @@ def app_session(
 
 @pytest.fixture
 def client(seed_user: User) -> Generator[TestClient]:
+    def override_get_current_user_id() -> uuid.UUID:
+        return seed_user.id
+
     def override_get_db() -> Generator[Session]:
         connection = app_engine.connect()
         try:
-            user_id = connection.execute(text("SELECT id FROM users")).scalar_one()
             connection.execute(
                 text("SELECT set_config('app.current_user_id', :uid, false)"),
-                {"uid": str(user_id)},
+                {"uid": str(seed_user.id)},
             )
             connection.commit()
             session = Session(bind=connection)
@@ -146,7 +148,16 @@ def client(seed_user: User) -> Generator[TestClient]:
         finally:
             connection.close()
 
+    def override_get_unscoped_db() -> Generator[Session]:
+        session = TestingSessionLocal()
+        try:
+            yield session
+        finally:
+            session.close()
+
+    app.dependency_overrides[get_current_user_id] = override_get_current_user_id
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_unscoped_db] = override_get_unscoped_db
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

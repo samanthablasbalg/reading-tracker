@@ -1,0 +1,14 @@
+nav[mat-tab-nav-bar] {
+  display: flex;
+  align-items: center;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.current-user {
+  margin-right: 8px;
+  font-size: 0.875rem;
+  opacity: 0.75;
+}
