@@ -36,6 +36,12 @@ def _extract_isbn(identifiers: list[dict[str, str]]) -> str | None:
     return by_type.get("ISBN_13") or by_type.get("ISBN_10")
 
 
+def _https_url(url: str | None) -> str | None:
+    if url and url.startswith("http://"):
+        return "https://" + url.removeprefix("http://")
+    return url
+
+
 def _parse_volume(item: dict[str, Any]) -> GoogleVolume:
     info: dict[str, Any] = item.get("volumeInfo", {})
     image_links: dict[str, Any] = info.get("imageLinks", {})
@@ -46,7 +52,7 @@ def _parse_volume(item: dict[str, Any]) -> GoogleVolume:
         published_date=info.get("publishedDate"),
         page_count=info.get("pageCount"),
         categories=info.get("categories", []),
-        cover_url=image_links.get("thumbnail"),
+        cover_url=_https_url(image_links.get("thumbnail")),
         language=info.get("language"),
         isbn=_extract_isbn(info.get("industryIdentifiers", [])),
     )
