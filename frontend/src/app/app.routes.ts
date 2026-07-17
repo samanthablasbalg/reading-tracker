@@ -25,6 +25,14 @@ export const routes: Routes = [
         loadComponent: () => import('./concluded/concluded').then((m) => m.ConcludedComponent),
       },
       {
+        path: 'insights',
+        loadComponent: () => import('./insights/insights').then((m) => m.InsightsComponent),
+      },
+      {
+        path: 'challenges',
+        loadComponent: () => import('./challenges/challenges').then((m) => m.ChallengesComponent),
+      },
+      {
         path: 'engagement/:id',
         loadComponent: () =>
           import('./engagement-history/engagement-history').then(
