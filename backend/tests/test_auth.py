@@ -22,10 +22,20 @@ def _allowlist(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _mock_google_login(
-    monkeypatch: pytest.MonkeyPatch, email: str, *, verified: bool = True
+    monkeypatch: pytest.MonkeyPatch,
+    email: str,
+    *,
+    verified: bool = True,
+    picture: str | None = None,
 ) -> None:
     async def fake_authorize_access_token(request: Request) -> dict[str, Any]:
-        return {"userinfo": {"email": email, "email_verified": verified}}
+        return {
+            "userinfo": {
+                "email": email,
+                "email_verified": verified,
+                "picture": picture,
+            }
+        }
 
     monkeypatch.setattr(
         oauth.google, "authorize_access_token", fake_authorize_access_token
@@ -44,7 +54,19 @@ def test_callback_logs_in_allowlisted_user(
 
     me = client.get("/api/auth/me")
     assert me.status_code == 200
-    assert me.json() == {"id": str(user.id), "email": ALLOWED_EMAIL}
+    assert me.json() == {"id": str(user.id), "email": ALLOWED_EMAIL, "picture": None}
+
+
+def test_callback_stores_the_google_profile_picture(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    picture_url = "https://lh3.googleusercontent.com/a/example-photo"
+    _mock_google_login(monkeypatch, ALLOWED_EMAIL, picture=picture_url)
+
+    client.get("/api/auth/callback", follow_redirects=False)
+
+    me = client.get("/api/auth/me")
+    assert me.json()["picture"] == picture_url
 
 
 def test_callback_rejects_email_not_on_allowlist(
@@ -111,7 +133,11 @@ def test_test_login_starts_a_session_when_e2e_flagged(
 
     me = client.get("/api/auth/me")
     assert me.status_code == 200
-    assert me.json() == {"id": str(user.id), "email": E2E_TEST_USER_EMAIL}
+    assert me.json() == {
+        "id": str(user.id),
+        "email": E2E_TEST_USER_EMAIL,
+        "picture": None,
+    }
 
 
 def test_test_login_reuses_the_same_user_on_repeat_calls(
