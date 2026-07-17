@@ -11,6 +11,9 @@
    the chart/tint set this ticket registers for later use — `static` opts
    this block out of that tree-shaking. */
 @theme static {
+  --font-serif: 'Lora', serif;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+
   --color-primary: light-dark(#e11584, #ff5fab);
   --color-on-primary: light-dark(#ffffff, #23111b);
   --color-secondary: light-dark(#ff7a2f, #ffa24d);
@@ -41,4 +44,13 @@
   --color-tint-4: light-dark(#ffe0cc, #5a3a2a);
   --color-tint-5: light-dark(#d6ebff, #2a3e5a);
   --color-tint-6: light-dark(#ffefb8, #5a4a22);
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+.font-sans {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
 }

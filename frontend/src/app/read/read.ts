@@ -47,7 +47,7 @@ import { ReviewSheetComponent, ReviewSheetData } from '../review-sheet/review-sh
               [alt]="engagement.book.title + ' cover'"
             />
           }
-          <span matListItemTitle>{{ engagement.book.title }}</span>
+          <span matListItemTitle class="font-serif">{{ engagement.book.title }}</span>
           <span matListItemLine>
             {{ engagement.book.authors.map((a) => a.name).join(', ') }}
             @if (engagement.formats[0]) {

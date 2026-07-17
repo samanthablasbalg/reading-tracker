@@ -2,10 +2,11 @@ import { Component } from '@angular/core';
 import { DNFComponent } from '../dnf/dnf';
 import { ReadComponent } from '../read/read';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatDialogTitle } from '@angular/material/dialog';
 
 @Component({
   selector: 'app-concluded',
-  imports: [ReadComponent, DNFComponent, MatDividerModule],
+  imports: [ReadComponent, DNFComponent, MatDividerModule, MatDialogTitle],
   styles: [
     `
       .section-divider {
