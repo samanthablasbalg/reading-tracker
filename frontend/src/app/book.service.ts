@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, Subject, shareReplay, startWith, switchMap } from 'rxjs';
+import { environment } from '../environments/environment';
 
 export interface Author {
   id: string;
@@ -40,7 +41,7 @@ export class BookService {
 
   readonly books$: Observable<Book[]> = this.reloadTrigger.pipe(
     startWith(undefined),
-    switchMap(() => this.http.get<Book[]>('/api/books')),
+    switchMap(() => this.http.get<Book[]>(`${environment.apiBaseUrl}/books`)),
     shareReplay(1),
   );
 
@@ -49,14 +50,18 @@ export class BookService {
   }
 
   searchBooks(q: string): Observable<BookSearchCandidate[]> {
-    return this.http.get<BookSearchCandidate[]>('/api/books/search', { params: { q } });
+    return this.http.get<BookSearchCandidate[]>(`${environment.apiBaseUrl}/books/search`, {
+      params: { q },
+    });
   }
 
   importBook(googleBooksId: string): Observable<Book> {
-    return this.http.post<Book>('/api/books/import', { google_books_id: googleBooksId });
+    return this.http.post<Book>(`${environment.apiBaseUrl}/books/import`, {
+      google_books_id: googleBooksId,
+    });
   }
 
   deleteBook(id: string): Observable<void> {
-    return this.http.delete<void>(`/api/books/${id}`);
+    return this.http.delete<void>(`${environment.apiBaseUrl}/books/${id}`);
   }
 }

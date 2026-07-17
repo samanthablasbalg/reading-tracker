@@ -9,13 +9,13 @@ from tests.helpers import _create_book, _create_engagement
 
 def _finish_engagement(client: TestClient, book_id: str) -> dict[str, Any]:
     engagement = _create_engagement(client, book_id)
-    client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
+    client.patch(f"/api/engagements/{engagement['id']}", json={"status": "finished"})
     return engagement
 
 
 def _dnf_engagement(client: TestClient, book_id: str) -> dict[str, Any]:
     engagement = _create_engagement(client, book_id)
-    client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+    client.patch(f"/api/engagements/{engagement['id']}", json={"status": "dnf"})
     return engagement
 
 
@@ -26,7 +26,7 @@ def test_upsert_review_creates_review_on_finished_engagement(
     engagement = _finish_engagement(client, book["id"])
 
     response = client.put(
-        f"/engagements/{engagement['id']}/review",
+        f"/api/engagements/{engagement['id']}/review",
         json={"rating": 4.0},
     )
     assert response.status_code == 200
@@ -40,7 +40,7 @@ def test_upsert_review_creates_review_on_dnf_engagement(client: TestClient) -> N
     engagement = _dnf_engagement(client, book["id"])
 
     response = client.put(
-        f"/engagements/{engagement['id']}/review",
+        f"/api/engagements/{engagement['id']}/review",
         json={"rating": 2.5},
     )
     assert response.status_code == 200
@@ -52,7 +52,7 @@ def test_upsert_review_with_body(client: TestClient) -> None:
     engagement = _finish_engagement(client, book["id"])
 
     response = client.put(
-        f"/engagements/{engagement['id']}/review",
+        f"/api/engagements/{engagement['id']}/review",
         json={"rating": 3.75, "body": "Loved it."},
     )
     assert response.status_code == 200
@@ -65,12 +65,12 @@ def test_upsert_review_updates_existing_review(client: TestClient) -> None:
     book = _create_book(client)
     engagement = _finish_engagement(client, book["id"])
     client.put(
-        f"/engagements/{engagement['id']}/review",
+        f"/api/engagements/{engagement['id']}/review",
         json={"rating": 3.0, "body": "OK."},
     )
 
     response = client.put(
-        f"/engagements/{engagement['id']}/review",
+        f"/api/engagements/{engagement['id']}/review",
         json={"rating": 4.25, "body": "Actually great."},
     )
     assert response.status_code == 200
@@ -84,7 +84,7 @@ def test_upsert_review_rating_too_low_returns_422(client: TestClient) -> None:
     engagement = _finish_engagement(client, book["id"])
 
     response = client.put(
-        f"/engagements/{engagement['id']}/review",
+        f"/api/engagements/{engagement['id']}/review",
         json={"rating": 0.75},
     )
     assert response.status_code == 422
@@ -95,7 +95,7 @@ def test_upsert_review_rating_too_high_returns_422(client: TestClient) -> None:
     engagement = _finish_engagement(client, book["id"])
 
     response = client.put(
-        f"/engagements/{engagement['id']}/review",
+        f"/api/engagements/{engagement['id']}/review",
         json={"rating": 5.25},
     )
     assert response.status_code == 422
@@ -106,7 +106,7 @@ def test_upsert_review_non_quarter_step_returns_422(client: TestClient) -> None:
     engagement = _finish_engagement(client, book["id"])
 
     response = client.put(
-        f"/engagements/{engagement['id']}/review",
+        f"/api/engagements/{engagement['id']}/review",
         json={"rating": 3.3},
     )
     assert response.status_code == 422
@@ -117,7 +117,7 @@ def test_upsert_review_on_reading_engagement_returns_409(client: TestClient) -> 
     engagement = _create_engagement(client, book["id"])
 
     response = client.put(
-        f"/engagements/{engagement['id']}/review",
+        f"/api/engagements/{engagement['id']}/review",
         json={"rating": 4.0},
     )
     assert response.status_code == 409
@@ -131,13 +131,13 @@ def test_upsert_review_boundary_ratings_accepted(client: TestClient) -> None:
 
     assert (
         client.put(
-            f"/engagements/{eng_a['id']}/review", json={"rating": 1.0}
+            f"/api/engagements/{eng_a['id']}/review", json={"rating": 1.0}
         ).status_code
         == 200
     )
     assert (
         client.put(
-            f"/engagements/{eng_b['id']}/review", json={"rating": 5.0}
+            f"/api/engagements/{eng_b['id']}/review", json={"rating": 5.0}
         ).status_code
         == 200
     )
@@ -147,7 +147,7 @@ def test_engagement_review_is_null_before_rating(client: TestClient) -> None:
     book = _create_book(client)
     engagement = _finish_engagement(client, book["id"])
 
-    data = client.get("/engagements?status=finished").json()
+    data = client.get("/api/engagements?status=finished").json()
     assert data[0]["id"] == engagement["id"]
     assert data[0]["review"] is None
 
@@ -157,7 +157,7 @@ def test_upsert_review_with_null_rating_and_body_only(client: TestClient) -> Non
     engagement = _finish_engagement(client, book["id"])
 
     response = client.put(
-        f"/engagements/{engagement['id']}/review",
+        f"/api/engagements/{engagement['id']}/review",
         json={"body": "Really enjoyed this one."},
     )
     assert response.status_code == 200
@@ -169,10 +169,10 @@ def test_upsert_review_with_null_rating_and_body_only(client: TestClient) -> Non
 def test_upsert_review_clears_rating_when_updated_to_null(client: TestClient) -> None:
     book = _create_book(client)
     engagement = _finish_engagement(client, book["id"])
-    client.put(f"/engagements/{engagement['id']}/review", json={"rating": 4.0})
+    client.put(f"/api/engagements/{engagement['id']}/review", json={"rating": 4.0})
 
     response = client.put(
-        f"/engagements/{engagement['id']}/review",
+        f"/api/engagements/{engagement['id']}/review",
         json={"body": "Changed my mind, no star rating."},
     )
     assert response.status_code == 200

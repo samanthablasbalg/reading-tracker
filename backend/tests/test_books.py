@@ -69,7 +69,7 @@ def test_search_returns_candidates(
 
     _patch_google(monkeypatch, handler)
 
-    response = client.get("/books/search?q=piranesi")
+    response = client.get("/api/books/search?q=piranesi")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -92,13 +92,13 @@ def test_search_empty_results(
 
     _patch_google(monkeypatch, handler)
 
-    response = client.get("/books/search?q=zzznomatch")
+    response = client.get("/api/books/search?q=zzznomatch")
     assert response.status_code == 200
     assert response.json() == []
 
 
 def test_search_empty_q_returns_422(client: TestClient) -> None:
-    response = client.get("/books/search?q=")
+    response = client.get("/api/books/search?q=")
     assert response.status_code == 422
 
 
@@ -112,7 +112,7 @@ def test_import_book_returns_201(
 
     _patch_google(monkeypatch, handler)
 
-    response = client.post("/books/import", json={"google_books_id": "abc123"})
+    response = client.post("/api/books/import", json={"google_books_id": "abc123"})
     assert response.status_code == 201
     data = response.json()
     assert data["title"] == "Piranesi"
@@ -136,10 +136,10 @@ def test_import_already_in_catalog_returns_200_no_duplicate(
 
     _patch_google(monkeypatch, handler)
 
-    first = client.post("/books/import", json={"google_books_id": "abc123"})
+    first = client.post("/api/books/import", json={"google_books_id": "abc123"})
     assert first.status_code == 201
 
-    second = client.post("/books/import", json={"google_books_id": "abc123"})
+    second = client.post("/api/books/import", json={"google_books_id": "abc123"})
     assert second.status_code == 200
     assert second.json()["id"] == first.json()["id"]
 
@@ -156,7 +156,7 @@ def test_import_date_precision_day(
 
     _patch_google(monkeypatch, handler)
 
-    data = client.post("/books/import", json={"google_books_id": "abc123"}).json()
+    data = client.post("/api/books/import", json={"google_books_id": "abc123"}).json()
     assert data["publication_date"] == "2020-09-15"
     assert data["publication_date_precision"] == "day"
 
@@ -169,7 +169,7 @@ def test_import_date_precision_month(
 
     _patch_google(monkeypatch, handler)
 
-    data = client.post("/books/import", json={"google_books_id": "abc123"}).json()
+    data = client.post("/api/books/import", json={"google_books_id": "abc123"}).json()
     assert data["publication_date"] == "2020-09-01"
     assert data["publication_date_precision"] == "month"
 
@@ -182,7 +182,7 @@ def test_import_date_precision_year(
 
     _patch_google(monkeypatch, handler)
 
-    data = client.post("/books/import", json={"google_books_id": "abc123"}).json()
+    data = client.post("/api/books/import", json={"google_books_id": "abc123"}).json()
     assert data["publication_date"] == "2020-01-01"
     assert data["publication_date_precision"] == "year"
 
@@ -195,7 +195,9 @@ def test_import_unknown_id_returns_404(
 
     _patch_google(monkeypatch, handler)
 
-    response = client.post("/books/import", json={"google_books_id": "doesnotexist"})
+    response = client.post(
+        "/api/books/import", json={"google_books_id": "doesnotexist"}
+    )
     assert response.status_code == 404
 
 
@@ -215,8 +217,8 @@ def test_import_reuses_existing_author(
 
     _patch_google(monkeypatch, handler)
 
-    client.post("/books/import", json={"google_books_id": "id1"})
-    client.post("/books/import", json={"google_books_id": "id2"})
+    client.post("/api/books/import", json={"google_books_id": "id1"})
+    client.post("/api/books/import", json={"google_books_id": "id2"})
 
     with Session(owner_engine) as db:
         authors = db.execute(select(Author)).scalars().all()
@@ -237,7 +239,7 @@ def test_import_seeds_three_editions(
 
     _patch_google(monkeypatch, handler)
 
-    response = client.post("/books/import", json={"google_books_id": "abc123"})
+    response = client.post("/api/books/import", json={"google_books_id": "abc123"})
     assert response.status_code == 201
     book_id = uuid.UUID(response.json()["id"])
 
@@ -272,7 +274,7 @@ def test_import_upstream_failure_returns_502(
 
     _patch_google(monkeypatch, handler)
 
-    response = client.post("/books/import", json={"google_books_id": "abc123"})
+    response = client.post("/api/books/import", json={"google_books_id": "abc123"})
     assert response.status_code == 502
 
 
@@ -292,7 +294,7 @@ def test_import_missing_optional_fields(
 
     _patch_google(monkeypatch, handler)
 
-    response = client.post("/books/import", json={"google_books_id": "abc123"})
+    response = client.post("/api/books/import", json={"google_books_id": "abc123"})
     assert response.status_code == 201
     data = response.json()
     assert data["authors"] == []
@@ -303,7 +305,7 @@ def test_import_missing_optional_fields(
 
 def test_create_book_returns_created(client: TestClient) -> None:
     response = client.post(
-        "/books",
+        "/api/books",
         json={"title": "A Desolation Called Peace", "author": "Arkady Martine"},
     )
     assert response.status_code == 201
@@ -333,16 +335,17 @@ def test_create_book_returns_created(client: TestClient) -> None:
 def test_create_book_rejects_blank_fields(
     client: TestClient, title: str, author: str
 ) -> None:
-    response = client.post("/books", json={"title": title, "author": author})
+    response = client.post("/api/books", json={"title": title, "author": author})
     assert response.status_code == 422
 
 
 def test_create_book_reuses_existing_author(client: TestClient) -> None:
     client.post(
-        "/books", json={"title": "A Memory Called Empire", "author": "Arkady Martine"}
+        "/api/books",
+        json={"title": "A Memory Called Empire", "author": "Arkady Martine"},
     )
     client.post(
-        "/books",
+        "/api/books",
         json={"title": "A Desolation Called Peace", "author": "Arkady Martine"},
     )
 
@@ -353,11 +356,12 @@ def test_create_book_reuses_existing_author(client: TestClient) -> None:
 
 def test_list_books_returns_all(client: TestClient) -> None:
     client.post(
-        "/books", json={"title": "A Memory Called Empire", "author": "Arkady Martine"}
+        "/api/books",
+        json={"title": "A Memory Called Empire", "author": "Arkady Martine"},
     )
-    client.post("/books", json={"title": "Piranesi", "author": "Susanna Clarke"})
+    client.post("/api/books", json={"title": "Piranesi", "author": "Susanna Clarke"})
 
-    response = client.get("/books")
+    response = client.get("/api/books")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 2
@@ -366,7 +370,7 @@ def test_list_books_returns_all(client: TestClient) -> None:
 
 
 def test_list_books_empty(client: TestClient) -> None:
-    response = client.get("/books")
+    response = client.get("/api/books")
     assert response.status_code == 200
     assert response.json() == []
 
@@ -377,16 +381,16 @@ def test_list_books_empty(client: TestClient) -> None:
 def test_delete_book_returns_204(client: TestClient) -> None:
     book = _create_book(client)
 
-    response = client.delete(f"/books/{book['id']}")
+    response = client.delete(f"/api/books/{book['id']}")
     assert response.status_code == 204
 
 
 def test_delete_book_removes_it_from_list(client: TestClient) -> None:
     book = _create_book(client)
 
-    client.delete(f"/books/{book['id']}")
+    client.delete(f"/api/books/{book['id']}")
 
-    response = client.get("/books")
+    response = client.get("/api/books")
     assert response.status_code == 200
     assert all(b["id"] != book["id"] for b in response.json())
 
@@ -397,7 +401,7 @@ def test_delete_book_cascades_editions_and_authors(
     book = _create_book(client)
     book_id = uuid.UUID(book["id"])
 
-    client.delete(f"/books/{book['id']}")
+    client.delete(f"/api/books/{book['id']}")
 
     editions = (
         db.execute(select(Edition).where(Edition.book_id == book_id)).scalars().all()
@@ -416,7 +420,7 @@ def test_delete_book_with_engagement_returns_409(client: TestClient) -> None:
     book = _create_book(client)
     _create_engagement(client, book["id"])
 
-    response = client.delete(f"/books/{book['id']}")
+    response = client.delete(f"/api/books/{book['id']}")
     assert response.status_code == 409
 
 
@@ -424,9 +428,9 @@ def test_delete_book_with_engagement_leaves_book_intact(client: TestClient) -> N
     book = _create_book(client)
     _create_engagement(client, book["id"])
 
-    client.delete(f"/books/{book['id']}")
+    client.delete(f"/api/books/{book['id']}")
 
-    response = client.get("/books")
+    response = client.get("/api/books")
     assert any(b["id"] == book["id"] for b in response.json())
 
 
@@ -444,10 +448,10 @@ def test_delete_book_with_standalone_entry_returns_409(
     )
     db.commit()
 
-    response = client.delete(f"/books/{book['id']}")
+    response = client.delete(f"/api/books/{book['id']}")
     assert response.status_code == 409
 
 
 def test_delete_unknown_book_returns_404(client: TestClient) -> None:
-    response = client.delete(f"/books/{uuid.uuid4()}")
+    response = client.delete(f"/api/books/{uuid.uuid4()}")
     assert response.status_code == 404

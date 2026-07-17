@@ -24,7 +24,7 @@ def test_create_engagement_stamps_current_user(
     book = _create_book(client)
 
     response = client.post(
-        "/engagements", json={"book_id": book["id"], "edition_format": "print"}
+        "/api/engagements", json={"book_id": book["id"], "edition_format": "print"}
     )
 
     engagement = db.get(Engagement, uuid.UUID(response.json()["id"]))

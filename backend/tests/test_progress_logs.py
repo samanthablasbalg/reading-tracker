@@ -50,7 +50,7 @@ def test_log_progress_derives_start_from_last_log(client: TestClient) -> None:
 
 def test_log_progress_unknown_engagement_returns_404(client: TestClient) -> None:
     response = client.post(
-        f"/engagements/{uuid.uuid4()}/progress-logs",
+        f"/api/engagements/{uuid.uuid4()}/progress-logs",
         json={"current_page": 50},
     )
     assert response.status_code == 404
@@ -59,10 +59,10 @@ def test_log_progress_unknown_engagement_returns_404(client: TestClient) -> None
 def test_log_progress_finished_engagement_returns_409(client: TestClient) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
-    client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
+    client.patch(f"/api/engagements/{engagement['id']}", json={"status": "finished"})
 
     response = client.post(
-        f"/engagements/{engagement['id']}/progress-logs",
+        f"/api/engagements/{engagement['id']}/progress-logs",
         json={"current_page": 50},
     )
     assert response.status_code == 409
@@ -74,7 +74,7 @@ def test_log_progress_page_equal_to_last_returns_409(client: TestClient) -> None
     _log_progress(client, engagement["id"], 100)
 
     response = client.post(
-        f"/engagements/{engagement['id']}/progress-logs",
+        f"/api/engagements/{engagement['id']}/progress-logs",
         json={"current_page": 100},
     )
     assert response.status_code == 409
@@ -86,7 +86,7 @@ def test_log_progress_page_less_than_last_returns_409(client: TestClient) -> Non
     _log_progress(client, engagement["id"], 100)
 
     response = client.post(
-        f"/engagements/{engagement['id']}/progress-logs",
+        f"/api/engagements/{engagement['id']}/progress-logs",
         json={"current_page": 50},
     )
     assert response.status_code == 409
@@ -97,7 +97,7 @@ def test_log_progress_zero_page_returns_422(client: TestClient) -> None:
     engagement = _create_engagement(client, book["id"])
 
     response = client.post(
-        f"/engagements/{engagement['id']}/progress-logs",
+        f"/api/engagements/{engagement['id']}/progress-logs",
         json={"current_page": 0},
     )
     assert response.status_code == 422
@@ -108,7 +108,7 @@ def test_log_progress_negative_page_returns_422(client: TestClient) -> None:
     engagement = _create_engagement(client, book["id"])
 
     response = client.post(
-        f"/engagements/{engagement['id']}/progress-logs",
+        f"/api/engagements/{engagement['id']}/progress-logs",
         json={"current_page": -10},
     )
     assert response.status_code == 422
@@ -132,7 +132,7 @@ def test_engagement_resume_from_page_reflects_latest_log(client: TestClient) -> 
     _log_progress(client, engagement["id"], 150)
     _log_progress(client, engagement["id"], 300)
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.json()[0]["resume_from_page"] == 300
 
 
@@ -143,7 +143,7 @@ def test_engagement_completion_pct_is_null_without_page_count(
     engagement = _create_engagement(client, book["id"])
     _log_progress(client, engagement["id"], 100)
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.json()[0]["completion_pct"] is None
 
 
@@ -158,7 +158,7 @@ def test_engagement_completion_pct_is_null_when_page_count_is_zero(
     engagement = _create_engagement(client, book["id"])
     _log_progress(client, engagement["id"], 100)
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.json()[0]["completion_pct"] is None
 
 
@@ -186,7 +186,7 @@ def test_engagement_completion_pct_after_logging(
     engagement = _create_engagement(client, book["id"])
     _log_progress(client, engagement["id"], 150)
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.json()[0]["completion_pct"] == 50
 
 
@@ -201,7 +201,7 @@ def test_engagement_completion_pct_capped_at_100(
     engagement = _create_engagement(client, book["id"])
     _log_progress(client, engagement["id"], 350)
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.json()[0]["completion_pct"] == 100
 
 
@@ -213,10 +213,10 @@ def test_progress_logs_preserved_through_status_cycle(client: TestClient) -> Non
     engagement = _create_engagement(client, book["id"])
     _log_progress(client, engagement["id"], 100)
 
-    client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
-    client.patch(f"/engagements/{engagement['id']}", json={"status": "reading"})
+    client.patch(f"/api/engagements/{engagement['id']}", json={"status": "finished"})
+    client.patch(f"/api/engagements/{engagement['id']}", json={"status": "reading"})
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.json()[0]["resume_from_page"] == 100
 
     second = _log_progress(client, engagement["id"], 200)
@@ -243,7 +243,7 @@ def test_completion_pct_uses_binding_length_override(
 
     _log_progress(client, engagement["id"], 100)
 
-    data = client.get("/engagements?status=reading").json()
+    data = client.get("/api/engagements?status=reading").json()
     assert data[0]["completion_pct"] == 50
 
 
@@ -255,7 +255,7 @@ def test_completion_pct_uses_edition_page_count_when_no_override(
     engagement = _create_engagement(client, book["id"])
     _log_progress(client, engagement["id"], 200)
 
-    data = client.get("/engagements?status=reading").json()
+    data = client.get("/api/engagements?status=reading").json()
     assert data[0]["completion_pct"] == 50
 
 
@@ -281,7 +281,7 @@ def test_completion_pct_binding_takes_precedence_over_book_page_count(
 
     _log_progress(client, engagement["id"], 100)
 
-    data = client.get("/engagements?status=reading").json()
+    data = client.get("/api/engagements?status=reading").json()
     assert data[0]["completion_pct"] == 50
 
 
@@ -298,7 +298,7 @@ def test_finish_creates_final_progress_log(client: TestClient, db: Session) -> N
     _log_progress(client, engagement["id"], 150)
 
     response = client.patch(
-        f"/engagements/{engagement['id']}", json={"status": "finished"}
+        f"/api/engagements/{engagement['id']}", json={"status": "finished"}
     )
     assert response.status_code == 200
     assert response.json()["completion_pct"] == 100
@@ -329,7 +329,7 @@ def test_finish_does_not_duplicate_log_when_already_at_page_count(
     engagement = _create_engagement(client, book["id"])
     _log_progress(client, engagement["id"], 300)
 
-    client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
+    client.patch(f"/api/engagements/{engagement['id']}", json={"status": "finished"})
 
     logs = (
         db.execute(
@@ -351,7 +351,7 @@ def test_finish_with_no_page_count_creates_no_log(
     _log_progress(client, engagement["id"], 150)
 
     response = client.patch(
-        f"/engagements/{engagement['id']}", json={"status": "finished"}
+        f"/api/engagements/{engagement['id']}", json={"status": "finished"}
     )
     assert response.status_code == 200
 
@@ -382,7 +382,7 @@ def test_finish_audio_creates_final_minutes_log(
     _log_audio_progress(client, engagement["id"], 240)
 
     response = client.patch(
-        f"/engagements/{engagement['id']}", json={"status": "finished"}
+        f"/api/engagements/{engagement['id']}", json={"status": "finished"}
     )
     assert response.status_code == 200
     assert response.json()["completion_pct"] == 100
@@ -414,7 +414,7 @@ def test_finish_audio_does_not_duplicate_log_when_already_at_length(
     engagement = _create_audio_engagement(client, book["id"])
     _log_audio_progress(client, engagement["id"], 480)
 
-    client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
+    client.patch(f"/api/engagements/{engagement['id']}", json={"status": "finished"})
 
     logs = (
         db.execute(
@@ -435,7 +435,7 @@ def test_finish_audio_with_no_length_creates_no_log(
     engagement = _create_audio_engagement(client, book["id"])
     _log_audio_progress(client, engagement["id"], 240)
 
-    client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
+    client.patch(f"/api/engagements/{engagement['id']}", json={"status": "finished"})
 
     logs = (
         db.execute(
@@ -459,7 +459,7 @@ def test_finish_audio_does_not_create_page_log(client: TestClient, db: Session) 
     engagement = _create_audio_engagement(client, book["id"])
     _log_audio_progress(client, engagement["id"], 240)
 
-    client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
+    client.patch(f"/api/engagements/{engagement['id']}", json={"status": "finished"})
 
     logs = (
         db.execute(
@@ -518,7 +518,7 @@ def test_audio_engagement_resume_from_minute_reflects_latest_log(
     _log_audio_progress(client, engagement["id"], 75)
     _log_audio_progress(client, engagement["id"], 150)
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.json()[0]["resume_from_minute"] == 150
 
 
@@ -528,7 +528,7 @@ def test_audio_log_advance_guard_equal_returns_409(client: TestClient) -> None:
     _log_audio_progress(client, engagement["id"], 75)
 
     response = client.post(
-        f"/engagements/{engagement['id']}/progress-logs",
+        f"/api/engagements/{engagement['id']}/progress-logs",
         json={"current_minute": 75},
     )
     assert response.status_code == 409
@@ -540,7 +540,7 @@ def test_audio_log_advance_guard_less_than_returns_409(client: TestClient) -> No
     _log_audio_progress(client, engagement["id"], 75)
 
     response = client.post(
-        f"/engagements/{engagement['id']}/progress-logs",
+        f"/api/engagements/{engagement['id']}/progress-logs",
         json={"current_minute": 50},
     )
     assert response.status_code == 409
@@ -551,7 +551,7 @@ def test_audio_engagement_requires_current_minute(client: TestClient) -> None:
     engagement = _create_audio_engagement(client, book["id"])
 
     response = client.post(
-        f"/engagements/{engagement['id']}/progress-logs",
+        f"/api/engagements/{engagement['id']}/progress-logs",
         json={"current_page": 100},
     )
     assert response.status_code == 422
@@ -562,7 +562,7 @@ def test_print_engagement_requires_current_page(client: TestClient) -> None:
     engagement = _create_engagement(client, book["id"])
 
     response = client.post(
-        f"/engagements/{engagement['id']}/progress-logs",
+        f"/api/engagements/{engagement['id']}/progress-logs",
         json={"current_minute": 75},
     )
     assert response.status_code == 422
@@ -619,7 +619,7 @@ def test_audio_completion_pct_uses_captured_length(client: TestClient) -> None:
     engagement = _create_audio_engagement(client, book["id"])
     _log_audio_progress(client, engagement["id"], 240, audio_length_minutes=480)
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.json()[0]["completion_pct"] == 50
 
 
@@ -638,7 +638,7 @@ def test_audio_completion_pct_uses_edition_audio_minutes(
     engagement = _create_audio_engagement(client, book["id"])
     _log_audio_progress(client, engagement["id"], 240)
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.json()[0]["completion_pct"] == 50
 
 
@@ -653,7 +653,7 @@ def test_audio_completion_pct_falls_back_to_book_default_audio_minutes(
     engagement = _create_audio_engagement(client, book["id"])
     _log_audio_progress(client, engagement["id"], 240)
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.json()[0]["completion_pct"] == 50
 
 
@@ -662,7 +662,7 @@ def test_audio_completion_pct_null_when_no_length_set(client: TestClient) -> Non
     engagement = _create_audio_engagement(client, book["id"])
     _log_audio_progress(client, engagement["id"], 75)
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.json()[0]["completion_pct"] is None
 
 
@@ -678,7 +678,7 @@ def test_resume_from_page_unaffected_by_minute_logs(client: TestClient) -> None:
     engagement = _create_engagement(client, book["id"])
     _log_progress(client, engagement["id"], 100)
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.json()[0]["resume_from_page"] == 100
     assert response.json()[0]["resume_from_minute"] == 0
 
@@ -692,7 +692,7 @@ def test_list_progress_logs_returns_200_ordered_by_date(client: TestClient) -> N
     _log_progress(client, engagement["id"], 100)
     _log_progress(client, engagement["id"], 200)
 
-    response = client.get(f"/engagements/{engagement['id']}/progress-logs")
+    response = client.get(f"/api/engagements/{engagement['id']}/progress-logs")
 
     assert response.status_code == 200
     logs = response.json()
@@ -705,14 +705,14 @@ def test_list_progress_logs_returns_empty_list_when_no_logs(client: TestClient) 
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
 
-    response = client.get(f"/engagements/{engagement['id']}/progress-logs")
+    response = client.get(f"/api/engagements/{engagement['id']}/progress-logs")
 
     assert response.status_code == 200
     assert response.json() == []
 
 
 def test_list_progress_logs_unknown_engagement_returns_404(client: TestClient) -> None:
-    response = client.get(f"/engagements/{uuid.uuid4()}/progress-logs")
+    response = client.get(f"/api/engagements/{uuid.uuid4()}/progress-logs")
     assert response.status_code == 404
 
 
@@ -725,7 +725,7 @@ def test_same_day_logs_ordered_by_creation(client: TestClient) -> None:
     _log_progress(client, engagement["id"], 100, logged_on="2026-01-10")
     _log_progress(client, engagement["id"], 200, logged_on="2026-01-10")
 
-    logs = client.get(f"/engagements/{engagement['id']}/progress-logs").json()
+    logs = client.get(f"/api/engagements/{engagement['id']}/progress-logs").json()
 
     assert logs[0]["page_end"] == 100
     assert logs[1]["page_end"] == 200
@@ -742,19 +742,19 @@ def test_multiple_backdated_days_sorted_by_date(client: TestClient) -> None:
     third = _log_progress(client, engagement["id"], 300)
 
     client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{first['id']}",
         json={"logged_on": "2026-01-30"},
     )
     client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{second['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{second['id']}",
         json={"logged_on": "2026-01-10"},
     )
     client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{third['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{third['id']}",
         json={"logged_on": "2026-01-20"},
     )
 
-    logs = client.get(f"/engagements/{engagement['id']}/progress-logs").json()
+    logs = client.get(f"/api/engagements/{engagement['id']}/progress-logs").json()
 
     assert logs[0]["logged_on"] == "2026-01-10"
     assert logs[1]["logged_on"] == "2026-01-20"
@@ -771,7 +771,7 @@ def test_log_before_started_on_returns_409(client: TestClient, db: Session) -> N
     db.commit()
 
     response = client.post(
-        f"/engagements/{engagement['id']}/progress-logs",
+        f"/api/engagements/{engagement['id']}/progress-logs",
         json={"current_page": 50, "logged_on": "2026-01-10"},
     )
 
@@ -784,7 +784,7 @@ def test_log_future_date_returns_422(client: TestClient) -> None:
     future = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
 
     response = client.post(
-        f"/engagements/{engagement['id']}/progress-logs",
+        f"/api/engagements/{engagement['id']}/progress-logs",
         json={"current_page": 50, "logged_on": future},
     )
 
@@ -797,7 +797,7 @@ def test_log_backdated_behind_later_day_returns_409(client: TestClient) -> None:
     _log_progress(client, engagement["id"], 100, logged_on="2026-01-20")
 
     response = client.post(
-        f"/engagements/{engagement['id']}/progress-logs",
+        f"/api/engagements/{engagement['id']}/progress-logs",
         json={"current_page": 200, "logged_on": "2026-01-10"},
     )
 
@@ -812,14 +812,14 @@ def test_log_backdated_to_day_with_existing_log_and_higher_page_is_allowed(
     _log_progress(client, engagement["id"], 100, logged_on="2026-01-10")
 
     response = client.post(
-        f"/engagements/{engagement['id']}/progress-logs",
+        f"/api/engagements/{engagement['id']}/progress-logs",
         json={"current_page": 200, "logged_on": "2026-01-10"},
     )
 
     assert response.status_code == 201
     assert response.json()["logged_on"] == "2026-01-10"
 
-    logs = client.get(f"/engagements/{engagement['id']}/progress-logs").json()
+    logs = client.get(f"/api/engagements/{engagement['id']}/progress-logs").json()
     assert len(logs) == 2
     assert logs[-1]["page_end"] == 200
 
@@ -836,7 +836,7 @@ def test_finish_uses_effective_on_for_finished_on_and_completion_log(
     _log_progress(client, engagement["id"], 150, logged_on="2026-01-10")
 
     response = client.patch(
-        f"/engagements/{engagement['id']}",
+        f"/api/engagements/{engagement['id']}",
         json={"status": "finished", "effective_on": "2026-01-15"},
     )
 
@@ -864,7 +864,7 @@ def test_finish_effective_on_before_latest_log_returns_409(
     _log_progress(client, engagement["id"], 150, logged_on="2026-01-20")
 
     response = client.patch(
-        f"/engagements/{engagement['id']}",
+        f"/api/engagements/{engagement['id']}",
         json={"status": "finished", "effective_on": "2026-01-15"},
     )
 
@@ -883,15 +883,15 @@ def test_resume_from_page_uses_canonical_order_latest(
     first = _log_progress(client, engagement["id"], 100)
     second = _log_progress(client, engagement["id"], 200)
     client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{first['id']}",
         json={"logged_on": "2026-01-30"},
     )
     client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{second['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{second['id']}",
         json={"logged_on": "2026-01-20"},
     )
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.json()[0]["resume_from_page"] == 100
 
 
@@ -909,15 +909,15 @@ def test_completion_pct_uses_canonical_order_latest(
     first = _log_progress(client, engagement["id"], 100)
     second = _log_progress(client, engagement["id"], 200)
     client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{first['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{first['id']}",
         json={"logged_on": "2026-01-30"},
     )
     client.patch(
-        f"/engagements/{engagement['id']}/progress-logs/{second['id']}",
+        f"/api/engagements/{engagement['id']}/progress-logs/{second['id']}",
         json={"logged_on": "2026-01-20"},
     )
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.json()[0]["completion_pct"] == 33
 
 
@@ -930,7 +930,7 @@ def test_delete_progress_log_returns_204(client: TestClient) -> None:
     log = _log_progress(client, engagement["id"], 200, logged_on="2026-01-10")
 
     response = client.delete(
-        f"/engagements/{engagement['id']}/progress-logs/{log['id']}"
+        f"/api/engagements/{engagement['id']}/progress-logs/{log['id']}"
     )
     assert response.status_code == 204
 
@@ -940,9 +940,9 @@ def test_delete_progress_log_removes_it_from_list(client: TestClient) -> None:
     engagement = _create_engagement(client, book["id"], started_on="2026-01-01")
     log = _log_progress(client, engagement["id"], 200, logged_on="2026-01-10")
 
-    client.delete(f"/engagements/{engagement['id']}/progress-logs/{log['id']}")
+    client.delete(f"/api/engagements/{engagement['id']}/progress-logs/{log['id']}")
 
-    response = client.get(f"/engagements/{engagement['id']}/progress-logs/")
+    response = client.get(f"/api/engagements/{engagement['id']}/progress-logs")
     assert response.json() == []
 
 
@@ -953,7 +953,7 @@ def test_delete_penultimate_progress_log_returns_409(client: TestClient) -> None
     _log_progress(client, engagement["id"], 200, logged_on="2026-01-20")
 
     response = client.delete(
-        f"/engagements/{engagement['id']}/progress-logs/{first['id']}"
+        f"/api/engagements/{engagement['id']}/progress-logs/{first['id']}"
     )
     assert response.status_code == 409
 
@@ -964,6 +964,6 @@ def test_delete_unknown_progress_log_returns_404(client: TestClient) -> None:
     _log_progress(client, engagement["id"], 200, logged_on="2026-01-20")
 
     response = client.delete(
-        f"/engagements/{engagement['id']}/progress-logs/{uuid.uuid4()}"
+        f"/api/engagements/{engagement['id']}/progress-logs/{uuid.uuid4()}"
     )
     assert response.status_code == 404

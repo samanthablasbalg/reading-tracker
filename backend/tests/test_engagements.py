@@ -26,7 +26,7 @@ from tests.helpers import (
 def test_create_engagement_returns_201(client: TestClient) -> None:
     book = _create_book(client)
     response = client.post(
-        "/engagements", json={"book_id": book["id"], "edition_format": "print"}
+        "/api/engagements", json={"book_id": book["id"], "edition_format": "print"}
     )
     assert response.status_code == 201
     data = response.json()
@@ -41,7 +41,7 @@ def test_create_engagement_returns_201(client: TestClient) -> None:
 def test_create_engagement_binds_chosen_non_print_format(client: TestClient) -> None:
     book = _create_book(client)
     response = client.post(
-        "/engagements", json={"book_id": book["id"], "edition_format": "audio"}
+        "/api/engagements", json={"book_id": book["id"], "edition_format": "audio"}
     )
     assert response.status_code == 201
     assert response.json()["formats"] == ["audio"]
@@ -51,17 +51,17 @@ def test_create_engagement_missing_edition_format_returns_422(
     client: TestClient,
 ) -> None:
     book = _create_book(client)
-    response = client.post("/engagements", json={"book_id": book["id"]})
+    response = client.post("/api/engagements", json={"book_id": book["id"]})
     assert response.status_code == 422
 
 
 def test_create_engagement_no_edition_of_format_returns_404(client: TestClient) -> None:
     response = client.post(
-        "/books", json={"title": "Piranesi", "author": "Susanna Clarke"}
+        "/api/books", json={"title": "Piranesi", "author": "Susanna Clarke"}
     )
     book_id = response.json()["id"]
     response = client.post(
-        "/engagements", json={"book_id": book_id, "edition_format": "print"}
+        "/api/engagements", json={"book_id": book_id, "edition_format": "print"}
     )
     assert response.status_code == 404
 
@@ -72,7 +72,7 @@ def test_create_engagement_multiple_editions_of_format_returns_409(
     book = _create_book(client)
     _create_edition(client, book["id"], isbn="9781526622426")
     response = client.post(
-        "/engagements", json={"book_id": book["id"], "edition_format": "print"}
+        "/api/engagements", json={"book_id": book["id"], "edition_format": "print"}
     )
     assert response.status_code == 409
 
@@ -81,7 +81,7 @@ def test_create_engagement_future_started_on_returns_422(client: TestClient) -> 
     book = _create_book(client)
     future = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
     response = client.post(
-        "/engagements",
+        "/api/engagements",
         json={
             "book_id": book["id"],
             "edition_format": "print",
@@ -93,7 +93,8 @@ def test_create_engagement_future_started_on_returns_422(client: TestClient) -> 
 
 def test_create_engagement_unknown_book_returns_404(client: TestClient) -> None:
     response = client.post(
-        "/engagements", json={"book_id": str(uuid.uuid4()), "edition_format": "print"}
+        "/api/engagements",
+        json={"book_id": str(uuid.uuid4()), "edition_format": "print"},
     )
     assert response.status_code == 404
 
@@ -104,7 +105,7 @@ def test_create_engagement_duplicate_active_read_returns_409(
     book = _create_book(client)
     _create_engagement(client, book["id"])
     response = client.post(
-        "/engagements", json={"book_id": book["id"], "edition_format": "print"}
+        "/api/engagements", json={"book_id": book["id"], "edition_format": "print"}
     )
     assert response.status_code == 409
 
@@ -115,7 +116,7 @@ def test_create_engagement_same_book_different_format_succeeds(
     book = _create_book(client)
     _create_engagement(client, book["id"])
     response = client.post(
-        "/engagements", json={"book_id": book["id"], "edition_format": "audio"}
+        "/api/engagements", json={"book_id": book["id"], "edition_format": "audio"}
     )
     assert response.status_code == 201
 
@@ -123,9 +124,9 @@ def test_create_engagement_same_book_different_format_succeeds(
 def test_create_engagement_on_finished_book_succeeds(client: TestClient) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
-    client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
+    client.patch(f"/api/engagements/{engagement['id']}", json={"status": "finished"})
     response = client.post(
-        "/engagements", json={"book_id": book["id"], "edition_format": "print"}
+        "/api/engagements", json={"book_id": book["id"], "edition_format": "print"}
     )
     assert response.status_code == 201
     assert response.json()["status"] == "reading"
@@ -139,7 +140,7 @@ def test_patch_to_finished_stamps_finished_on(client: TestClient) -> None:
     engagement = _create_engagement(client, book["id"])
 
     response = client.patch(
-        f"/engagements/{engagement['id']}", json={"status": "finished"}
+        f"/api/engagements/{engagement['id']}", json={"status": "finished"}
     )
     assert response.status_code == 200
     data = response.json()
@@ -156,7 +157,7 @@ def test_patch_status_with_future_effective_on_returns_422(
     future = (datetime.date.today() + datetime.timedelta(days=1)).isoformat()
 
     response = client.patch(
-        f"/engagements/{engagement['id']}",
+        f"/api/engagements/{engagement['id']}",
         json={"status": "finished", "effective_on": future},
     )
     assert response.status_code == 422
@@ -169,7 +170,7 @@ def test_patch_to_finished_before_started_on_with_no_logs_returns_409(
     engagement = _create_engagement(client, book["id"], started_on="2026-06-01")
 
     response = client.patch(
-        f"/engagements/{engagement['id']}",
+        f"/api/engagements/{engagement['id']}",
         json={"status": "finished", "effective_on": "2026-01-01"},
     )
     assert response.status_code == 409
@@ -178,10 +179,10 @@ def test_patch_to_finished_before_started_on_with_no_logs_returns_409(
 def test_patch_to_reading_clears_finished_on(client: TestClient) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
-    client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
+    client.patch(f"/api/engagements/{engagement['id']}", json={"status": "finished"})
 
     response = client.patch(
-        f"/engagements/{engagement['id']}", json={"status": "reading"}
+        f"/api/engagements/{engagement['id']}", json={"status": "reading"}
     )
     assert response.status_code == 200
     data = response.json()
@@ -190,7 +191,9 @@ def test_patch_to_reading_clears_finished_on(client: TestClient) -> None:
 
 
 def test_patch_unknown_engagement_returns_404(client: TestClient) -> None:
-    response = client.patch(f"/engagements/{uuid.uuid4()}", json={"status": "finished"})
+    response = client.patch(
+        f"/api/engagements/{uuid.uuid4()}", json={"status": "finished"}
+    )
     assert response.status_code == 404
 
 
@@ -198,7 +201,7 @@ def test_patch_invalid_status_returns_422(client: TestClient) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
     response = client.patch(
-        f"/engagements/{engagement['id']}", json={"status": "interested"}
+        f"/api/engagements/{engagement['id']}", json={"status": "interested"}
     )
     assert response.status_code == 422
 
@@ -208,7 +211,7 @@ def test_patch_same_status_is_idempotent(client: TestClient) -> None:
     engagement = _create_engagement(client, book["id"])
 
     response = client.patch(
-        f"/engagements/{engagement['id']}", json={"status": "reading"}
+        f"/api/engagements/{engagement['id']}", json={"status": "reading"}
     )
     assert response.status_code == 200
     data = response.json()
@@ -222,12 +225,12 @@ def test_patch_finished_to_finished_does_not_overwrite_date(
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
     first = client.patch(
-        f"/engagements/{engagement['id']}", json={"status": "finished"}
+        f"/api/engagements/{engagement['id']}", json={"status": "finished"}
     ).json()
     original_date = first["finished_on"]
 
     second = client.patch(
-        f"/engagements/{engagement['id']}", json={"status": "finished"}
+        f"/api/engagements/{engagement['id']}", json={"status": "finished"}
     ).json()
     assert second["finished_on"] == original_date
 
@@ -237,10 +240,12 @@ def test_patch_back_to_reading_conflicts_when_another_active_read_exists(
 ) -> None:
     book = _create_book(client)
     eng_a = _create_engagement(client, book["id"])
-    client.patch(f"/engagements/{eng_a['id']}", json={"status": "finished"})
+    client.patch(f"/api/engagements/{eng_a['id']}", json={"status": "finished"})
     _create_engagement(client, book["id"])
 
-    response = client.patch(f"/engagements/{eng_a['id']}", json={"status": "reading"})
+    response = client.patch(
+        f"/api/engagements/{eng_a['id']}", json={"status": "reading"}
+    )
     assert response.status_code == 409
 
 
@@ -257,7 +262,9 @@ def test_patch_to_dnf_sets_abandoned_on_from_last_log(
         db, engagement["id"], datetime.datetime(2026, 5, 15, tzinfo=datetime.UTC)
     )
 
-    response = client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+    response = client.patch(
+        f"/api/engagements/{engagement['id']}", json={"status": "dnf"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "dnf"
@@ -270,7 +277,9 @@ def test_patch_to_dnf_sets_abandoned_on_to_today_when_no_logs(
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
 
-    response = client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+    response = client.patch(
+        f"/api/engagements/{engagement['id']}", json={"status": "dnf"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "dnf"
@@ -288,7 +297,7 @@ def test_patch_to_dnf_with_effective_on_after_last_log_uses_effective_on(
     )
 
     response = client.patch(
-        f"/engagements/{engagement['id']}",
+        f"/api/engagements/{engagement['id']}",
         json={"status": "dnf", "effective_on": "2026-05-20"},
     )
     assert response.status_code == 200
@@ -307,7 +316,7 @@ def test_patch_to_dnf_with_effective_on_before_last_log_returns_409(
     )
 
     response = client.patch(
-        f"/engagements/{engagement['id']}",
+        f"/api/engagements/{engagement['id']}",
         json={"status": "dnf", "effective_on": "2026-05-10"},
     )
     assert response.status_code == 409
@@ -320,7 +329,7 @@ def test_patch_to_dnf_does_not_create_progress_log(
     engagement = _create_engagement(client, book["id"])
     _log_progress(client, engagement["id"], 50)
 
-    client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+    client.patch(f"/api/engagements/{engagement['id']}", json={"status": "dnf"})
 
     logs = (
         db.execute(
@@ -343,7 +352,9 @@ def test_patch_to_dnf_preserves_completion_pct(client: TestClient, db: Session) 
     engagement = _create_engagement(client, book["id"])
     _log_progress(client, engagement["id"], 150)
 
-    response = client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+    response = client.patch(
+        f"/api/engagements/{engagement['id']}", json={"status": "dnf"}
+    )
     assert response.status_code == 200
     assert response.json()["completion_pct"] == 50
 
@@ -351,10 +362,10 @@ def test_patch_to_dnf_preserves_completion_pct(client: TestClient, db: Session) 
 def test_patch_dnf_to_reading_clears_abandoned_on(client: TestClient) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
-    client.patch(f"/engagements/{engagement['id']}", json={"status": "dnf"})
+    client.patch(f"/api/engagements/{engagement['id']}", json={"status": "dnf"})
 
     response = client.patch(
-        f"/engagements/{engagement['id']}", json={"status": "reading"}
+        f"/api/engagements/{engagement['id']}", json={"status": "reading"}
     )
     assert response.status_code == 200
     data = response.json()
@@ -370,9 +381,9 @@ def test_list_reading_excludes_finished(client: TestClient) -> None:
     book_b = _create_book(client, title="Book B", author="Author B")
     eng_a = _create_engagement(client, book_a["id"])
     _create_engagement(client, book_b["id"])
-    client.patch(f"/engagements/{eng_a['id']}", json={"status": "finished"})
+    client.patch(f"/api/engagements/{eng_a['id']}", json={"status": "finished"})
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -384,9 +395,9 @@ def test_list_finished_excludes_reading(client: TestClient) -> None:
     book_b = _create_book(client, title="Book B", author="Author B")
     eng_a = _create_engagement(client, book_a["id"])
     _create_engagement(client, book_b["id"])
-    client.patch(f"/engagements/{eng_a['id']}", json={"status": "finished"})
+    client.patch(f"/api/engagements/{eng_a['id']}", json={"status": "finished"})
 
-    response = client.get("/engagements?status=finished")
+    response = client.get("/api/engagements?status=finished")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -395,17 +406,17 @@ def test_list_finished_excludes_reading(client: TestClient) -> None:
 
 
 def test_list_invalid_status_returns_422(client: TestClient) -> None:
-    response = client.get("/engagements?status=bogus")
+    response = client.get("/api/engagements?status=bogus")
     assert response.status_code == 422
 
 
 def test_list_missing_status_returns_422(client: TestClient) -> None:
-    response = client.get("/engagements")
+    response = client.get("/api/engagements")
     assert response.status_code == 422
 
 
 def test_list_empty_returns_empty_list(client: TestClient) -> None:
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.status_code == 200
     assert response.json() == []
 
@@ -414,7 +425,7 @@ def test_list_includes_nested_book_details(client: TestClient) -> None:
     book = _create_book(client, title="A Memory Called Empire", author="Arkady Martine")
     _create_engagement(client, book["id"])
 
-    response = client.get("/engagements?status=reading")
+    response = client.get("/api/engagements?status=reading")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -478,7 +489,7 @@ def test_list_reading_orders_more_recently_marked_first(
     _set_updated_at(db, eng_a["id"], datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC))
     _set_updated_at(db, eng_b["id"], datetime.datetime(2024, 6, 1, tzinfo=datetime.UTC))
 
-    data = client.get("/engagements?status=reading").json()
+    data = client.get("/api/engagements?status=reading").json()
     assert [e["book"]["title"] for e in data] == ["Book B", "Book A"]
 
 
@@ -497,7 +508,7 @@ def test_list_reading_log_outranks_more_recently_marked(
         db, eng_a["id"], datetime.datetime(2024, 12, 1, tzinfo=datetime.UTC)
     )
 
-    data = client.get("/engagements?status=reading").json()
+    data = client.get("/api/engagements?status=reading").json()
     assert [e["book"]["title"] for e in data] == ["Book A", "Book B"]
 
 
@@ -521,7 +532,7 @@ def test_list_reading_orders_multiple_logs_by_recency(
         _set_updated_at(db, eng_id, marked)
         _set_log_created_at(db, eng_id, log_created_times[title])
 
-    data = client.get("/engagements?status=reading").json()
+    data = client.get("/api/engagements?status=reading").json()
     assert [e["book"]["title"] for e in data] == ["Book C", "Book B", "Book A"]
 
 
@@ -537,8 +548,12 @@ def test_list_reading_order_stable_for_identical_activity(
     _set_updated_at(db, eng_a["id"], same)
     _set_updated_at(db, eng_b["id"], same)
 
-    first_order = [e["id"] for e in client.get("/engagements?status=reading").json()]
-    second_order = [e["id"] for e in client.get("/engagements?status=reading").json()]
+    first_order = [
+        e["id"] for e in client.get("/api/engagements?status=reading").json()
+    ]
+    second_order = [
+        e["id"] for e in client.get("/api/engagements?status=reading").json()
+    ]
     assert first_order == second_order
 
 
@@ -549,15 +564,15 @@ def test_list_finished_orders_by_finished_on_not_last_touch(
     book_b = _create_book(client, title="Book B", author="Author B")
     eng_a = _create_engagement(client, book_a["id"])
     eng_b = _create_engagement(client, book_b["id"])
-    client.patch(f"/engagements/{eng_a['id']}", json={"status": "finished"})
-    client.patch(f"/engagements/{eng_b['id']}", json={"status": "finished"})
+    client.patch(f"/api/engagements/{eng_a['id']}", json={"status": "finished"})
+    client.patch(f"/api/engagements/{eng_b['id']}", json={"status": "finished"})
 
     _set_finished_on(db, eng_a["id"], datetime.date(2026, 5, 1))
     _set_updated_at(db, eng_a["id"], datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC))
     _set_finished_on(db, eng_b["id"], datetime.date(2026, 3, 1))
     _set_updated_at(db, eng_b["id"], datetime.datetime(2026, 6, 1, tzinfo=datetime.UTC))
 
-    data = client.get("/engagements?status=finished").json()
+    data = client.get("/api/engagements?status=finished").json()
     assert [e["book"]["title"] for e in data] == ["Book A", "Book B"]
 
 
@@ -568,15 +583,15 @@ def test_list_dnf_orders_by_abandoned_on_not_last_touch(
     book_b = _create_book(client, title="Book B", author="Author B")
     eng_a = _create_engagement(client, book_a["id"])
     eng_b = _create_engagement(client, book_b["id"])
-    client.patch(f"/engagements/{eng_a['id']}", json={"status": "dnf"})
-    client.patch(f"/engagements/{eng_b['id']}", json={"status": "dnf"})
+    client.patch(f"/api/engagements/{eng_a['id']}", json={"status": "dnf"})
+    client.patch(f"/api/engagements/{eng_b['id']}", json={"status": "dnf"})
 
     _set_abandoned_on(db, eng_a["id"], datetime.date(2026, 5, 1))
     _set_updated_at(db, eng_a["id"], datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC))
     _set_abandoned_on(db, eng_b["id"], datetime.date(2026, 3, 1))
     _set_updated_at(db, eng_b["id"], datetime.datetime(2026, 6, 1, tzinfo=datetime.UTC))
 
-    data = client.get("/engagements?status=dnf").json()
+    data = client.get("/api/engagements?status=dnf").json()
     assert [e["book"]["title"] for e in data] == ["Book A", "Book B"]
 
 
@@ -632,7 +647,7 @@ def test_formats_derived_from_bound_editions(client: TestClient) -> None:
     engagement = _create_engagement(client, book["id"])
     _bind_edition(client, engagement["id"], digital_ed["id"])
 
-    data = client.get("/engagements?status=reading").json()
+    data = client.get("/api/engagements?status=reading").json()
     assert set(data[0]["formats"]) == {"print", "digital"}
 
 
@@ -643,7 +658,7 @@ def test_get_engagement_returns_200_with_correct_fields(client: TestClient) -> N
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
 
-    response = client.get(f"/engagements/{engagement['id']}")
+    response = client.get(f"/api/engagements/{engagement['id']}")
 
     assert response.status_code == 200
     data = response.json()
@@ -653,7 +668,7 @@ def test_get_engagement_returns_200_with_correct_fields(client: TestClient) -> N
 
 
 def test_get_engagement_unknown_id_returns_404(client: TestClient) -> None:
-    response = client.get(f"/engagements/{uuid.uuid4()}")
+    response = client.get(f"/api/engagements/{uuid.uuid4()}")
     assert response.status_code == 404
 
 
@@ -664,7 +679,7 @@ def test_delete_engagement_returns_204(client: TestClient) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
 
-    response = client.delete(f"/engagements/{engagement['id']}")
+    response = client.delete(f"/api/engagements/{engagement['id']}")
     assert response.status_code == 204
 
 
@@ -672,9 +687,9 @@ def test_delete_engagement_removes_it_from_list(client: TestClient) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
 
-    client.delete(f"/engagements/{engagement['id']}")
+    client.delete(f"/api/engagements/{engagement['id']}")
 
-    response = client.get(f"/engagements/{engagement['id']}")
+    response = client.get(f"/api/engagements/{engagement['id']}")
     assert response.status_code == 404
 
 
@@ -686,7 +701,7 @@ def test_delete_engagement_cascades_progress_logs_and_editions(
     _log_progress(client, engagement["id"], 100)
     engagement_id = uuid.UUID(engagement["id"])
 
-    client.delete(f"/engagements/{engagement['id']}")
+    client.delete(f"/api/engagements/{engagement['id']}")
 
     logs = (
         db.execute(
@@ -703,11 +718,11 @@ def test_delete_engagement_with_review_succeeds_and_removes_review(
 ) -> None:
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
-    client.patch(f"/engagements/{engagement['id']}", json={"status": "finished"})
-    client.put(f"/engagements/{engagement['id']}/review", json={"rating": 4.0})
+    client.patch(f"/api/engagements/{engagement['id']}", json={"status": "finished"})
+    client.put(f"/api/engagements/{engagement['id']}/review", json={"rating": 4.0})
     engagement_id = uuid.UUID(engagement["id"])
 
-    response = client.delete(f"/engagements/{engagement['id']}")
+    response = client.delete(f"/api/engagements/{engagement['id']}")
     assert response.status_code == 204
 
     reviews = (
@@ -722,13 +737,13 @@ def test_delete_engagement_leaves_book_and_editions_intact(client: TestClient) -
     book = _create_book(client)
     engagement = _create_engagement(client, book["id"])
 
-    client.delete(f"/engagements/{engagement['id']}")
+    client.delete(f"/api/engagements/{engagement['id']}")
 
-    response = client.get("/books")
+    response = client.get("/api/books")
     assert response.status_code == 200
     assert any(b["id"] == book["id"] for b in response.json())
 
 
 def test_delete_unknown_engagement_returns_404(client: TestClient) -> None:
-    response = client.delete(f"/engagements/{uuid.uuid4()}")
+    response = client.delete(f"/api/engagements/{uuid.uuid4()}")
     assert response.status_code == 404
