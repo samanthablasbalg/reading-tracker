@@ -6,6 +6,7 @@ import { environment } from '../environments/environment';
 export interface CurrentUser {
   id: string;
   email: string;
+  picture?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

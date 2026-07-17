@@ -27,6 +27,16 @@ describe('AuthService', () => {
     expect(service.currentUser()).toEqual({ id: 'user-1', email: 'me@example.com' });
   });
 
+  it('checkSession carries the picture through when present', () => {
+    service.checkSession().subscribe();
+
+    httpTesting
+      .expectOne('/api/auth/me')
+      .flush({ id: 'user-1', email: 'me@example.com', picture: 'https://example.com/pic.jpg' });
+
+    expect(service.currentUser()?.picture).toBe('https://example.com/pic.jpg');
+  });
+
   it('checkSession clears currentUser on a failed request', () => {
     service.checkSession().subscribe();
 
