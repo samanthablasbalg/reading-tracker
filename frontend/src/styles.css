@@ -1,1 +1,44 @@
 /* You can add global styles to this file, and also import other style files */
+@import 'tailwindcss';
+
+/* Design tokens from docs/design/design-system.md §4 — the single, canonical
+   definition of every color, light+dark. Registering them here (Tailwind's
+   theme block) gets us bg-/text-/border- utilities for free. material-theme.scss
+   does NOT redefine these — it points Material's own tokens at these same
+   variables with var(...), so there is exactly one copy of each hex value.
+   `static`: Tailwind v4 normally drops @theme entries that no utility class
+   in the templates references yet, which would silently delete tokens like
+   the chart/tint set this ticket registers for later use — `static` opts
+   this block out of that tree-shaking. */
+@theme static {
+  --color-primary: light-dark(#e11584, #ff5fab);
+  --color-on-primary: light-dark(#ffffff, #23111b);
+  --color-secondary: light-dark(#ff7a2f, #ffa24d);
+  --color-background: light-dark(#fbf6ee, #18131b);
+  --color-surface: light-dark(#ffffff, #241c26);
+  --color-surface-2: light-dark(#fffdf9, #2e2432);
+  --color-text: light-dark(#241c22, #f3e9ee);
+  --color-muted: light-dark(#8a7a82, #b7a7b0);
+  --color-border: light-dark(#efe4d8, rgba(255, 255, 255, 0.09));
+
+  --color-track: light-dark(#f0e7db, #3a2f3f);
+  --color-success: light-dark(#16a34a, #4ade80);
+
+  /* Categorical data palette (genres, moods, chart series) */
+  --color-chart-1: light-dark(#ec4899, #f472b6);
+  --color-chart-2: light-dark(#f97316, #fb923c);
+  --color-chart-3: light-dark(#8b5cf6, #a78bfa);
+  --color-chart-4: light-dark(#14b8a6, #2dd4bf);
+  --color-chart-5: light-dark(#3b82f6, #60a5fa);
+  --color-chart-6: light-dark(#84cc16, #a3e635);
+  --color-chart-7: light-dark(#f59e0b, #fbbf24);
+  --color-chart-8: light-dark(#f43f5e, #fb7185);
+
+  /* Pastel card tints */
+  --color-tint-1: light-dark(#ffd8ea, #4e2a44);
+  --color-tint-2: light-dark(#ece3ff, #3a2e56);
+  --color-tint-3: light-dark(#d5f3e1, #24503e);
+  --color-tint-4: light-dark(#ffe0cc, #5a3a2a);
+  --color-tint-5: light-dark(#d6ebff, #2a3e5a);
+  --color-tint-6: light-dark(#ffefb8, #5a4a22);
+}
