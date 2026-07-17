@@ -5,6 +5,15 @@
 // custom components at https://material.angular.dev/guide/theming
 @use '@angular/material' as mat;
 
+$font-serif: (
+  'Lora',
+  serif,
+);
+$font-sans: (
+  'Plus Jakarta Sans',
+  sans-serif,
+);
+
 html {
   height: 100%;
   @include mat.theme(
@@ -13,12 +22,19 @@ html {
         primary: mat.$rose-palette,
         tertiary: mat.$red-palette,
       ),
-      typography: Roboto,
+      typography: (
+        plain-family: $font-sans,
+        brand-family: $font-serif,
+        medium-weight: 600,
+        bold-weight: 700,
+      ),
       density: 0,
     )
   );
   @include mat.theme-overrides(
     (
+      headline-large: (600 1.875rem #{'/'} 2.25rem $font-serif),
+      title-large: (600 1.125rem #{'/'} 1.5rem $font-serif),
       primary: var(--color-primary),
       on-primary: var(--color-on-primary),
       secondary: var(--color-secondary),

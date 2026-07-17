@@ -141,7 +141,7 @@ import { formatIcon } from '../format-icon';
               </div>
 
               <div class="text">
-                <span class="title">{{ engagement.book.title }}</span>
+                <span class="title font-serif">{{ engagement.book.title }}</span>
                 <div class="author-row">
                   <span class="author">{{
                     engagement.book.authors.map((a) => a.name).join(', ')

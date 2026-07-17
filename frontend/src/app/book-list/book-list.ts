@@ -38,7 +38,7 @@ import {
               [alt]="book.title + ' cover'"
             />
           }
-          <span matListItemTitle>{{ book.title }}</span>
+          <span matListItemTitle class="font-serif">{{ book.title }}</span>
           <span matListItemLine>{{ book.authors.map((a) => a.name).join(', ') }}</span>
           @if (deleteError()?.bookId === book.id) {
             <span matListItemLine class="field-error" role="alert">{{
