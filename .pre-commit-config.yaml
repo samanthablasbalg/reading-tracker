@@ -26,7 +26,7 @@ repos:
       - id: frontend-lint-staged
         name: Lint staged (frontend)
         language: system
-        files: ^frontend/.*\.(ts|html|css|json)$
+        files: ^frontend/.*\.(ts|html|css|scss|json)$
         entry: bash -c 'cd frontend && npx lint-staged'
         pass_filenames: false
       - id: frontend-typecheck
