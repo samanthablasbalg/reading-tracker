@@ -1,16 +1,18 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './auth.guard';
+import { guestGuard } from './guest.guard';
 
 export const routes: Routes = [
   {
-    path: 'login',
-    loadComponent: () => import('./login/login').then((m) => m.LoginComponent),
+    path: '',
+    pathMatch: 'full',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./landing/landing').then((m) => m.LandingComponent),
   },
   {
     path: '',
     canActivate: [authGuard],
     children: [
-      { path: '', redirectTo: 'currently-reading', pathMatch: 'full' },
       {
         path: 'currently-reading',
         loadComponent: () =>

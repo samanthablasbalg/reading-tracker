@@ -250,6 +250,6 @@ export class NavShellComponent {
   }
 
   protected logout(): void {
-    this.auth.logout().subscribe(() => this.router.navigate(['/login']));
+    this.auth.logout().subscribe(() => this.router.navigate(['/']));
   }
 }
