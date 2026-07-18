@@ -1,281 +1,857 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Reading Tracker — Insights</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{ background:#cfc7c2; font-family:"Plus Jakarta Sans",sans-serif; color:#241c22; padding:30px 16px 60px; }
-  .head{max-width:900px;margin:0 auto 22px;} .head h1{font-size:22px;} .head p{color:#6b5f66;font-size:14px;margin-top:2px;}
-  .stage{ display:flex; gap:34px; justify-content:center; flex-wrap:wrap; }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reading Tracker — Insights</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: #cfc7c2;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color: #241c22;
+        padding: 30px 16px 60px;
+      }
+      .head {
+        max-width: 900px;
+        margin: 0 auto 22px;
+      }
+      .head h1 {
+        font-size: 22px;
+      }
+      .head p {
+        color: #6b5f66;
+        font-size: 14px;
+        margin-top: 2px;
+      }
+      .stage {
+        display: flex;
+        gap: 34px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
 
-  .phone{ width:384px; border-radius:44px; padding:14px; }
-  .light-phone{ background:#e7ded4; box-shadow:0 20px 50px rgba(90,60,40,.28); }
-  .dark-phone{ background:#0e0a10; box-shadow:0 20px 50px rgba(0,0,0,.5); }
-  .screen{ border-radius:32px; overflow:hidden; height:812px; display:flex; flex-direction:column; }
-  .notch{height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:12px;font-weight:700;opacity:.85;margin-top:8px;}
-  .body{ flex:1; overflow-y:auto; padding:6px 16px 18px; }
-  .nav{display:flex;padding:10px 8px 22px;border-top:1px solid rgba(128,128,128,.16);}
-  .nav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;font-weight:600;text-decoration:none;opacity:.5;}
-  .nav svg{width:23px;height:23px;} .nav a.on{opacity:1;}
+      .phone {
+        width: 384px;
+        border-radius: 44px;
+        padding: 14px;
+      }
+      .light-phone {
+        background: #e7ded4;
+        box-shadow: 0 20px 50px rgba(90, 60, 40, 0.28);
+      }
+      .dark-phone {
+        background: #0e0a10;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      }
+      .screen {
+        border-radius: 32px;
+        overflow: hidden;
+        height: 812px;
+        display: flex;
+        flex-direction: column;
+      }
+      .notch {
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 22px;
+        font-size: 12px;
+        font-weight: 700;
+        opacity: 0.85;
+        margin-top: 8px;
+      }
+      .body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 6px 16px 18px;
+      }
+      .nav {
+        display: flex;
+        padding: 10px 8px 22px;
+        border-top: 1px solid rgba(128, 128, 128, 0.16);
+      }
+      .nav a {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        font-size: 10.5px;
+        font-weight: 600;
+        text-decoration: none;
+        opacity: 0.5;
+      }
+      .nav svg {
+        width: 23px;
+        height: 23px;
+      }
+      .nav a.on {
+        opacity: 1;
+      }
 
-  /* theme tokens */
-  .light .screen{ background:#FBF6EE; color:#241C22;
-    --surface:#FFFFFF; --muted:#8A7A82; --track:#F0E7DB; --accent:#E11584; --accent2:#FF7A2F; --shadow:0 2px 10px rgba(90,60,40,.08);
-    --c1:#EC4899;--c2:#F97316;--c3:#8B5CF6;--c4:#14B8A6;--c5:#3B82F6;--c6:#84CC16;--c7:#F59E0B;--c8:#F43F5E; }
-  .dark .screen{ background:#18131B; color:#F3E9EE;
-    --surface:#241C26; --muted:#B7A7B0; --track:#3A2F3F; --accent:#FF5FAB; --accent2:#FFA24D; --shadow:0 2px 12px rgba(0,0,0,.35);
-    --c1:#F472B6;--c2:#FB923C;--c3:#A78BFA;--c4:#2DD4BF;--c5:#60A5FA;--c6:#A3E635;--c7:#FBBF24;--c8:#FB7185; }
-  .nav a{ color:inherit; } .light .nav a.on{color:#E11584;} .dark .nav a.on{color:#FF5FAB;}
+      /* theme tokens */
+      .light .screen {
+        background: #fbf6ee;
+        color: #241c22;
+        --surface: #ffffff;
+        --muted: #8a7a82;
+        --track: #f0e7db;
+        --accent: #e11584;
+        --accent2: #ff7a2f;
+        --shadow: 0 2px 10px rgba(90, 60, 40, 0.08);
+        --c1: #ec4899;
+        --c2: #f97316;
+        --c3: #8b5cf6;
+        --c4: #14b8a6;
+        --c5: #3b82f6;
+        --c6: #84cc16;
+        --c7: #f59e0b;
+        --c8: #f43f5e;
+      }
+      .dark .screen {
+        background: #18131b;
+        color: #f3e9ee;
+        --surface: #241c26;
+        --muted: #b7a7b0;
+        --track: #3a2f3f;
+        --accent: #ff5fab;
+        --accent2: #ffa24d;
+        --shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+        --c1: #f472b6;
+        --c2: #fb923c;
+        --c3: #a78bfa;
+        --c4: #2dd4bf;
+        --c5: #60a5fa;
+        --c6: #a3e635;
+        --c7: #fbbf24;
+        --c8: #fb7185;
+      }
+      .nav a {
+        color: inherit;
+      }
+      .light .nav a.on {
+        color: #e11584;
+      }
+      .dark .nav a.on {
+        color: #ff5fab;
+      }
 
-  .ptitle{ font-family:"Lora",serif; font-weight:600; font-size:30px; margin:6px 2px 4px; }
-  .seg{ display:inline-flex; background:var(--track); border-radius:99px; padding:3px; margin:6px 0 16px; font-size:12px; font-weight:700; }
-  .seg span{ padding:6px 13px; border-radius:99px; opacity:.6; }
-  .seg span.on{ background:var(--accent); color:#fff; opacity:1; }
-  .dark .seg span.on{ color:#23111B; }
+      .ptitle {
+        font-family: 'Lora', serif;
+        font-weight: 600;
+        font-size: 30px;
+        margin: 6px 2px 4px;
+      }
+      .seg {
+        display: inline-flex;
+        background: var(--track);
+        border-radius: 99px;
+        padding: 3px;
+        margin: 6px 0 16px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .seg span {
+        padding: 6px 13px;
+        border-radius: 99px;
+        opacity: 0.6;
+      }
+      .seg span.on {
+        background: var(--accent);
+        color: #fff;
+        opacity: 1;
+      }
+      .dark .seg span.on {
+        color: #23111b;
+      }
 
-  .card{ background:var(--surface); border-radius:20px; padding:16px; margin-bottom:14px; box-shadow:var(--shadow); }
-  .ctitle{ font-family:"Lora",serif; font-weight:600; font-size:17px; margin-bottom:14px; }
-  .ctitle small{ font-family:"Plus Jakarta Sans"; font-weight:600; font-size:11px; color:var(--muted); float:right; margin-top:5px; }
+      .card {
+        background: var(--surface);
+        border-radius: 20px;
+        padding: 16px;
+        margin-bottom: 14px;
+        box-shadow: var(--shadow);
+      }
+      .ctitle {
+        font-family: 'Lora', serif;
+        font-weight: 600;
+        font-size: 17px;
+        margin-bottom: 14px;
+      }
+      .ctitle small {
+        font-family: 'Plus Jakarta Sans';
+        font-weight: 600;
+        font-size: 11px;
+        color: var(--muted);
+        float: right;
+        margin-top: 5px;
+      }
 
-  /* hero */
-  .hero{ display:flex; gap:10px; margin-bottom:14px; }
-  .hero .b{ flex:1; background:var(--surface); border-radius:18px; padding:14px 12px; box-shadow:var(--shadow); }
-  .hero .n{ font-weight:800; font-size:26px; font-variant-numeric:tabular-nums; line-height:1; }
-  .hero .l{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-top:6px; }
-  .hero .d{ font-size:11px; font-weight:700; color:#16a34a; margin-top:6px; }
-  .dark .hero .d{ color:#4ade80; }
+      /* hero */
+      .hero {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .hero .b {
+        flex: 1;
+        background: var(--surface);
+        border-radius: 18px;
+        padding: 14px 12px;
+        box-shadow: var(--shadow);
+      }
+      .hero .n {
+        font-weight: 800;
+        font-size: 26px;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+      }
+      .hero .l {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-top: 6px;
+      }
+      .hero .d {
+        font-size: 11px;
+        font-weight: 700;
+        color: #16a34a;
+        margin-top: 6px;
+      }
+      .dark .hero .d {
+        color: #4ade80;
+      }
 
-  /* trend chart */
-  .trend{ width:100%; height:110px; display:block; }
-  .xlabels{ display:flex; justify-content:space-between; font-size:9.5px; color:var(--muted); margin-top:4px; }
+      /* trend chart */
+      .trend {
+        width: 100%;
+        height: 110px;
+        display: block;
+      }
+      .xlabels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 9.5px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
 
-  /* donut */
-  .donutrow{ display:flex; align-items:center; gap:16px; }
-  .donut{ width:118px;height:118px;border-radius:50%; flex:none; position:relative;
-    background:conic-gradient(var(--c1) 0 24%,var(--c2) 24% 42%,var(--c3) 42% 58%,var(--c4) 58% 72%,var(--c5) 72% 84%,var(--c6) 84% 94%,var(--c7) 94% 100%); }
-  .donut::after{ content:""; position:absolute; inset:26px; border-radius:50%; background:var(--surface); }
-  .donut .mid{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:1; }
-  .donut .mid b{ font-size:20px; } .donut .mid span{ font-size:10px; color:var(--muted); }
-  .legend{ flex:1; display:grid; grid-template-columns:1fr 1fr; gap:7px 10px; font-size:12px; }
-  .legend span{ display:flex; align-items:center; gap:7px; } .dot{ width:9px;height:9px;border-radius:3px;flex:none; }
-  .legend b{ margin-left:auto; font-variant-numeric:tabular-nums; opacity:.6; font-weight:600; }
+      /* donut */
+      .donutrow {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .donut {
+        width: 118px;
+        height: 118px;
+        border-radius: 50%;
+        flex: none;
+        position: relative;
+        background: conic-gradient(
+          var(--c1) 0 24%,
+          var(--c2) 24% 42%,
+          var(--c3) 42% 58%,
+          var(--c4) 58% 72%,
+          var(--c5) 72% 84%,
+          var(--c6) 84% 94%,
+          var(--c7) 94% 100%
+        );
+      }
+      .donut::after {
+        content: '';
+        position: absolute;
+        inset: 26px;
+        border-radius: 50%;
+        background: var(--surface);
+      }
+      .donut .mid {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1;
+      }
+      .donut .mid b {
+        font-size: 20px;
+      }
+      .donut .mid span {
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .legend {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px 10px;
+        font-size: 12px;
+      }
+      .legend span {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 3px;
+        flex: none;
+      }
+      .legend b {
+        margin-left: auto;
+        font-variant-numeric: tabular-nums;
+        opacity: 0.6;
+        font-weight: 600;
+      }
 
-  /* mood / horizontal bars */
-  .hb{ display:flex; align-items:center; gap:10px; margin-bottom:9px; font-size:12.5px; }
-  .hb .name{ width:82px; flex:none; } .hb .track{ flex:1; height:9px; border-radius:99px; background:var(--track); overflow:hidden; }
-  .hb .track > i{ display:block; height:100%; border-radius:99px; background:var(--accent); }
-  .hb .v{ width:30px; text-align:right; font-variant-numeric:tabular-nums; color:var(--muted); font-weight:600; }
+      /* mood / horizontal bars */
+      .hb {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 9px;
+        font-size: 12.5px;
+      }
+      .hb .name {
+        width: 82px;
+        flex: none;
+      }
+      .hb .track {
+        flex: 1;
+        height: 9px;
+        border-radius: 99px;
+        background: var(--track);
+        overflow: hidden;
+      }
+      .hb .track > i {
+        display: block;
+        height: 100%;
+        border-radius: 99px;
+        background: var(--accent);
+      }
+      .hb .v {
+        width: 30px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted);
+        font-weight: 600;
+      }
 
-  /* format split */
-  .split{ display:flex; height:14px; border-radius:99px; overflow:hidden; gap:3px; margin-bottom:12px; }
-  .split>div{ height:100%; border-radius:4px; }
+      /* format split */
+      .split {
+        display: flex;
+        height: 14px;
+        border-radius: 99px;
+        overflow: hidden;
+        gap: 3px;
+        margin-bottom: 12px;
+      }
+      .split > div {
+        height: 100%;
+        border-radius: 4px;
+      }
 
-  /* heatmap */
-  .heat{ display:grid; grid-template-columns:repeat(14,1fr); gap:4px; }
-  .heat i{ aspect-ratio:1; border-radius:3px; background:var(--track); }
+      /* heatmap */
+      .heat {
+        display: grid;
+        grid-template-columns: repeat(14, 1fr);
+        gap: 4px;
+      }
+      .heat i {
+        aspect-ratio: 1;
+        border-radius: 3px;
+        background: var(--track);
+      }
 
-  /* diversity */
-  .divrow{ display:flex; align-items:center; gap:10px; margin-bottom:11px; font-size:12.5px; }
-  .divrow .name{ width:120px; flex:none; } .divrow .track{ flex:1;height:9px;border-radius:99px;background:var(--track);overflow:hidden; }
-  .divrow .track>i{ display:block;height:100%;border-radius:99px; }
-  .divrow .v{ width:34px;text-align:right;font-weight:700;font-variant-numeric:tabular-nums; }
-  .caption{text-align:center;font-size:12px;opacity:.6;margin-top:12px;font-weight:600;}
-</style>
-</head>
-<body>
-<div class="head"><h1>Insights screen</h1><p>The retrospective / stats half · categorical palette across chart types · Lora headings · dark + light</p></div>
-<div class="stage">
+      /* diversity */
+      .divrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 11px;
+        font-size: 12.5px;
+      }
+      .divrow .name {
+        width: 120px;
+        flex: none;
+      }
+      .divrow .track {
+        flex: 1;
+        height: 9px;
+        border-radius: 99px;
+        background: var(--track);
+        overflow: hidden;
+      }
+      .divrow .track > i {
+        display: block;
+        height: 100%;
+        border-radius: 99px;
+      }
+      .divrow .v {
+        width: 34px;
+        text-align: right;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .caption {
+        text-align: center;
+        font-size: 12px;
+        opacity: 0.6;
+        margin-top: 12px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="head">
+      <h1>Insights screen</h1>
+      <p>
+        The retrospective / stats half · categorical palette across chart types · Lora headings ·
+        dark + light
+      </p>
+    </div>
+    <div class="stage">
+      <!-- ============ DARK ============ -->
+      <div class="phone dark-phone dark">
+        <div class="notch"><span>9:41</span><span>100%</span></div>
+        <div class="screen">
+          <div class="body">
+            <div class="ptitle">Insights</div>
+            <div class="seg">
+              <span class="on">This year</span><span>2025</span><span>All time</span>
+            </div>
 
-  <!-- ============ DARK ============ -->
-  <div class="phone dark-phone dark">
-    <div class="notch"><span>9:41</span><span>100%</span></div>
-    <div class="screen">
-      <div class="body">
-        <div class="ptitle">Insights</div>
-        <div class="seg"><span class="on">This year</span><span>2025</span><span>All time</span></div>
+            <div class="hero">
+              <div class="b">
+                <div class="n">37</div>
+                <div class="l">Books</div>
+                <div class="d">▲ 6</div>
+              </div>
+              <div class="b">
+                <div class="n">11,240</div>
+                <div class="l">Pages</div>
+                <div class="d">▲ 12%</div>
+              </div>
+              <div class="b">
+                <div class="n">214</div>
+                <div class="l">Hours</div>
+                <div class="d">▲ 30</div>
+              </div>
+            </div>
 
-        <div class="hero">
-          <div class="b"><div class="n">37</div><div class="l">Books</div><div class="d">▲ 6</div></div>
-          <div class="b"><div class="n">11,240</div><div class="l">Pages</div><div class="d">▲ 12%</div></div>
-          <div class="b"><div class="n">214</div><div class="l">Hours</div><div class="d">▲ 30</div></div>
-        </div>
+            <div class="card">
+              <div class="ctitle">Pages read <small>per month</small></div>
+              <svg class="trend" viewBox="0 0 300 110" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="gd" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#FF5FAB" stop-opacity=".45" />
+                    <stop offset="1" stop-color="#FF5FAB" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M0,80 L27,60 L54,68 L82,40 L109,52 L136,30 L163,44 L191,22 L218,38 L245,18 L272,34 L300,20 L300,110 L0,110 Z"
+                  fill="url(#gd)"
+                />
+                <path
+                  d="M0,80 L27,60 L54,68 L82,40 L109,52 L136,30 L163,44 L191,22 L218,38 L245,18 L272,34 L300,20"
+                  fill="none"
+                  stroke="#FF5FAB"
+                  stroke-width="2.5"
+                  stroke-linejoin="round"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <div class="xlabels">
+                <span>J</span><span>F</span><span>M</span><span>A</span><span>M</span><span>J</span
+                ><span>J</span><span>A</span><span>S</span><span>O</span><span>N</span
+                ><span>D</span>
+              </div>
+            </div>
 
-        <div class="card">
-          <div class="ctitle">Pages read <small>per month</small></div>
-          <svg class="trend" viewBox="0 0 300 110" preserveAspectRatio="none">
-            <defs><linearGradient id="gd" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#FF5FAB" stop-opacity=".45"/><stop offset="1" stop-color="#FF5FAB" stop-opacity="0"/>
-            </linearGradient></defs>
-            <path d="M0,80 L27,60 L54,68 L82,40 L109,52 L136,30 L163,44 L191,22 L218,38 L245,18 L272,34 L300,20 L300,110 L0,110 Z" fill="url(#gd)"/>
-            <path d="M0,80 L27,60 L54,68 L82,40 L109,52 L136,30 L163,44 L191,22 L218,38 L245,18 L272,34 L300,20" fill="none" stroke="#FF5FAB" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-          </svg>
-          <div class="xlabels"><span>J</span><span>F</span><span>M</span><span>A</span><span>M</span><span>J</span><span>J</span><span>A</span><span>S</span><span>O</span><span>N</span><span>D</span></div>
-        </div>
+            <div class="card">
+              <div class="ctitle">Genres <small>7 this year</small></div>
+              <div class="donutrow">
+                <div class="donut">
+                  <div class="mid"><b>37</b><span>books</span></div>
+                </div>
+                <div class="legend">
+                  <span><i class="dot" style="background: var(--c1)"></i>Fantasy<b>9</b></span>
+                  <span><i class="dot" style="background: var(--c2)"></i>Literary<b>7</b></span>
+                  <span><i class="dot" style="background: var(--c3)"></i>Romance<b>6</b></span>
+                  <span><i class="dot" style="background: var(--c4)"></i>Sci-fi<b>5</b></span>
+                  <span><i class="dot" style="background: var(--c5)"></i>Mystery<b>4</b></span>
+                  <span><i class="dot" style="background: var(--c6)"></i>Nonfic<b>4</b></span>
+                  <span><i class="dot" style="background: var(--c7)"></i>Comics<b>2</b></span>
+                </div>
+              </div>
+            </div>
 
-        <div class="card">
-          <div class="ctitle">Genres <small>7 this year</small></div>
-          <div class="donutrow">
-            <div class="donut"><div class="mid"><b>37</b><span>books</span></div></div>
-            <div class="legend">
-              <span><i class="dot" style="background:var(--c1)"></i>Fantasy<b>9</b></span>
-              <span><i class="dot" style="background:var(--c2)"></i>Literary<b>7</b></span>
-              <span><i class="dot" style="background:var(--c3)"></i>Romance<b>6</b></span>
-              <span><i class="dot" style="background:var(--c4)"></i>Sci-fi<b>5</b></span>
-              <span><i class="dot" style="background:var(--c5)"></i>Mystery<b>4</b></span>
-              <span><i class="dot" style="background:var(--c6)"></i>Nonfic<b>4</b></span>
-              <span><i class="dot" style="background:var(--c7)"></i>Comics<b>2</b></span>
+            <div class="card">
+              <div class="ctitle">Top moods</div>
+              <div class="hb">
+                <span class="name">Adventurous</span
+                ><span class="track"><i style="width: 88%"></i></span><span class="v">88%</span>
+              </div>
+              <div class="hb">
+                <span class="name">Emotional</span
+                ><span class="track"><i style="width: 71%"></i></span><span class="v">71%</span>
+              </div>
+              <div class="hb">
+                <span class="name">Reflective</span
+                ><span class="track"><i style="width: 64%"></i></span><span class="v">64%</span>
+              </div>
+              <div class="hb">
+                <span class="name">Mysterious</span
+                ><span class="track"><i style="width: 52%"></i></span><span class="v">52%</span>
+              </div>
+              <div class="hb">
+                <span class="name">Hopeful</span
+                ><span class="track"><i style="width: 40%"></i></span><span class="v">40%</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="ctitle">Format</div>
+              <div class="split">
+                <div style="background: var(--c3); width: 46%"></div>
+                <div style="background: var(--c4); width: 34%"></div>
+                <div style="background: var(--c7); width: 20%"></div>
+              </div>
+              <div class="legend" style="grid-template-columns: 1fr 1fr 1fr">
+                <span><i class="dot" style="background: var(--c3)"></i>Audio<b>46%</b></span>
+                <span><i class="dot" style="background: var(--c4)"></i>Ebook<b>34%</b></span>
+                <span><i class="dot" style="background: var(--c7)"></i>Print<b>20%</b></span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="ctitle">Reading activity <small>last 14 weeks</small></div>
+              <div class="heat" id="heatD"></div>
+            </div>
+
+            <div class="card">
+              <div class="ctitle">Diversity <small>your private tags</small></div>
+              <div class="divrow">
+                <span class="name">Women authors</span
+                ><span class="track"><i style="width: 62%; background: var(--c1)"></i></span
+                ><span class="v">62%</span>
+              </div>
+              <div class="divrow">
+                <span class="name">Authors of color</span
+                ><span class="track"><i style="width: 31%; background: var(--c3)"></i></span
+                ><span class="v">31%</span>
+              </div>
+              <div class="divrow">
+                <span class="name">In translation</span
+                ><span class="track"><i style="width: 18%; background: var(--c5)"></i></span
+                ><span class="v">18%</span>
+              </div>
+              <div class="divrow">
+                <span class="name">Countries</span
+                ><span class="track"><i style="width: 47%; background: var(--c4)"></i></span
+                ><span class="v">14</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="card">
-          <div class="ctitle">Top moods</div>
-          <div class="hb"><span class="name">Adventurous</span><span class="track"><i style="width:88%"></i></span><span class="v">88%</span></div>
-          <div class="hb"><span class="name">Emotional</span><span class="track"><i style="width:71%"></i></span><span class="v">71%</span></div>
-          <div class="hb"><span class="name">Reflective</span><span class="track"><i style="width:64%"></i></span><span class="v">64%</span></div>
-          <div class="hb"><span class="name">Mysterious</span><span class="track"><i style="width:52%"></i></span><span class="v">52%</span></div>
-          <div class="hb"><span class="name">Hopeful</span><span class="track"><i style="width:40%"></i></span><span class="v">40%</span></div>
-        </div>
-
-        <div class="card">
-          <div class="ctitle">Format</div>
-          <div class="split"><div style="background:var(--c3);width:46%"></div><div style="background:var(--c4);width:34%"></div><div style="background:var(--c7);width:20%"></div></div>
-          <div class="legend" style="grid-template-columns:1fr 1fr 1fr">
-            <span><i class="dot" style="background:var(--c3)"></i>Audio<b>46%</b></span>
-            <span><i class="dot" style="background:var(--c4)"></i>Ebook<b>34%</b></span>
-            <span><i class="dot" style="background:var(--c7)"></i>Print<b>20%</b></span>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="ctitle">Reading activity <small>last 14 weeks</small></div>
-          <div class="heat" id="heatD"></div>
-        </div>
-
-        <div class="card">
-          <div class="ctitle">Diversity <small>your private tags</small></div>
-          <div class="divrow"><span class="name">Women authors</span><span class="track"><i style="width:62%;background:var(--c1)"></i></span><span class="v">62%</span></div>
-          <div class="divrow"><span class="name">Authors of color</span><span class="track"><i style="width:31%;background:var(--c3)"></i></span><span class="v">31%</span></div>
-          <div class="divrow"><span class="name">In translation</span><span class="track"><i style="width:18%;background:var(--c5)"></i></span><span class="v">18%</span></div>
-          <div class="divrow"><span class="name">Countries</span><span class="track"><i style="width:47%;background:var(--c4)"></i></span><span class="v">14</span></div>
+          <nav class="nav">
+            <a
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 10l9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z" /></svg
+              >Home</a
+            >
+            <a
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M4 4h6v16H4z" />
+                <path d="M10 4h6v16h-6z" />
+                <path d="M16 4l4 .8-3 15.5-4-.8" /></svg
+              >Library</a
+            >
+            <a class="on"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M4 20V10" />
+                <path d="M10 20V4" />
+                <path d="M16 20v-7" />
+                <path d="M22 20H2" /></svg
+              >Insights</a
+            >
+            <a
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="8" />
+                <circle cx="12" cy="12" r="3.5" /></svg
+              >Challenges</a
+            >
+          </nav>
         </div>
       </div>
 
-      <nav class="nav">
-        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg>Home</a>
-        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v16H4z"/><path d="M10 4h6v16h-6z"/><path d="M16 4l4 .8-3 15.5-4-.8"/></svg>Library</a>
-        <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>Insights</a>
-        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/></svg>Challenges</a>
-      </nav>
-    </div>
-  </div>
+      <!-- ============ LIGHT ============ -->
+      <div class="phone light-phone light">
+        <div class="notch"><span>9:41</span><span>100%</span></div>
+        <div class="screen">
+          <div class="body">
+            <div class="ptitle">Insights</div>
+            <div class="seg">
+              <span class="on">This year</span><span>2025</span><span>All time</span>
+            </div>
 
-  <!-- ============ LIGHT ============ -->
-  <div class="phone light-phone light">
-    <div class="notch"><span>9:41</span><span>100%</span></div>
-    <div class="screen">
-      <div class="body">
-        <div class="ptitle">Insights</div>
-        <div class="seg"><span class="on">This year</span><span>2025</span><span>All time</span></div>
+            <div class="hero">
+              <div class="b">
+                <div class="n">37</div>
+                <div class="l">Books</div>
+                <div class="d">▲ 6</div>
+              </div>
+              <div class="b">
+                <div class="n">11,240</div>
+                <div class="l">Pages</div>
+                <div class="d">▲ 12%</div>
+              </div>
+              <div class="b">
+                <div class="n">214</div>
+                <div class="l">Hours</div>
+                <div class="d">▲ 30</div>
+              </div>
+            </div>
 
-        <div class="hero">
-          <div class="b"><div class="n">37</div><div class="l">Books</div><div class="d">▲ 6</div></div>
-          <div class="b"><div class="n">11,240</div><div class="l">Pages</div><div class="d">▲ 12%</div></div>
-          <div class="b"><div class="n">214</div><div class="l">Hours</div><div class="d">▲ 30</div></div>
-        </div>
+            <div class="card">
+              <div class="ctitle">Pages read <small>per month</small></div>
+              <svg class="trend" viewBox="0 0 300 110" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="gl" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#E11584" stop-opacity=".4" />
+                    <stop offset="1" stop-color="#E11584" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M0,80 L27,60 L54,68 L82,40 L109,52 L136,30 L163,44 L191,22 L218,38 L245,18 L272,34 L300,20 L300,110 L0,110 Z"
+                  fill="url(#gl)"
+                />
+                <path
+                  d="M0,80 L27,60 L54,68 L82,40 L109,52 L136,30 L163,44 L191,22 L218,38 L245,18 L272,34 L300,20"
+                  fill="none"
+                  stroke="#E11584"
+                  stroke-width="2.5"
+                  stroke-linejoin="round"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <div class="xlabels">
+                <span>J</span><span>F</span><span>M</span><span>A</span><span>M</span><span>J</span
+                ><span>J</span><span>A</span><span>S</span><span>O</span><span>N</span
+                ><span>D</span>
+              </div>
+            </div>
 
-        <div class="card">
-          <div class="ctitle">Pages read <small>per month</small></div>
-          <svg class="trend" viewBox="0 0 300 110" preserveAspectRatio="none">
-            <defs><linearGradient id="gl" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#E11584" stop-opacity=".4"/><stop offset="1" stop-color="#E11584" stop-opacity="0"/>
-            </linearGradient></defs>
-            <path d="M0,80 L27,60 L54,68 L82,40 L109,52 L136,30 L163,44 L191,22 L218,38 L245,18 L272,34 L300,20 L300,110 L0,110 Z" fill="url(#gl)"/>
-            <path d="M0,80 L27,60 L54,68 L82,40 L109,52 L136,30 L163,44 L191,22 L218,38 L245,18 L272,34 L300,20" fill="none" stroke="#E11584" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-          </svg>
-          <div class="xlabels"><span>J</span><span>F</span><span>M</span><span>A</span><span>M</span><span>J</span><span>J</span><span>A</span><span>S</span><span>O</span><span>N</span><span>D</span></div>
-        </div>
+            <div class="card">
+              <div class="ctitle">Genres <small>7 this year</small></div>
+              <div class="donutrow">
+                <div class="donut">
+                  <div class="mid"><b>37</b><span>books</span></div>
+                </div>
+                <div class="legend">
+                  <span><i class="dot" style="background: var(--c1)"></i>Fantasy<b>9</b></span>
+                  <span><i class="dot" style="background: var(--c2)"></i>Literary<b>7</b></span>
+                  <span><i class="dot" style="background: var(--c3)"></i>Romance<b>6</b></span>
+                  <span><i class="dot" style="background: var(--c4)"></i>Sci-fi<b>5</b></span>
+                  <span><i class="dot" style="background: var(--c5)"></i>Mystery<b>4</b></span>
+                  <span><i class="dot" style="background: var(--c6)"></i>Nonfic<b>4</b></span>
+                  <span><i class="dot" style="background: var(--c7)"></i>Comics<b>2</b></span>
+                </div>
+              </div>
+            </div>
 
-        <div class="card">
-          <div class="ctitle">Genres <small>7 this year</small></div>
-          <div class="donutrow">
-            <div class="donut"><div class="mid"><b>37</b><span>books</span></div></div>
-            <div class="legend">
-              <span><i class="dot" style="background:var(--c1)"></i>Fantasy<b>9</b></span>
-              <span><i class="dot" style="background:var(--c2)"></i>Literary<b>7</b></span>
-              <span><i class="dot" style="background:var(--c3)"></i>Romance<b>6</b></span>
-              <span><i class="dot" style="background:var(--c4)"></i>Sci-fi<b>5</b></span>
-              <span><i class="dot" style="background:var(--c5)"></i>Mystery<b>4</b></span>
-              <span><i class="dot" style="background:var(--c6)"></i>Nonfic<b>4</b></span>
-              <span><i class="dot" style="background:var(--c7)"></i>Comics<b>2</b></span>
+            <div class="card">
+              <div class="ctitle">Top moods</div>
+              <div class="hb">
+                <span class="name">Adventurous</span
+                ><span class="track"><i style="width: 88%"></i></span><span class="v">88%</span>
+              </div>
+              <div class="hb">
+                <span class="name">Emotional</span
+                ><span class="track"><i style="width: 71%"></i></span><span class="v">71%</span>
+              </div>
+              <div class="hb">
+                <span class="name">Reflective</span
+                ><span class="track"><i style="width: 64%"></i></span><span class="v">64%</span>
+              </div>
+              <div class="hb">
+                <span class="name">Mysterious</span
+                ><span class="track"><i style="width: 52%"></i></span><span class="v">52%</span>
+              </div>
+              <div class="hb">
+                <span class="name">Hopeful</span
+                ><span class="track"><i style="width: 40%"></i></span><span class="v">40%</span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="ctitle">Format</div>
+              <div class="split">
+                <div style="background: var(--c3); width: 46%"></div>
+                <div style="background: var(--c4); width: 34%"></div>
+                <div style="background: var(--c7); width: 20%"></div>
+              </div>
+              <div class="legend" style="grid-template-columns: 1fr 1fr 1fr">
+                <span><i class="dot" style="background: var(--c3)"></i>Audio<b>46%</b></span>
+                <span><i class="dot" style="background: var(--c4)"></i>Ebook<b>34%</b></span>
+                <span><i class="dot" style="background: var(--c7)"></i>Print<b>20%</b></span>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="ctitle">Reading activity <small>last 14 weeks</small></div>
+              <div class="heat" id="heatL"></div>
+            </div>
+
+            <div class="card">
+              <div class="ctitle">Diversity <small>your private tags</small></div>
+              <div class="divrow">
+                <span class="name">Women authors</span
+                ><span class="track"><i style="width: 62%; background: var(--c1)"></i></span
+                ><span class="v">62%</span>
+              </div>
+              <div class="divrow">
+                <span class="name">Authors of color</span
+                ><span class="track"><i style="width: 31%; background: var(--c3)"></i></span
+                ><span class="v">31%</span>
+              </div>
+              <div class="divrow">
+                <span class="name">In translation</span
+                ><span class="track"><i style="width: 18%; background: var(--c5)"></i></span
+                ><span class="v">18%</span>
+              </div>
+              <div class="divrow">
+                <span class="name">Countries</span
+                ><span class="track"><i style="width: 47%; background: var(--c4)"></i></span
+                ><span class="v">14</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="card">
-          <div class="ctitle">Top moods</div>
-          <div class="hb"><span class="name">Adventurous</span><span class="track"><i style="width:88%"></i></span><span class="v">88%</span></div>
-          <div class="hb"><span class="name">Emotional</span><span class="track"><i style="width:71%"></i></span><span class="v">71%</span></div>
-          <div class="hb"><span class="name">Reflective</span><span class="track"><i style="width:64%"></i></span><span class="v">64%</span></div>
-          <div class="hb"><span class="name">Mysterious</span><span class="track"><i style="width:52%"></i></span><span class="v">52%</span></div>
-          <div class="hb"><span class="name">Hopeful</span><span class="track"><i style="width:40%"></i></span><span class="v">40%</span></div>
-        </div>
-
-        <div class="card">
-          <div class="ctitle">Format</div>
-          <div class="split"><div style="background:var(--c3);width:46%"></div><div style="background:var(--c4);width:34%"></div><div style="background:var(--c7);width:20%"></div></div>
-          <div class="legend" style="grid-template-columns:1fr 1fr 1fr">
-            <span><i class="dot" style="background:var(--c3)"></i>Audio<b>46%</b></span>
-            <span><i class="dot" style="background:var(--c4)"></i>Ebook<b>34%</b></span>
-            <span><i class="dot" style="background:var(--c7)"></i>Print<b>20%</b></span>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="ctitle">Reading activity <small>last 14 weeks</small></div>
-          <div class="heat" id="heatL"></div>
-        </div>
-
-        <div class="card">
-          <div class="ctitle">Diversity <small>your private tags</small></div>
-          <div class="divrow"><span class="name">Women authors</span><span class="track"><i style="width:62%;background:var(--c1)"></i></span><span class="v">62%</span></div>
-          <div class="divrow"><span class="name">Authors of color</span><span class="track"><i style="width:31%;background:var(--c3)"></i></span><span class="v">31%</span></div>
-          <div class="divrow"><span class="name">In translation</span><span class="track"><i style="width:18%;background:var(--c5)"></i></span><span class="v">18%</span></div>
-          <div class="divrow"><span class="name">Countries</span><span class="track"><i style="width:47%;background:var(--c4)"></i></span><span class="v">14</span></div>
+          <nav class="nav">
+            <a
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 10l9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z" /></svg
+              >Home</a
+            >
+            <a
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M4 4h6v16H4z" />
+                <path d="M10 4h6v16h-6z" />
+                <path d="M16 4l4 .8-3 15.5-4-.8" /></svg
+              >Library</a
+            >
+            <a class="on"
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M4 20V10" />
+                <path d="M10 20V4" />
+                <path d="M16 20v-7" />
+                <path d="M22 20H2" /></svg
+              >Insights</a
+            >
+            <a
+              ><svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="8" />
+                <circle cx="12" cy="12" r="3.5" /></svg
+              >Challenges</a
+            >
+          </nav>
         </div>
       </div>
-
-      <nav class="nav">
-        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v9a2 2 0 0 1-2 2h-4v-6H9v6H5a2 2 0 0 1-2-2z"/></svg>Home</a>
-        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v16H4z"/><path d="M10 4h6v16h-6z"/><path d="M16 4l4 .8-3 15.5-4-.8"/></svg>Library</a>
-        <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>Insights</a>
-        <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/></svg>Challenges</a>
-      </nav>
     </div>
-  </div>
+    <p class="caption">
+      ← Dark · Light → &nbsp;·&nbsp; same Insights screen, categorical palette lightens for dark
+    </p>
 
-</div>
-<p class="caption">← Dark · Light → &nbsp;·&nbsp; same Insights screen, categorical palette lightens for dark</p>
-
-<script>
-  // fill reading-activity heatmaps with pink-opacity intensity
-  function fill(id, accent){
-    const el = document.getElementById(id); if(!el) return;
-    for(let i=0;i<14*5;i++){
-      const c = document.createElement('i');
-      const r = Math.random();
-      const lvl = r<0.28?0 : r<0.5?0.25 : r<0.72?0.5 : r<0.9?0.75 : 1;
-      if(lvl>0){ c.style.background = accent; c.style.opacity = 0.2 + lvl*0.8; }
-      el.appendChild(c);
-    }
-  }
-  fill('heatD','#FF5FAB');
-  fill('heatL','#E11584');
-</script>
-</body>
+    <script>
+      // fill reading-activity heatmaps with pink-opacity intensity
+      function fill(id, accent) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        for (let i = 0; i < 14 * 5; i++) {
+          const c = document.createElement('i');
+          const r = Math.random();
+          const lvl = r < 0.28 ? 0 : r < 0.5 ? 0.25 : r < 0.72 ? 0.5 : r < 0.9 ? 0.75 : 1;
+          if (lvl > 0) {
+            c.style.background = accent;
+            c.style.opacity = 0.2 + lvl * 0.8;
+          }
+          el.appendChild(c);
+        }
+      }
+      fill('heatD', '#FF5FAB');
+      fill('heatL', '#E11584');
+    </script>
+  </body>
 </html>

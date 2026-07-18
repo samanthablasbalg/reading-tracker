@@ -1,221 +1,914 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Reading Tracker — Search states, provisional page, add</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{ background:#cfc7c2; font-family:"Plus Jakarta Sans",sans-serif; color:#241c22; padding:30px 16px 60px; }
-  .head{max-width:1240px;margin:0 auto 22px;} .head h1{font-size:22px;} .head p{color:#6b5f66;font-size:14px;margin-top:2px;}
-  .stage{ display:flex; gap:28px; justify-content:center; flex-wrap:wrap; }
-  .labeled{ text-align:center; } .labeled > .cap{ font-size:12px; font-weight:700; color:#4a4046; margin-bottom:10px; }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reading Tracker — Search states, provisional page, add</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: #cfc7c2;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color: #241c22;
+        padding: 30px 16px 60px;
+      }
+      .head {
+        max-width: 1240px;
+        margin: 0 auto 22px;
+      }
+      .head h1 {
+        font-size: 22px;
+      }
+      .head p {
+        color: #6b5f66;
+        font-size: 14px;
+        margin-top: 2px;
+      }
+      .stage {
+        display: flex;
+        gap: 28px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .labeled {
+        text-align: center;
+      }
+      .labeled > .cap {
+        font-size: 12px;
+        font-weight: 700;
+        color: #4a4046;
+        margin-bottom: 10px;
+      }
 
-  .phone{ width:388px; border-radius:44px; padding:14px; background:#0e0a10; box-shadow:0 20px 50px rgba(0,0,0,.5); }
-  .screen{ border-radius:32px; overflow:hidden; height:820px; display:flex; flex-direction:column; position:relative;
-    background:#18131B; color:#F3E9EE;
-    --surface:#241C26; --surface2:#2E2432; --muted:#B7A7B0; --track:#3A2F3F; --accent:#FF5FAB; --accent2:#FFA24D;
-    --line:rgba(255,255,255,.09); --shadow:0 2px 12px rgba(0,0,0,.35); }
-  .notch{height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-size:12px;font-weight:700;opacity:.85;margin-top:8px;}
+      .phone {
+        width: 388px;
+        border-radius: 44px;
+        padding: 14px;
+        background: #0e0a10;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      }
+      .screen {
+        border-radius: 32px;
+        overflow: hidden;
+        height: 820px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        background: #18131b;
+        color: #f3e9ee;
+        --surface: #241c26;
+        --surface2: #2e2432;
+        --muted: #b7a7b0;
+        --track: #3a2f3f;
+        --accent: #ff5fab;
+        --accent2: #ffa24d;
+        --line: rgba(255, 255, 255, 0.09);
+        --shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+      }
+      .notch {
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 22px;
+        font-size: 12px;
+        font-weight: 700;
+        opacity: 0.85;
+        margin-top: 8px;
+      }
 
-  .sfield{ display:flex; align-items:center; gap:11px; margin:10px 16px 6px; background:var(--surface); border-radius:14px; padding:12px 14px; }
-  .sfield.focus{ box-shadow:0 0 0 2px var(--accent); }
-  .sfield svg{ width:18px;height:18px; color:var(--muted); flex:none; }
-  .sfield input{ flex:1; background:none; border:none; outline:none; color:#F3E9EE; font-size:15px; font-family:inherit; }
-  .sfield .x{ color:var(--muted); font-size:15px; }
+      .sfield {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin: 10px 16px 6px;
+        background: var(--surface);
+        border-radius: 14px;
+        padding: 12px 14px;
+      }
+      .sfield.focus {
+        box-shadow: 0 0 0 2px var(--accent);
+      }
+      .sfield svg {
+        width: 18px;
+        height: 18px;
+        color: var(--muted);
+        flex: none;
+      }
+      .sfield input {
+        flex: 1;
+        background: none;
+        border: none;
+        outline: none;
+        color: #f3e9ee;
+        font-size: 15px;
+        font-family: inherit;
+      }
+      .sfield .x {
+        color: var(--muted);
+        font-size: 15px;
+      }
 
-  .body{ flex:1; overflow-y:auto; padding:4px 0 20px; }
-  .grouphead{ font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); padding:14px 20px 7px; }
-  .grouphead .hint{ text-transform:none; letter-spacing:0; font-weight:600; opacity:.7; }
+      .body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 4px 0 20px;
+      }
+      .grouphead {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 14px 20px 7px;
+      }
+      .grouphead .hint {
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 600;
+        opacity: 0.7;
+      }
 
-  .res{ display:flex; gap:12px; align-items:center; padding:10px 16px 10px 18px; }
-  .res:active{ background:rgba(255,255,255,.03); }
-  .res .cv{ width:44px;height:66px;border-radius:7px;flex:none;box-shadow:0 3px 9px rgba(0,0,0,.4); }
-  .res .info{ flex:1; min-width:0; }
-  .res .nm{ font-family:"Lora",serif; font-size:15px; line-height:1.15; }
-  .res .au{ font-size:12px; color:var(--muted); margin-top:2px; }
-  .res .meta{ font-size:10.5px; color:var(--muted); opacity:.85; margin-top:4px; display:flex; align-items:center; gap:6px; }
-  .prov{ display:inline-flex; align-items:center; gap:4px; font-weight:700; }
-  .prov.app{ color:#8FD6C0; } .prov.ggl{ color:#9AB4E6; }
-  .prov svg{ width:11px;height:11px; }
+      .res {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 16px 10px 18px;
+      }
+      .res:active {
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .res .cv {
+        width: 44px;
+        height: 66px;
+        border-radius: 7px;
+        flex: none;
+        box-shadow: 0 3px 9px rgba(0, 0, 0, 0.4);
+      }
+      .res .info {
+        flex: 1;
+        min-width: 0;
+      }
+      .res .nm {
+        font-family: 'Lora', serif;
+        font-size: 15px;
+        line-height: 1.15;
+      }
+      .res .au {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .res .meta {
+        font-size: 10.5px;
+        color: var(--muted);
+        opacity: 0.85;
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .prov {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 700;
+      }
+      .prov.app {
+        color: #8fd6c0;
+      }
+      .prov.ggl {
+        color: #9ab4e6;
+      }
+      .prov svg {
+        width: 11px;
+        height: 11px;
+      }
 
-  .status{ font-size:11px; font-weight:800; padding:6px 11px; border-radius:99px; flex:none; }
-  .status.reading{ background:rgba(255,95,171,.16); color:#FF8FC5; }
-  .status.tbr{ background:var(--surface2); color:var(--muted); }
-  .addpill{ display:flex; align-items:center; gap:5px; font-size:12px; font-weight:800; padding:8px 12px; border-radius:99px; background:var(--accent); color:#23111B; border:none; flex:none; }
-  .addpill svg{ width:13px;height:13px; }
-  .chev{ width:16px;height:16px;color:var(--muted);flex:none;opacity:.6; margin-left:2px; }
+      .status {
+        font-size: 11px;
+        font-weight: 800;
+        padding: 6px 11px;
+        border-radius: 99px;
+        flex: none;
+      }
+      .status.reading {
+        background: rgba(255, 95, 171, 0.16);
+        color: #ff8fc5;
+      }
+      .status.tbr {
+        background: var(--surface2);
+        color: var(--muted);
+      }
+      .addpill {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        font-weight: 800;
+        padding: 8px 12px;
+        border-radius: 99px;
+        background: var(--accent);
+        color: #23111b;
+        border: none;
+        flex: none;
+      }
+      .addpill svg {
+        width: 13px;
+        height: 13px;
+      }
+      .chev {
+        width: 16px;
+        height: 16px;
+        color: var(--muted);
+        flex: none;
+        opacity: 0.6;
+        margin-left: 2px;
+      }
 
-  .manual{ margin:14px 18px 4px; padding:14px; border:1.5px dashed var(--track); border-radius:16px; text-align:center; }
-  .manual .t{ font-size:13.5px; font-weight:700; } .manual .s{ font-size:11.5px; color:var(--muted); margin-top:4px; }
-  .manual .b{ margin-top:10px; display:inline-flex; gap:7px; align-items:center; font-size:13px; font-weight:800; color:var(--accent); }
-  .manual .b svg{ width:15px;height:15px; }
+      .manual {
+        margin: 14px 18px 4px;
+        padding: 14px;
+        border: 1.5px dashed var(--track);
+        border-radius: 16px;
+        text-align: center;
+      }
+      .manual .t {
+        font-size: 13.5px;
+        font-weight: 700;
+      }
+      .manual .s {
+        font-size: 11.5px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .manual .b {
+        margin-top: 10px;
+        display: inline-flex;
+        gap: 7px;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--accent);
+      }
+      .manual .b svg {
+        width: 15px;
+        height: 15px;
+      }
 
-  /* provisional page */
-  .appbar{ display:flex; align-items:center; gap:8px; padding:8px 14px; }
-  .rnd{ width:36px;height:36px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center; } .rnd svg{ width:18px;height:18px; }
-  .banner{ margin:6px 16px 4px; background:rgba(154,180,230,.14); border:1px solid rgba(154,180,230,.3); color:#BBD0F5; border-radius:12px; padding:9px 13px; font-size:11.5px; font-weight:700; display:flex; align-items:center; gap:8px; }
-  .banner svg{ width:15px;height:15px;flex:none; }
-  .phero{ display:flex; gap:15px; padding:14px 18px 6px; }
-  .phero .cv{ width:104px;height:156px;border-radius:11px;flex:none;box-shadow:0 8px 20px rgba(0,0,0,.5); }
-  .phero .nm{ font-family:"Lora",serif; font-weight:600; font-size:23px; line-height:1.12; }
-  .phero .au{ font-size:13.5px; margin-top:6px; } .phero .au b{ color:#F3E9EE; }
-  .phero .gm{ font-size:12px; color:var(--muted); margin-top:8px; line-height:1.5; }
-  .chips{ display:flex; flex-wrap:wrap; gap:6px; padding:8px 18px 2px; }
-  .chip{ font-size:11px; font-weight:600; padding:5px 10px; border-radius:99px; background:var(--surface); color:var(--muted); }
-  .about{ padding:12px 18px; } .about .h{ font-family:"Lora",serif; font-weight:600; font-size:16px; margin-bottom:8px; }
-  .about p{ font-size:13.5px; line-height:1.6; color:#E4D8DE; }
-  .ghosted{ margin:6px 18px; padding:14px; border:1px dashed var(--track); border-radius:14px; color:var(--muted); font-size:12.5px; display:flex; align-items:center; gap:9px; }
-  .ghosted svg{ width:17px;height:17px;flex:none; }
-  .footcta{ padding:12px 18px 18px; border-top:1px solid var(--line); background:#1a141d; }
-  .footcta button{ width:100%; border:none; border-radius:14px; padding:15px; font-weight:800; font-size:15px; background:var(--accent); color:#23111B; display:flex; align-items:center; justify-content:center; gap:8px; }
-  .footcta button svg{ width:18px;height:18px; }
-  .footcta .sub{ text-align:center; font-size:11px; color:var(--muted); margin-top:8px; }
+      /* provisional page */
+      .appbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+      }
+      .rnd {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .rnd svg {
+        width: 18px;
+        height: 18px;
+      }
+      .banner {
+        margin: 6px 16px 4px;
+        background: rgba(154, 180, 230, 0.14);
+        border: 1px solid rgba(154, 180, 230, 0.3);
+        color: #bbd0f5;
+        border-radius: 12px;
+        padding: 9px 13px;
+        font-size: 11.5px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .banner svg {
+        width: 15px;
+        height: 15px;
+        flex: none;
+      }
+      .phero {
+        display: flex;
+        gap: 15px;
+        padding: 14px 18px 6px;
+      }
+      .phero .cv {
+        width: 104px;
+        height: 156px;
+        border-radius: 11px;
+        flex: none;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+      }
+      .phero .nm {
+        font-family: 'Lora', serif;
+        font-weight: 600;
+        font-size: 23px;
+        line-height: 1.12;
+      }
+      .phero .au {
+        font-size: 13.5px;
+        margin-top: 6px;
+      }
+      .phero .au b {
+        color: #f3e9ee;
+      }
+      .phero .gm {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 8px;
+        line-height: 1.5;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px 18px 2px;
+      }
+      .chip {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 5px 10px;
+        border-radius: 99px;
+        background: var(--surface);
+        color: var(--muted);
+      }
+      .about {
+        padding: 12px 18px;
+      }
+      .about .h {
+        font-family: 'Lora', serif;
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 8px;
+      }
+      .about p {
+        font-size: 13.5px;
+        line-height: 1.6;
+        color: #e4d8de;
+      }
+      .ghosted {
+        margin: 6px 18px;
+        padding: 14px;
+        border: 1px dashed var(--track);
+        border-radius: 14px;
+        color: var(--muted);
+        font-size: 12.5px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .ghosted svg {
+        width: 17px;
+        height: 17px;
+        flex: none;
+      }
+      .footcta {
+        padding: 12px 18px 18px;
+        border-top: 1px solid var(--line);
+        background: #1a141d;
+      }
+      .footcta button {
+        width: 100%;
+        border: none;
+        border-radius: 14px;
+        padding: 15px;
+        font-weight: 800;
+        font-size: 15px;
+        background: var(--accent);
+        color: #23111b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .footcta button svg {
+        width: 18px;
+        height: 18px;
+      }
+      .footcta .sub {
+        text-align: center;
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 8px;
+      }
 
-  /* sheet */
-  .scrim{ position:absolute; inset:0; background:rgba(0,0,0,.5); }
-  .sheet{ position:absolute; left:0; right:0; bottom:0; background:var(--surface); border-radius:26px 26px 0 0; padding:8px 20px 26px; box-shadow:0 -12px 40px rgba(0,0,0,.5); }
-  .grab{ width:38px;height:4px;border-radius:99px;background:var(--track);margin:6px auto 16px; }
-  .added{ display:flex; gap:13px; align-items:center; }
-  .added .cv{ width:50px;height:75px;border-radius:8px;flex:none;box-shadow:0 4px 12px rgba(0,0,0,.4); }
-  .added .ok{ font-size:12px; font-weight:800; color:#4ade80; display:flex; align-items:center; gap:5px; } .added .ok svg{ width:14px;height:14px; }
-  .added .nm{ font-family:"Lora",serif; font-size:17px; margin-top:3px; line-height:1.15; }
-  .added .prov2{ font-size:11px; color:var(--muted); margin-top:4px; }
-  .lab{ font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); margin:20px 0 10px; }
-  .schips{ display:flex; gap:9px; flex-wrap:wrap; }
-  .schip{ font-size:13px; font-weight:700; padding:10px 15px; border-radius:99px; background:var(--surface2); color:#F3E9EE; }
-  .schip.on{ background:var(--accent); color:#23111B; }
-  .rowbtn{ display:flex; align-items:center; gap:10px; margin-top:14px; padding:13px 0; font-size:14px; font-weight:700; color:var(--muted); border-top:1px solid var(--line); }
-  .rowbtn svg{ width:19px;height:19px; }
-  .done{ width:100%; margin-top:16px; border:none; border-radius:14px; padding:14px; font-weight:800; font-size:15px; background:var(--accent); color:#23111B; }
-</style>
-</head>
-<body>
-<div class="head"><h1>Search → provisional page → add</h1><p>Four states made visible (subtle provenance), the provisional Book page for a not-yet-imported book, and the one-tap add-and-set-status.</p></div>
-<div class="stage">
+      /* sheet */
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+      }
+      .sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--surface);
+        border-radius: 26px 26px 0 0;
+        padding: 8px 20px 26px;
+        box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);
+      }
+      .grab {
+        width: 38px;
+        height: 4px;
+        border-radius: 99px;
+        background: var(--track);
+        margin: 6px auto 16px;
+      }
+      .added {
+        display: flex;
+        gap: 13px;
+        align-items: center;
+      }
+      .added .cv {
+        width: 50px;
+        height: 75px;
+        border-radius: 8px;
+        flex: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      }
+      .added .ok {
+        font-size: 12px;
+        font-weight: 800;
+        color: #4ade80;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .added .ok svg {
+        width: 14px;
+        height: 14px;
+      }
+      .added .nm {
+        font-family: 'Lora', serif;
+        font-size: 17px;
+        margin-top: 3px;
+        line-height: 1.15;
+      }
+      .added .prov2 {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .lab {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 20px 0 10px;
+      }
+      .schips {
+        display: flex;
+        gap: 9px;
+        flex-wrap: wrap;
+      }
+      .schip {
+        font-size: 13px;
+        font-weight: 700;
+        padding: 10px 15px;
+        border-radius: 99px;
+        background: var(--surface2);
+        color: #f3e9ee;
+      }
+      .schip.on {
+        background: var(--accent);
+        color: #23111b;
+      }
+      .rowbtn {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 14px;
+        padding: 13px 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--muted);
+        border-top: 1px solid var(--line);
+      }
+      .rowbtn svg {
+        width: 19px;
+        height: 19px;
+      }
+      .done {
+        width: 100%;
+        margin-top: 16px;
+        border: none;
+        border-radius: 14px;
+        padding: 14px;
+        font-weight: 800;
+        font-size: 15px;
+        background: var(--accent);
+        color: #23111b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="head">
+      <h1>Search → provisional page → add</h1>
+      <p>
+        Four states made visible (subtle provenance), the provisional Book page for a
+        not-yet-imported book, and the one-tap add-and-set-status.
+      </p>
+    </div>
+    <div class="stage">
+      <!-- ===== PHONE 1: four states ===== -->
+      <div class="labeled">
+        <div class="cap">1 · Results — four states, add ＋ open</div>
+        <div class="phone">
+          <div class="screen">
+            <div class="notch"><span>9:41</span><span>100%</span></div>
+            <div class="sfield focus">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4-4" />
+              </svg>
+              <input value="amina al-sirafi" readonly /><span class="x">✕</span>
+            </div>
+            <div class="body">
+              <div class="grouphead">In your library</div>
+              <div class="res">
+                <div class="cv" style="background: linear-gradient(150deg, #2c6e63, #e0b24a)"></div>
+                <div class="info">
+                  <div class="nm">The Adventures of Amina al-Sirafi</div>
+                  <div class="au">Shannon Chakraborty</div>
+                  <div class="meta">2023 · 496pp</div>
+                </div>
+                <span class="status reading">Reading</span>
+                <svg
+                  class="chev"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M9 6l6 6-6 6" />
+                </svg>
+              </div>
 
-  <!-- ===== PHONE 1: four states ===== -->
-  <div class="labeled">
-    <div class="cap">1 · Results — four states, add ＋ open</div>
-    <div class="phone"><div class="screen">
-      <div class="notch"><span>9:41</span><span>100%</span></div>
-      <div class="sfield focus">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-        <input value="amina al-sirafi" readonly><span class="x">✕</span>
-      </div>
-      <div class="body">
-        <div class="grouphead">In your library</div>
-        <div class="res">
-          <div class="cv" style="background:linear-gradient(150deg,#2c6e63,#e0b24a)"></div>
-          <div class="info"><div class="nm">The Adventures of Amina al-Sirafi</div><div class="au">Shannon Chakraborty</div><div class="meta">2023 · 496pp</div></div>
-          <span class="status reading">Reading</span>
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-        </div>
+              <div class="grouphead">
+                Already in the app <span class="hint">· open for full detail, or add</span>
+              </div>
+              <div class="res">
+                <div class="cv" style="background: linear-gradient(150deg, #7a3a5b, #d68b9e)"></div>
+                <div class="info">
+                  <div class="nm">The City of Brass</div>
+                  <div class="au">Shannon Chakraborty</div>
+                  <div class="meta">
+                    <span class="prov app"
+                      ><svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                      >
+                        <path d="M20 6L9 17l-5-5" /></svg
+                      >In app</span
+                    >
+                    · 3 editions · reviewed by you before
+                  </div>
+                </div>
+                <button class="addpill">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                  >
+                    <path d="M12 5v14M5 12h14" /></svg
+                  >Add
+                </button>
+                <svg
+                  class="chev"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M9 6l6 6-6 6" />
+                </svg>
+              </div>
 
-        <div class="grouphead">Already in the app <span class="hint">· open for full detail, or add</span></div>
-        <div class="res">
-          <div class="cv" style="background:linear-gradient(150deg,#7a3a5b,#d68b9e)"></div>
-          <div class="info"><div class="nm">The City of Brass</div><div class="au">Shannon Chakraborty</div>
-            <div class="meta"><span class="prov app"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>In app</span> · 3 editions · reviewed by you before</div>
+              <div class="grouphead">
+                New — from Google Books <span class="hint">· preview, then add</span>
+              </div>
+              <div class="res">
+                <div class="cv" style="background: linear-gradient(150deg, #3a5b8c, #8bc0d6)"></div>
+                <div class="info">
+                  <div class="nm">The River of Silver</div>
+                  <div class="au">Shannon Chakraborty</div>
+                  <div class="meta">
+                    <span class="prov ggl"
+                      ><svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="M21 21l-4-4" /></svg
+                      >Google Books</span
+                    >
+                    · 2022 · 656pp
+                  </div>
+                </div>
+                <button class="addpill">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                  >
+                    <path d="M12 5v14M5 12h14" /></svg
+                  >Add
+                </button>
+                <svg
+                  class="chev"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M9 6l6 6-6 6" />
+                </svg>
+              </div>
+              <div class="res">
+                <div class="cv" style="background: linear-gradient(150deg, #8c6a3a, #e8d08b)"></div>
+                <div class="info">
+                  <div class="nm">The Kingdom of Copper</div>
+                  <div class="au">S. A. Chakraborty</div>
+                  <div class="meta">
+                    <span class="prov ggl"
+                      ><svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="M21 21l-4-4" /></svg
+                      >Google Books</span
+                    >
+                    · 2019 · 640pp
+                  </div>
+                </div>
+                <button class="addpill">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                  >
+                    <path d="M12 5v14M5 12h14" /></svg
+                  >Add
+                </button>
+                <svg
+                  class="chev"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M9 6l6 6-6 6" />
+                </svg>
+              </div>
+
+              <div class="manual">
+                <div class="t">Not the book you meant?</div>
+                <div class="s">
+                  Rare editions, self-pub, and comics aren't always in Google Books.
+                </div>
+                <div class="b">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                  >
+                    <path d="M12 5v14M5 12h14" /></svg
+                  >Add a book manually
+                </div>
+              </div>
+            </div>
           </div>
-          <button class="addpill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add</button>
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </div>
+      </div>
 
-        <div class="grouphead">New — from Google Books <span class="hint">· preview, then add</span></div>
-        <div class="res">
-          <div class="cv" style="background:linear-gradient(150deg,#3a5b8c,#8bc0d6)"></div>
-          <div class="info"><div class="nm">The River of Silver</div><div class="au">Shannon Chakraborty</div>
-            <div class="meta"><span class="prov ggl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>Google Books</span> · 2022 · 656pp</div>
+      <!-- ===== PHONE 2: provisional page ===== -->
+      <div class="labeled">
+        <div class="cap">2 · Provisional page (tapped a Google result)</div>
+        <div class="phone">
+          <div class="screen">
+            <div class="notch"><span>9:41</span><span>100%</span></div>
+            <div class="appbar">
+              <div class="rnd">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </div>
+            </div>
+            <div class="body" style="padding-top: 0">
+              <div class="banner">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 8v4M12 16h.01" /></svg
+                >Preview — not in your app yet · from Google Books
+              </div>
+              <div class="phero">
+                <div class="cv" style="background: linear-gradient(150deg, #3a5b8c, #8bc0d6)"></div>
+                <div>
+                  <div class="nm">The River of Silver</div>
+                  <div class="au">by <b>Shannon Chakraborty</b></div>
+                  <div class="gm">
+                    The Daevabad Trilogy · Stories<br />2022 · 656 pages<br />HarperVoyager
+                  </div>
+                </div>
+              </div>
+              <div class="chips">
+                <span class="chip">Fantasy</span><span class="chip">Short stories</span
+                ><span class="chip">Historical</span>
+              </div>
+              <div class="about">
+                <div class="h">About</div>
+                <p>
+                  Return to Daevabad in a series of stories that expand the world of the Daevabad
+                  Trilogy — the tales the trilogy didn't have room to tell, from the perspectives of
+                  the characters you already love.
+                </p>
+              </div>
+              <div class="ghosted">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z" /></svg
+                >Editions, Contents, your notes &amp; progress become available once it's in your
+                app.
+              </div>
+            </div>
+            <div class="footcta">
+              <button>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                >
+                  <path d="M12 5v14M5 12h14" /></svg
+                >Add to library
+              </button>
+              <div class="sub">Imports the book &amp; adds it to yours in one step</div>
+            </div>
           </div>
-          <button class="addpill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add</button>
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </div>
-        <div class="res">
-          <div class="cv" style="background:linear-gradient(150deg,#8c6a3a,#e8d08b)"></div>
-          <div class="info"><div class="nm">The Kingdom of Copper</div><div class="au">S. A. Chakraborty</div>
-            <div class="meta"><span class="prov ggl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>Google Books</span> · 2019 · 640pp</div>
+      </div>
+
+      <!-- ===== PHONE 3: add sheet ===== -->
+      <div class="labeled">
+        <div class="cap">3 · Add — one tap, sets status</div>
+        <div class="phone">
+          <div class="screen">
+            <div class="notch"><span>9:41</span><span>100%</span></div>
+            <div class="appbar">
+              <div class="rnd">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </div>
+            </div>
+            <div class="body" style="opacity: 0.3"></div>
+            <div class="scrim"></div>
+            <div class="sheet">
+              <div class="grab"></div>
+              <div class="added">
+                <div class="cv" style="background: linear-gradient(150deg, #3a5b8c, #8bc0d6)"></div>
+                <div>
+                  <div class="ok">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M20 6L9 17l-5-5" /></svg
+                    >Added to your library
+                  </div>
+                  <div class="nm">The River of Silver</div>
+                  <div class="prov2">Imported to the app &amp; added to yours</div>
+                </div>
+              </div>
+              <div class="lab">
+                Status
+                <span style="font-weight: 600; text-transform: none; letter-spacing: 0"
+                  >(optional — defaults to Want to read)</span
+                >
+              </div>
+              <div class="schips">
+                <span class="schip on">Want to read</span>
+                <span class="schip">Reading</span>
+                <span class="schip">Finished</span>
+                <span class="schip">DNF</span>
+              </div>
+              <div class="rowbtn">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M4 4h6v16H4z" />
+                  <path d="M10 4h6v16h-6z" /></svg
+                >Add to a shelf or lane<span style="margin-left: auto">›</span>
+              </div>
+              <button class="done">Done</button>
+            </div>
           </div>
-          <button class="addpill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add</button>
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-        </div>
-
-        <div class="manual">
-          <div class="t">Not the book you meant?</div>
-          <div class="s">Rare editions, self-pub, and comics aren't always in Google Books.</div>
-          <div class="b"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add a book manually</div>
         </div>
       </div>
-    </div></div>
-  </div>
-
-  <!-- ===== PHONE 2: provisional page ===== -->
-  <div class="labeled">
-    <div class="cap">2 · Provisional page (tapped a Google result)</div>
-    <div class="phone"><div class="screen">
-      <div class="notch"><span>9:41</span><span>100%</span></div>
-      <div class="appbar">
-        <div class="rnd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div>
-      </div>
-      <div class="body" style="padding-top:0">
-        <div class="banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>Preview — not in your app yet · from Google Books</div>
-        <div class="phero">
-          <div class="cv" style="background:linear-gradient(150deg,#3a5b8c,#8bc0d6)"></div>
-          <div>
-            <div class="nm">The River of Silver</div>
-            <div class="au">by <b>Shannon Chakraborty</b></div>
-            <div class="gm">The Daevabad Trilogy · Stories<br>2022 · 656 pages<br>HarperVoyager</div>
-          </div>
-        </div>
-        <div class="chips"><span class="chip">Fantasy</span><span class="chip">Short stories</span><span class="chip">Historical</span></div>
-        <div class="about">
-          <div class="h">About</div>
-          <p>Return to Daevabad in a series of stories that expand the world of the Daevabad Trilogy — the tales the trilogy didn't have room to tell, from the perspectives of the characters you already love.</p>
-        </div>
-        <div class="ghosted"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z"/></svg>Editions, Contents, your notes &amp; progress become available once it's in your app.</div>
-      </div>
-      <div class="footcta">
-        <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add to library</button>
-        <div class="sub">Imports the book &amp; adds it to yours in one step</div>
-      </div>
-    </div></div>
-  </div>
-
-  <!-- ===== PHONE 3: add sheet ===== -->
-  <div class="labeled">
-    <div class="cap">3 · Add — one tap, sets status</div>
-    <div class="phone"><div class="screen">
-      <div class="notch"><span>9:41</span><span>100%</span></div>
-      <div class="appbar"><div class="rnd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div></div>
-      <div class="body" style="opacity:.3"></div>
-      <div class="scrim"></div>
-      <div class="sheet">
-        <div class="grab"></div>
-        <div class="added">
-          <div class="cv" style="background:linear-gradient(150deg,#3a5b8c,#8bc0d6)"></div>
-          <div>
-            <div class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Added to your library</div>
-            <div class="nm">The River of Silver</div>
-            <div class="prov2">Imported to the app &amp; added to yours</div>
-          </div>
-        </div>
-        <div class="lab">Status <span style="font-weight:600;text-transform:none;letter-spacing:0">(optional — defaults to Want to read)</span></div>
-        <div class="schips">
-          <span class="schip on">Want to read</span>
-          <span class="schip">Reading</span>
-          <span class="schip">Finished</span>
-          <span class="schip">DNF</span>
-        </div>
-        <div class="rowbtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v16H4z"/><path d="M10 4h6v16h-6z"/></svg>Add to a shelf or lane<span style="margin-left:auto">›</span></div>
-        <button class="done">Done</button>
-      </div>
-    </div></div>
-  </div>
-
-</div>
-<p class="head" style="max-width:1240px;text-align:center;color:#6b5f66;font-size:12.5px;margin-top:16px;">Each row = <b>＋ Add</b> (quick, no navigation) + <b>tap to open</b> (chevron). "In app" opens the real Book page; "Google Books" opens the provisional preview. Add is always one atomic step: import-if-needed → make it yours → set status.</p>
-</body>
+    </div>
+    <p
+      class="head"
+      style="
+        max-width: 1240px;
+        text-align: center;
+        color: #6b5f66;
+        font-size: 12.5px;
+        margin-top: 16px;
+      "
+    >
+      Each row = <b>＋ Add</b> (quick, no navigation) + <b>tap to open</b> (chevron). "In app" opens
+      the real Book page; "Google Books" opens the provisional preview. Add is always one atomic
+      step: import-if-needed → make it yours → set status.
+    </p>
+  </body>
 </html>

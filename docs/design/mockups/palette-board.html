@@ -1,215 +1,454 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Reading Tracker — Palette Board (Direction A)</title>
-<style>
-  :root { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: #d9d2ce; color: #241c22; }
-  .wrap { max-width: 1200px; margin: 0 auto; padding: 28px 20px 60px; }
-  h1 { font-size: 24px; margin: 4px 0 2px; }
-  .sub { color: #6b5f66; font-size: 14px; margin: 0 0 22px; }
-  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
-  @media (max-width: 820px) { .cols { grid-template-columns: 1fr; } }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reading Tracker — Palette Board (Direction A)</title>
+    <style>
+      :root {
+        font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #d9d2ce;
+        color: #241c22;
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 28px 20px 60px;
+      }
+      h1 {
+        font-size: 24px;
+        margin: 4px 0 2px;
+      }
+      .sub {
+        color: #6b5f66;
+        font-size: 14px;
+        margin: 0 0 22px;
+      }
+      .cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+      }
+      @media (max-width: 820px) {
+        .cols {
+          grid-template-columns: 1fr;
+        }
+      }
 
-  .panel { border-radius: 24px; padding: 22px; box-shadow: 0 10px 30px rgba(0,0,0,.12); }
-  .panel h2 { font-size: 15px; letter-spacing: .04em; text-transform: uppercase; margin: 0 0 16px; opacity:.7; }
-  .label { font-size: 12px; margin: 12px 0 8px; font-weight: 600; opacity: .65; }
+      .panel {
+        border-radius: 24px;
+        padding: 22px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+      }
+      .panel h2 {
+        font-size: 15px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin: 0 0 16px;
+        opacity: 0.7;
+      }
+      .label {
+        font-size: 12px;
+        margin: 12px 0 8px;
+        font-weight: 600;
+        opacity: 0.65;
+      }
 
-  /* swatch rows */
-  .swatches { display: flex; flex-wrap: wrap; gap: 10px; }
-  .sw { width: 84px; border-radius: 14px; overflow: hidden; font-size: 10px; }
-  .sw .chip { height: 46px; }
-  .sw .hex { padding: 4px 6px; font-variant-numeric: tabular-nums; }
-  .tints { display: flex; flex-wrap: wrap; gap: 8px; }
-  .tint { width: 52px; height: 40px; border-radius: 12px; }
+      /* swatch rows */
+      .swatches {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .sw {
+        width: 84px;
+        border-radius: 14px;
+        overflow: hidden;
+        font-size: 10px;
+      }
+      .sw .chip {
+        height: 46px;
+      }
+      .sw .hex {
+        padding: 4px 6px;
+        font-variant-numeric: tabular-nums;
+      }
+      .tints {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .tint {
+        width: 52px;
+        height: 40px;
+        border-radius: 12px;
+      }
 
-  /* book card */
-  .card { border-radius: 20px; padding: 14px; display: flex; align-items: center; gap: 14px; margin-top: 6px; }
-  .cover { width: 46px; height: 68px; border-radius: 8px; flex: none; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
-  .meta { flex: 1; min-width: 0; }
-  .title { font-weight: 700; font-size: 15px; }
-  .author { font-size: 13px; opacity: .7; margin-top: 2px; }
-  .bar { height: 8px; border-radius: 99px; margin-top: 10px; position: relative; overflow: hidden; }
-  .bar > span { position: absolute; inset: 0 auto 0 0; border-radius: 99px; }
-  .pct { font-size: 12px; font-variant-numeric: tabular-nums; opacity:.7; margin-top:6px; }
-  .pill { border: none; border-radius: 99px; padding: 9px 16px; font-weight: 700; font-size: 13px; cursor: pointer; flex: none; }
+      /* book card */
+      .card {
+        border-radius: 20px;
+        padding: 14px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-top: 6px;
+      }
+      .cover {
+        width: 46px;
+        height: 68px;
+        border-radius: 8px;
+        flex: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+      }
+      .meta {
+        flex: 1;
+        min-width: 0;
+      }
+      .title {
+        font-weight: 700;
+        font-size: 15px;
+      }
+      .author {
+        font-size: 13px;
+        opacity: 0.7;
+        margin-top: 2px;
+      }
+      .bar {
+        height: 8px;
+        border-radius: 99px;
+        margin-top: 10px;
+        position: relative;
+        overflow: hidden;
+      }
+      .bar > span {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: 99px;
+      }
+      .pct {
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+        opacity: 0.7;
+        margin-top: 6px;
+      }
+      .pill {
+        border: none;
+        border-radius: 99px;
+        padding: 9px 16px;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        flex: none;
+      }
 
-  /* stat card */
-  .stat { border-radius: 20px; padding: 16px; margin-top: 14px; }
-  .stat h3 { margin: 0 0 2px; font-size: 15px; }
-  .stat .big { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
-  .stat .big small { font-size: 13px; font-weight: 600; opacity: .6; }
-  .distrib { display: flex; gap: 3px; height: 14px; margin: 14px 0 10px; }
-  .distrib > div { height: 100%; border-radius: 4px; }
-  .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 12px; }
-  .legend span { display: inline-flex; align-items: center; gap: 6px; }
-  .dot { width: 10px; height: 10px; border-radius: 3px; }
+      /* stat card */
+      .stat {
+        border-radius: 20px;
+        padding: 16px;
+        margin-top: 14px;
+      }
+      .stat h3 {
+        margin: 0 0 2px;
+        font-size: 15px;
+      }
+      .stat .big {
+        font-size: 28px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .stat .big small {
+        font-size: 13px;
+        font-weight: 600;
+        opacity: 0.6;
+      }
+      .distrib {
+        display: flex;
+        gap: 3px;
+        height: 14px;
+        margin: 14px 0 10px;
+      }
+      .distrib > div {
+        height: 100%;
+        border-radius: 4px;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 16px;
+        font-size: 12px;
+      }
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+      }
 
-  .catstrip { display:flex; gap:8px; margin-top:8px; }
-  .catstrip > div { flex:1; height: 34px; border-radius: 10px; }
+      .catstrip {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .catstrip > div {
+        flex: 1;
+        height: 34px;
+        border-radius: 10px;
+      }
 
-  /* ---- LIGHT ---- */
-  .light { background: #FBF6EE; color: #241C22; }
-  .light .card { background: #FFFFFF; box-shadow: 0 2px 10px rgba(90,60,40,.08); }
-  .light .stat { background: #FFFFFF; box-shadow: 0 2px 10px rgba(90,60,40,.08); }
-  .light .bar { background: #F0E7DB; }
-  .light .bar > span { background: #E11584; }
-  .light .pill { background: #E11584; color: #fff; }
-  .light .sw .hex { background: #FFFFFF; color:#241C22; }
+      /* ---- LIGHT ---- */
+      .light {
+        background: #fbf6ee;
+        color: #241c22;
+      }
+      .light .card {
+        background: #ffffff;
+        box-shadow: 0 2px 10px rgba(90, 60, 40, 0.08);
+      }
+      .light .stat {
+        background: #ffffff;
+        box-shadow: 0 2px 10px rgba(90, 60, 40, 0.08);
+      }
+      .light .bar {
+        background: #f0e7db;
+      }
+      .light .bar > span {
+        background: #e11584;
+      }
+      .light .pill {
+        background: #e11584;
+        color: #fff;
+      }
+      .light .sw .hex {
+        background: #ffffff;
+        color: #241c22;
+      }
 
-  /* ---- DARK ---- */
-  .dark { background: #18131B; color: #F3E9EE; }
-  .dark .card { background: #241C26; box-shadow: 0 2px 12px rgba(0,0,0,.4); }
-  .dark .stat { background: #241C26; box-shadow: 0 2px 12px rgba(0,0,0,.4); }
-  .dark .bar { background: #3A2F3F; }
-  .dark .bar > span { background: #FF5FAB; }
-  .dark .pill { background: #FF5FAB; color: #23111B; }
-  .dark .sw .hex { background: #241C26; color:#F3E9EE; }
-  .dark .panel h2 { opacity:.55; }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <h1>Reading Tracker — Palette Board</h1>
-  <p class="sub">Direction A · warm & cozy · Barbie-pink punch + warm orange · light and dark designed together</p>
+      /* ---- DARK ---- */
+      .dark {
+        background: #18131b;
+        color: #f3e9ee;
+      }
+      .dark .card {
+        background: #241c26;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+      }
+      .dark .stat {
+        background: #241c26;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+      }
+      .dark .bar {
+        background: #3a2f3f;
+      }
+      .dark .bar > span {
+        background: #ff5fab;
+      }
+      .dark .pill {
+        background: #ff5fab;
+        color: #23111b;
+      }
+      .dark .sw .hex {
+        background: #241c26;
+        color: #f3e9ee;
+      }
+      .dark .panel h2 {
+        opacity: 0.55;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Reading Tracker — Palette Board</h1>
+      <p class="sub">
+        Direction A · warm & cozy · Barbie-pink punch + warm orange · light and dark designed
+        together
+      </p>
 
-  <div class="cols">
+      <div class="cols">
+        <!-- ================= LIGHT ================= -->
+        <div class="panel light">
+          <h2>Light</h2>
 
-    <!-- ================= LIGHT ================= -->
-    <div class="panel light">
-      <h2>Light</h2>
+          <div class="swatches">
+            <div class="sw">
+              <div class="chip" style="background: #e11584"></div>
+              <div class="hex">Primary<br />#E11584</div>
+            </div>
+            <div class="sw">
+              <div class="chip" style="background: #ff7a2f"></div>
+              <div class="hex">Secondary<br />#FF7A2F</div>
+            </div>
+            <div class="sw">
+              <div
+                class="chip"
+                style="background: #fbf6ee; box-shadow: inset 0 0 0 1px #efe4d8"
+              ></div>
+              <div class="hex">Background<br />#FBF6EE</div>
+            </div>
+            <div class="sw">
+              <div
+                class="chip"
+                style="background: #ffffff; box-shadow: inset 0 0 0 1px #efe4d8"
+              ></div>
+              <div class="hex">Surface<br />#FFFFFF</div>
+            </div>
+            <div class="sw">
+              <div class="chip" style="background: #241c22"></div>
+              <div class="hex">Text<br />#241C22</div>
+            </div>
+          </div>
 
-      <div class="swatches">
-        <div class="sw"><div class="chip" style="background:#E11584"></div><div class="hex">Primary<br>#E11584</div></div>
-        <div class="sw"><div class="chip" style="background:#FF7A2F"></div><div class="hex">Secondary<br>#FF7A2F</div></div>
-        <div class="sw"><div class="chip" style="background:#FBF6EE;box-shadow:inset 0 0 0 1px #EFE4D8"></div><div class="hex">Background<br>#FBF6EE</div></div>
-        <div class="sw"><div class="chip" style="background:#FFFFFF;box-shadow:inset 0 0 0 1px #EFE4D8"></div><div class="hex">Surface<br>#FFFFFF</div></div>
-        <div class="sw"><div class="chip" style="background:#241C22"></div><div class="hex">Text<br>#241C22</div></div>
-      </div>
+          <div class="label">Pastel card tints</div>
+          <div class="tints">
+            <div class="tint" style="background: #ffd8ea"></div>
+            <div class="tint" style="background: #ece3ff"></div>
+            <div class="tint" style="background: #d5f3e1"></div>
+            <div class="tint" style="background: #ffe0cc"></div>
+            <div class="tint" style="background: #d6ebff"></div>
+            <div class="tint" style="background: #ffefb8"></div>
+          </div>
 
-      <div class="label">Pastel card tints</div>
-      <div class="tints">
-        <div class="tint" style="background:#FFD8EA"></div>
-        <div class="tint" style="background:#ECE3FF"></div>
-        <div class="tint" style="background:#D5F3E1"></div>
-        <div class="tint" style="background:#FFE0CC"></div>
-        <div class="tint" style="background:#D6EBFF"></div>
-        <div class="tint" style="background:#FFEFB8"></div>
-      </div>
+          <div class="label">Currently reading card</div>
+          <div class="card">
+            <div class="cover" style="background: linear-gradient(150deg, #8fb7d9, #f0c36b)"></div>
+            <div class="meta">
+              <div class="title">The House in the Cerulean Sea</div>
+              <div class="author">TJ Klune</div>
+              <div class="bar"><span style="width: 30%"></span></div>
+              <div class="pct">30%</div>
+            </div>
+            <button class="pill">Log progress</button>
+          </div>
 
-      <div class="label">Currently reading card</div>
-      <div class="card">
-        <div class="cover" style="background:linear-gradient(150deg,#8FB7D9,#F0C36B)"></div>
-        <div class="meta">
-          <div class="title">The House in the Cerulean Sea</div>
-          <div class="author">TJ Klune</div>
-          <div class="bar"><span style="width:30%"></span></div>
-          <div class="pct">30%</div>
+          <div class="label">Insights stat card (categorical color)</div>
+          <div class="stat">
+            <h3>This year</h3>
+            <div class="big">37 <small>books · 11,240 pages</small></div>
+            <div class="distrib">
+              <div style="background: #ec4899; width: 24%"></div>
+              <div style="background: #f97316; width: 18%"></div>
+              <div style="background: #8b5cf6; width: 16%"></div>
+              <div style="background: #14b8a6; width: 14%"></div>
+              <div style="background: #3b82f6; width: 12%"></div>
+              <div style="background: #84cc16; width: 10%"></div>
+              <div style="background: #f59e0b; width: 6%"></div>
+            </div>
+            <div class="legend">
+              <span><i class="dot" style="background: #ec4899"></i>Fantasy</span>
+              <span><i class="dot" style="background: #f97316"></i>Literary</span>
+              <span><i class="dot" style="background: #8b5cf6"></i>Romance</span>
+              <span><i class="dot" style="background: #14b8a6"></i>Sci-fi</span>
+              <span><i class="dot" style="background: #3b82f6"></i>Mystery</span>
+              <span><i class="dot" style="background: #84cc16"></i>Nonfic</span>
+              <span><i class="dot" style="background: #f59e0b"></i>Comics</span>
+            </div>
+          </div>
         </div>
-        <button class="pill">Log progress</button>
+
+        <!-- ================= DARK ================= -->
+        <div class="panel dark">
+          <h2>Dark</h2>
+
+          <div class="swatches">
+            <div class="sw">
+              <div class="chip" style="background: #ff5fab"></div>
+              <div class="hex">Primary<br />#FF5FAB</div>
+            </div>
+            <div class="sw">
+              <div class="chip" style="background: #ffa24d"></div>
+              <div class="hex">Secondary<br />#FFA24D</div>
+            </div>
+            <div class="sw">
+              <div
+                class="chip"
+                style="background: #18131b; box-shadow: inset 0 0 0 1px #372b3c"
+              ></div>
+              <div class="hex">Background<br />#18131B</div>
+            </div>
+            <div class="sw">
+              <div
+                class="chip"
+                style="background: #241c26; box-shadow: inset 0 0 0 1px #372b3c"
+              ></div>
+              <div class="hex">Surface<br />#241C26</div>
+            </div>
+            <div class="sw">
+              <div class="chip" style="background: #f3e9ee"></div>
+              <div class="hex">Text<br />#F3E9EE</div>
+            </div>
+          </div>
+
+          <div class="label">Pastel card tints (deepened)</div>
+          <div class="tints">
+            <div class="tint" style="background: #4e2a44"></div>
+            <div class="tint" style="background: #3a2e56"></div>
+            <div class="tint" style="background: #24503e"></div>
+            <div class="tint" style="background: #5a3a2a"></div>
+            <div class="tint" style="background: #2a3e5a"></div>
+            <div class="tint" style="background: #5a4a22"></div>
+          </div>
+
+          <div class="label">Currently reading card</div>
+          <div class="card">
+            <div class="cover" style="background: linear-gradient(150deg, #8fb7d9, #f0c36b)"></div>
+            <div class="meta">
+              <div class="title">The House in the Cerulean Sea</div>
+              <div class="author">TJ Klune</div>
+              <div class="bar"><span style="width: 30%"></span></div>
+              <div class="pct">30%</div>
+            </div>
+            <button class="pill">Log progress</button>
+          </div>
+
+          <div class="label">Insights stat card (categorical color)</div>
+          <div class="stat">
+            <h3>This year</h3>
+            <div class="big">37 <small>books · 11,240 pages</small></div>
+            <div class="distrib">
+              <div style="background: #f472b6; width: 24%"></div>
+              <div style="background: #fb923c; width: 18%"></div>
+              <div style="background: #a78bfa; width: 16%"></div>
+              <div style="background: #2dd4bf; width: 14%"></div>
+              <div style="background: #60a5fa; width: 12%"></div>
+              <div style="background: #a3e635; width: 10%"></div>
+              <div style="background: #fbbf24; width: 6%"></div>
+            </div>
+            <div class="legend">
+              <span><i class="dot" style="background: #f472b6"></i>Fantasy</span>
+              <span><i class="dot" style="background: #fb923c"></i>Literary</span>
+              <span><i class="dot" style="background: #a78bfa"></i>Romance</span>
+              <span><i class="dot" style="background: #2dd4bf"></i>Sci-fi</span>
+              <span><i class="dot" style="background: #60a5fa"></i>Mystery</span>
+              <span><i class="dot" style="background: #a3e635"></i>Nonfic</span>
+              <span><i class="dot" style="background: #fbbf24"></i>Comics</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="label">Insights stat card (categorical color)</div>
-      <div class="stat">
-        <h3>This year</h3>
-        <div class="big">37 <small>books · 11,240 pages</small></div>
-        <div class="distrib">
-          <div style="background:#EC4899;width:24%"></div>
-          <div style="background:#F97316;width:18%"></div>
-          <div style="background:#8B5CF6;width:16%"></div>
-          <div style="background:#14B8A6;width:14%"></div>
-          <div style="background:#3B82F6;width:12%"></div>
-          <div style="background:#84CC16;width:10%"></div>
-          <div style="background:#F59E0B;width:6%"></div>
-        </div>
-        <div class="legend">
-          <span><i class="dot" style="background:#EC4899"></i>Fantasy</span>
-          <span><i class="dot" style="background:#F97316"></i>Literary</span>
-          <span><i class="dot" style="background:#8B5CF6"></i>Romance</span>
-          <span><i class="dot" style="background:#14B8A6"></i>Sci-fi</span>
-          <span><i class="dot" style="background:#3B82F6"></i>Mystery</span>
-          <span><i class="dot" style="background:#84CC16"></i>Nonfic</span>
-          <span><i class="dot" style="background:#F59E0B"></i>Comics</span>
-        </div>
+      <div class="catstrip">
+        <div style="background: #ec4899"></div>
+        <div style="background: #f97316"></div>
+        <div style="background: #8b5cf6"></div>
+        <div style="background: #14b8a6"></div>
+        <div style="background: #3b82f6"></div>
+        <div style="background: #84cc16"></div>
+        <div style="background: #f59e0b"></div>
+        <div style="background: #f43f5e"></div>
       </div>
+      <p class="sub" style="margin-top: 8px">
+        Shared categorical palette (genres / moods / chart series) — includes your pink &amp;
+        orange; lightens for dark mode. Fonts are placeholder system — type is the next step.
+      </p>
     </div>
-
-    <!-- ================= DARK ================= -->
-    <div class="panel dark">
-      <h2>Dark</h2>
-
-      <div class="swatches">
-        <div class="sw"><div class="chip" style="background:#FF5FAB"></div><div class="hex">Primary<br>#FF5FAB</div></div>
-        <div class="sw"><div class="chip" style="background:#FFA24D"></div><div class="hex">Secondary<br>#FFA24D</div></div>
-        <div class="sw"><div class="chip" style="background:#18131B;box-shadow:inset 0 0 0 1px #372B3C"></div><div class="hex">Background<br>#18131B</div></div>
-        <div class="sw"><div class="chip" style="background:#241C26;box-shadow:inset 0 0 0 1px #372B3C"></div><div class="hex">Surface<br>#241C26</div></div>
-        <div class="sw"><div class="chip" style="background:#F3E9EE"></div><div class="hex">Text<br>#F3E9EE</div></div>
-      </div>
-
-      <div class="label">Pastel card tints (deepened)</div>
-      <div class="tints">
-        <div class="tint" style="background:#4E2A44"></div>
-        <div class="tint" style="background:#3A2E56"></div>
-        <div class="tint" style="background:#24503E"></div>
-        <div class="tint" style="background:#5A3A2A"></div>
-        <div class="tint" style="background:#2A3E5A"></div>
-        <div class="tint" style="background:#5A4A22"></div>
-      </div>
-
-      <div class="label">Currently reading card</div>
-      <div class="card">
-        <div class="cover" style="background:linear-gradient(150deg,#8FB7D9,#F0C36B)"></div>
-        <div class="meta">
-          <div class="title">The House in the Cerulean Sea</div>
-          <div class="author">TJ Klune</div>
-          <div class="bar"><span style="width:30%"></span></div>
-          <div class="pct">30%</div>
-        </div>
-        <button class="pill">Log progress</button>
-      </div>
-
-      <div class="label">Insights stat card (categorical color)</div>
-      <div class="stat">
-        <h3>This year</h3>
-        <div class="big">37 <small>books · 11,240 pages</small></div>
-        <div class="distrib">
-          <div style="background:#F472B6;width:24%"></div>
-          <div style="background:#FB923C;width:18%"></div>
-          <div style="background:#A78BFA;width:16%"></div>
-          <div style="background:#2DD4BF;width:14%"></div>
-          <div style="background:#60A5FA;width:12%"></div>
-          <div style="background:#A3E635;width:10%"></div>
-          <div style="background:#FBBF24;width:6%"></div>
-        </div>
-        <div class="legend">
-          <span><i class="dot" style="background:#F472B6"></i>Fantasy</span>
-          <span><i class="dot" style="background:#FB923C"></i>Literary</span>
-          <span><i class="dot" style="background:#A78BFA"></i>Romance</span>
-          <span><i class="dot" style="background:#2DD4BF"></i>Sci-fi</span>
-          <span><i class="dot" style="background:#60A5FA"></i>Mystery</span>
-          <span><i class="dot" style="background:#A3E635"></i>Nonfic</span>
-          <span><i class="dot" style="background:#FBBF24"></i>Comics</span>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <div class="catstrip">
-    <div style="background:#EC4899"></div>
-    <div style="background:#F97316"></div>
-    <div style="background:#8B5CF6"></div>
-    <div style="background:#14B8A6"></div>
-    <div style="background:#3B82F6"></div>
-    <div style="background:#84CC16"></div>
-    <div style="background:#F59E0B"></div>
-    <div style="background:#F43F5E"></div>
-  </div>
-  <p class="sub" style="margin-top:8px">Shared categorical palette (genres / moods / chart series) — includes your pink &amp; orange; lightens for dark mode. Fonts are placeholder system — type is the next step.</p>
-
-</div>
-</body>
+  </body>
 </html>
