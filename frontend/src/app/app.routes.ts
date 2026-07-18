@@ -21,8 +21,13 @@ export const routes: Routes = [
         loadComponent: () => import('./catalog/catalog').then((m) => m.CatalogComponent),
       },
       {
-        path: 'concluded',
-        loadComponent: () => import('./concluded/concluded').then((m) => m.ConcludedComponent),
+        path: 'finished',
+        loadComponent: () =>
+          import('./finished-books/finished-books').then((m) => m.FinishedBooksComponent),
+      },
+      {
+        path: 'dnf',
+        loadComponent: () => import('./dnf-books/dnf-books').then((m) => m.DnfBooksComponent),
       },
       {
         path: 'insights',
