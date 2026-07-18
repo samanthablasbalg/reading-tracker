@@ -1,0 +1,165 @@
+<nav class="landing-nav">
+  <div class="landing-nav__brand">
+    <div class="landing-nav__mark" aria-hidden="true"></div>
+    <span class="landing-nav__wordmark">Rainbow Sam Reads</span>
+  </div>
+  <button
+    type="button"
+    class="pill-btn pill-btn--outline landing-nav__login-btn"
+    (click)="auth.login()"
+  >
+    <app-google-icon />
+    Log in with Google
+  </button>
+</nav>
+
+<section class="hero">
+  <div class="hero__copy">
+    <p class="hero__badge">
+      <span class="hero__badge-dot" aria-hidden="true"></span>
+      Early build, live today — the vision below is what's next
+    </p>
+    <h1 class="hero__title">Your reading, tracked <em>your way.</em></h1>
+    <p class="hero__body">
+      A reading tracker in progress: log in today for basic tracking, and see below for what is
+      coming next.
+    </p>
+    <div class="hero__actions">
+      <button type="button" class="pill-btn pill-btn--primary hero__cta" (click)="auth.login()">
+        <app-google-icon variant="onDark" />
+        Continue with Google
+      </button>
+    </div>
+  </div>
+
+  <div class="hero__media">
+    <div class="hero__glow" aria-hidden="true"></div>
+    <img
+      ngSrc="/landing/home-dark.png"
+      alt="Rainbow Sam Reads home screen concept, dark mode"
+      width="1152"
+      height="2622"
+      priority
+      class="hero__image hero__image--primary"
+    />
+    <img
+      ngSrc="/landing/insights-light.png"
+      alt="Rainbow Sam Reads insights screen concept, light mode"
+      width="1152"
+      height="1968"
+      class="hero__image hero__image--secondary"
+    />
+    <div class="hero__concept-badge">Design concept</div>
+  </div>
+</section>
+
+<section class="trust">
+  <p class="trust__eyebrow">Built solo, end to end</p>
+  <p class="trust__quote">
+    Designed, engineered, and shipped by one person — from the data model to the pixel-level pastel
+    tints.
+  </p>
+</section>
+
+<section class="differentiators">
+  <p class="eyebrow eyebrow--secondary differentiators__eyebrow">What sets it apart</p>
+  <h2 class="differentiators__title">Two problems most trackers ignore</h2>
+
+  <div class="differentiators__grid">
+    <article class="diff-card">
+      <span class="tag">Designed · in progress</span>
+      <h3 class="diff-card__title">Switch formats mid-book, re-read on purpose</h3>
+      <p class="diff-card__body">
+        Most trackers treat a re-listen or a format swap as a new book. Here, one "read" can move
+        between audio, ebook, and print, and re-reading a chapter you already covered logs as time
+        spent without inflating your completion percent.
+      </p>
+      <img
+        ngSrc="/landing/reread-multiformat-v2.png"
+        alt="Reading log showing alternating audio and print sessions, with a re-read percentage tracked separately from new progress"
+        width="1080"
+        height="2097"
+        class="diff-card__image"
+      />
+    </article>
+
+    <article class="diff-card">
+      <span class="tag">Designed · in progress</span>
+      <h3 class="diff-card__title">Anthologies and omnibuses, story by story</h3>
+      <p class="diff-card__body">
+        Read one short story from a collection, or one issue from an omnibus, out of order, without
+        tracking the whole book or wrecking your percent complete. Contents are delineated, so
+        progress is always the truth.
+      </p>
+      <img
+        ngSrc="/landing/anthology-contents-v2.png"
+        alt="Contents list for a comics omnibus, grouped by story arc with independent per-issue progress"
+        width="1080"
+        height="1566"
+        class="diff-card__image"
+      />
+    </article>
+  </div>
+</section>
+
+<section class="features">
+  <h2 class="features__title">Everything a shelf should track</h2>
+  <p class="features__subtitle">
+    The roadmap: progress tracking for current reads is live now. Library organization, stats, and
+    more are coming next.
+  </p>
+
+  <div class="features__grid">
+    @for (f of features; track f.title) {
+      <div class="feature-card">
+        <div class="feature-card__icon" [style.background]="f.tint">
+          <div
+            class="feature-card__icon-shape"
+            [style.background]="f.color"
+            [style.border-radius]="f.shape"
+          ></div>
+        </div>
+        <h3 class="feature-card__title">{{ f.title }}</h3>
+        <p class="feature-card__body">{{ f.body }}</p>
+      </div>
+    }
+  </div>
+</section>
+
+<section class="insights-band">
+  <div class="insights-band__inner">
+    <div class="insights-band__copy">
+      <p class="eyebrow eyebrow--primary">Insights · Coming next</p>
+      <h2 class="insights-band__title">A year in reading, visualized</h2>
+      <p class="insights-band__body">
+        Genres, formats, your reading over time, even personal tags for the diversity 
+        of your shelf and who recommended a book to you.
+      </p>
+    </div>
+    <div class="insights-band__image-wrap">
+      <img
+        ngSrc="/landing/insights-dark.png"
+        alt="Insights screen, dark mode, showing stat tiles, a pages-read-per-month chart, and a genre breakdown"
+        width="1152"
+        height="2622"
+        class="insights-band__image"
+      />
+    </div>
+  </div>
+</section>
+
+<section class="final-cta">
+  <h2 class="final-cta__title">Start your shelf today</h2>
+  <p class="final-cta__body">One Google login. No setup, no busywork — just your books.</p>
+  <button type="button" class="pill-btn pill-btn--primary final-cta__btn" (click)="auth.login()">
+    <app-google-icon variant="onDark" />
+    Continue with Google
+  </button>
+</section>
+
+<footer class="landing-footer">
+  <div class="landing-footer__inner">
+    <span class="landing-footer__wordmark">Rainbow Sam Reads</span>
+    <span class="landing-footer__meta">Designed &amp; built independently · {{ year }}</span>
+  </div>
+</footer>

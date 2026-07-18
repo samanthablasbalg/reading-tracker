@@ -13,6 +13,7 @@
 @theme static {
   --font-serif: 'Lora', serif;
   --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-reading: 'Newsreader', serif;
 
   --color-primary: light-dark(#e11584, #ff5fab);
   --color-on-primary: light-dark(#ffffff, #23111b);
