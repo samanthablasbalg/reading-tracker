@@ -1,20 +1,13 @@
 import { Component, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatButtonModule } from '@angular/material/button';
+import { RouterOutlet } from '@angular/router';
 import { AuthService } from './auth.service';
+import { NavShellComponent } from './nav-shell/nav-shell';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatTabsModule, MatButtonModule],
+  imports: [RouterOutlet, NavShellComponent],
   templateUrl: './app.html',
-  styleUrl: './app.css',
 })
 export class App {
   protected readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
-
-  protected logout(): void {
-    this.auth.logout().subscribe(() => this.router.navigate(['/login']));
-  }
 }
