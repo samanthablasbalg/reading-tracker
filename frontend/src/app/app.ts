@@ -1,13 +1,9 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { AuthService } from './auth.service';
-import { NavShellComponent } from './nav-shell/nav-shell';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, NavShellComponent],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
 })
-export class App {
-  protected readonly auth = inject(AuthService);
-}
+export class App {}

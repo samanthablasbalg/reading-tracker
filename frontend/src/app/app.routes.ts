@@ -12,6 +12,10 @@ export const routes: Routes = [
   {
     path: '',
     canActivate: [authGuard],
+    loadComponent: () =>
+      import('./authenticated-shell/authenticated-shell').then(
+        (m) => m.AuthenticatedShellComponent,
+      ),
     children: [
       {
         path: 'currently-reading',
