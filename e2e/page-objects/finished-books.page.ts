@@ -1,36 +1,25 @@
 import { Locator, Page } from '@playwright/test';
 
-export class ReadPage {
-  readonly finishedSection: Locator;
-  readonly dnfSection: Locator;
+export class FinishedBooksPage {
+  readonly section: Locator;
 
-  /** @param page - The Playwright page to drive the Read page through. */
+  /** @param page - The Playwright page to drive the Finished books page through. */
   constructor(public readonly page: Page) {
-    this.finishedSection = page.locator('app-read');
-    this.dnfSection = page.locator('app-dnf');
+    this.section = page.locator('app-read');
   }
 
-  /** Navigates to the Read page (finished and DNF'd books). */
+  /** Navigates to the Finished books page. */
   async goto(): Promise<void> {
-    await this.page.goto('/concluded');
+    await this.page.goto('/finished');
   }
 
   /**
-   * Locates a finished book's entry by title, scoped to the finished section.
+   * Locates a finished book's entry by title.
    * @param title - The book's title.
    * @returns The entry locator.
    */
-  getFinishedEntry(title: string): Locator {
-    return this.finishedSection.getByText(title, { exact: true });
-  }
-
-  /**
-   * Locates a DNF'd book's entry by title, scoped to the DNF section.
-   * @param title - The book's title.
-   * @returns The entry locator.
-   */
-  getDnfEntry(title: string): Locator {
-    return this.dnfSection.getByText(title, { exact: true });
+  getEntry(title: string): Locator {
+    return this.section.getByText(title, { exact: true });
   }
 
   getAddReviewButton(title: string): Locator {
@@ -46,7 +35,7 @@ export class ReadPage {
   }
 
   /**
-   * Locates the "Delete" button for an engagement on the Read page.
+   * Locates the "Delete" button for an engagement on the Finished books page.
    * @param title - The book's title.
    * @returns The delete button locator for that engagement.
    */
@@ -55,7 +44,7 @@ export class ReadPage {
   }
 
   /**
-   * Deletes an engagement from the Read page, accepting the native confirm dialog.
+   * Deletes an engagement from the Finished books page, accepting the native confirm dialog.
    * @param title - The book's title.
    */
   async deleteEngagement(title: string): Promise<void> {

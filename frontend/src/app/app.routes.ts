@@ -21,8 +21,21 @@ export const routes: Routes = [
         loadComponent: () => import('./catalog/catalog').then((m) => m.CatalogComponent),
       },
       {
-        path: 'concluded',
-        loadComponent: () => import('./concluded/concluded').then((m) => m.ConcludedComponent),
+        path: 'finished',
+        loadComponent: () =>
+          import('./finished-books/finished-books').then((m) => m.FinishedBooksComponent),
+      },
+      {
+        path: 'dnf',
+        loadComponent: () => import('./dnf-books/dnf-books').then((m) => m.DnfBooksComponent),
+      },
+      {
+        path: 'insights',
+        loadComponent: () => import('./insights/insights').then((m) => m.InsightsComponent),
+      },
+      {
+        path: 'challenges',
+        loadComponent: () => import('./challenges/challenges').then((m) => m.ChallengesComponent),
       },
       {
         path: 'engagement/:id',

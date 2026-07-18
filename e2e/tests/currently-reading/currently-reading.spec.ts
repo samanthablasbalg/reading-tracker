@@ -1,8 +1,9 @@
 import { expect, test } from '../../fixtures/api-client';
 import { CurrentlyReadingPage } from '../../page-objects/currently-reading.page';
+import { DnfBooksPage } from '../../page-objects/dnf-books.page';
 import { EngagementHistoryPage } from '../../page-objects/engagement-history.page';
+import { FinishedBooksPage } from '../../page-objects/finished-books.page';
 import { ProgressLogSheetPage } from '../../page-objects/progress-log-sheet.page';
-import { ReadPage } from '../../page-objects/read.page';
 
 test('Logging progress advances the card in place and survives reload', async ({
   page,
@@ -95,7 +96,7 @@ test('Marking a book finished moves it from Currently reading to Read', async ({
 }) => {
   const currentlyReading = new CurrentlyReadingPage(page);
   const sheet = new ProgressLogSheetPage(page);
-  const read = new ReadPage(page);
+  const finishedBooks = new FinishedBooksPage(page);
 
   await test.step('Seed a book being read', async () => {
     const bookId = await apiClient.createBook('Dune', 'Frank Herbert', 412);
@@ -116,9 +117,9 @@ test('Marking a book finished moves it from Currently reading to Read', async ({
     await expect(currentlyReading.getBookCard('Dune')).toHaveCount(0);
   });
 
-  await test.step('Verify it appears under Read', async () => {
-    await read.goto();
-    await expect(read.getFinishedEntry('Dune')).toBeVisible();
+  await test.step('Verify it appears under Finished', async () => {
+    await finishedBooks.goto();
+    await expect(finishedBooks.getEntry('Dune')).toBeVisible();
   });
 });
 
@@ -128,7 +129,7 @@ test('Marking a book finished after entering text causes confirmation flow', asy
 }) => {
   const currentlyReading = new CurrentlyReadingPage(page);
   const sheet = new ProgressLogSheetPage(page);
-  const read = new ReadPage(page);
+  const finishedBooks = new FinishedBooksPage(page);
 
   await test.step('Seed a book being read', async () => {
     const duneId = await apiClient.createBook('Dune', 'Frank Herbert', 412);
@@ -162,9 +163,9 @@ test('Marking a book finished after entering text causes confirmation flow', asy
     await expect(currentlyReading.getBookCard('Dune')).toHaveCount(0);
   });
 
-  await test.step('Verify it appears under Read', async () => {
-    await read.goto();
-    await expect(read.getFinishedEntry('Dune')).toBeVisible();
+  await test.step('Verify it appears under Finished', async () => {
+    await finishedBooks.goto();
+    await expect(finishedBooks.getEntry('Dune')).toBeVisible();
   });
 });
 
@@ -240,7 +241,7 @@ test('Giving up on a book moves it from Currently reading to the DNF section', a
 }) => {
   const currentlyReading = new CurrentlyReadingPage(page);
   const sheet = new ProgressLogSheetPage(page);
-  const read = new ReadPage(page);
+  const dnfBooks = new DnfBooksPage(page);
 
   await test.step('Seed a book being read with progress', async () => {
     const duneId = await apiClient.createBook('Dune', 'Frank Herbert', 412);
@@ -264,7 +265,7 @@ test('Giving up on a book moves it from Currently reading to the DNF section', a
   });
 
   await test.step('Verify it appears under the DNF section', async () => {
-    await read.goto();
-    await expect(read.getDnfEntry('Dune')).toBeVisible();
+    await dnfBooks.goto();
+    await expect(dnfBooks.getEntry('Dune')).toBeVisible();
   });
 });

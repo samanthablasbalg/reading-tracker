@@ -64,6 +64,7 @@ async def callback(
 
     request.session["user_id"] = str(user.id)
     request.session["email"] = email
+    request.session["picture"] = userinfo.get("picture")
     return RedirectResponse(_frontend_url())
 
 
@@ -72,7 +73,11 @@ def me(request: Request) -> dict[str, str | None]:
     user_id = request.session.get("user_id")
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    return {"id": user_id, "email": request.session.get("email")}
+    return {
+        "id": user_id,
+        "email": request.session.get("email"),
+        "picture": request.session.get("picture"),
+    }
 
 
 @router.post("/logout")
