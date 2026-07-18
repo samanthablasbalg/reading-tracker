@@ -1,0 +1,23 @@
+<section class="features">
+  <h2 class="features__title">Everything a shelf should track</h2>
+  <p class="features__subtitle">
+    The roadmap: progress tracking for current reads is live now. Library organization, stats, and
+    more are coming next.
+  </p>
+
+  <div class="features__grid">
+    @for (f of features; track f.title) {
+      <div class="feature-card">
+        <div class="feature-card__icon" [style.background]="f.tint">
+          <div
+            class="feature-card__icon-shape"
+            [style.background]="f.color"
+            [style.border-radius]="f.shape"
+          ></div>
+        </div>
+        <h3 class="feature-card__title">{{ f.title }}</h3>
+        <p class="feature-card__body">{{ f.body }}</p>
+      </div>
+    }
+  </div>
+</section>
