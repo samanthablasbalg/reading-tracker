@@ -523,3 +523,140 @@
   font-size: 13px;
   color: var(--color-muted);
 }
+
+/* Mobile — stack every two-column section, scale down the desktop-sized
+   type, and simplify the hero's floating phone composition (its fixed
+   pixel offsets were tuned for the 1200px layout and don't survive
+   narrow viewports as-is). */
+
+@media (max-width: 720px) {
+  .landing-nav {
+    padding: 16px;
+  }
+
+  .landing-nav__wordmark {
+    font-size: 15px;
+  }
+
+  .landing-nav__login-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+    gap: 7px;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    padding: 40px 20px 32px;
+    gap: 40px;
+  }
+
+  .hero__title {
+    font-size: 36px;
+  }
+
+  .hero__body {
+    font-size: 17px;
+    max-width: none;
+  }
+
+  .hero__media {
+    padding-top: 0;
+    padding-bottom: 40px;
+  }
+
+  .hero__glow {
+    width: 280px;
+    height: 280px;
+    top: -20px;
+    right: 10px;
+  }
+
+  .hero__image--primary {
+    width: 220px;
+  }
+
+  .hero__image--secondary {
+    width: 170px;
+    bottom: -24px;
+  }
+
+  .hero__concept-badge {
+    bottom: -40px;
+  }
+
+  .trust {
+    padding: 48px 20px 8px;
+  }
+
+  .differentiators {
+    padding: 16px 20px 8px;
+  }
+
+  .differentiators__title {
+    font-size: 26px;
+    margin: 0 0 32px;
+  }
+
+  .differentiators__grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .diff-card {
+    padding: 24px;
+  }
+
+  .diff-card__image {
+    height: 320px;
+  }
+
+  .features {
+    padding: 48px 20px;
+  }
+
+  .features__title {
+    font-size: 26px;
+  }
+
+  .features__subtitle {
+    margin: 0 0 32px;
+  }
+
+  .features__grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .feature-card {
+    padding: 20px 16px;
+  }
+
+  .insights-band__inner {
+    grid-template-columns: 1fr;
+    padding: 56px 20px;
+    gap: 32px;
+  }
+
+  .insights-band__title {
+    font-size: 26px;
+  }
+
+  .insights-band__body {
+    font-size: 16px;
+    max-width: none;
+  }
+
+  .final-cta {
+    padding: 64px 20px 72px;
+  }
+
+  .final-cta__title {
+    font-size: 28px;
+  }
+
+  .landing-footer__inner {
+    padding: 24px 20px;
+    justify-content: center;
+    text-align: center;
+  }
+}
