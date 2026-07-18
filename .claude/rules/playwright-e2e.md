@@ -23,9 +23,13 @@ external Playwright-docs default.
 ## Auth & seed
 
 Every route is login-gated (Google OAuth). The `auth setup` project (`tests/auth.setup.ts`) logs in
-once per run via the env-gated `POST /auth/test-login` bypass (active only when `E2E_TEST_AUTH=true`,
-set for the e2e backend only) and saves the session to `e2e/.auth/user.json`; `chromium`/`firefox`/
-`mobile` load it as `storageState`, so every `page`/`request` starts already authenticated.
+once per run via the env-gated `POST /auth/test-login` bypass (active only when
+`ALLOW_TEST_LOGIN=true`; set for the e2e backend, and also for local dev so
+`scripts/seed_dev.py` can authenticate — see below) and saves the session to
+`e2e/.auth/user.json`; `chromium`/`firefox`/`mobile` load it as `storageState`, so every
+`page`/`request` starts already authenticated. `test-login` takes a `persona`
+(`"e2e"` default, or `"dev"`) that picks a fixed, hardcoded email — never a caller-supplied one —
+so the bypass can never mint a session for an arbitrary address.
 
 - **Schema** is provisioned by the `db setup` project (`tests/db.setup.ts`): it creates the e2e
   database if missing and runs `alembic upgrade head`. Every other project depends on it.
@@ -38,13 +42,17 @@ set for the e2e backend only) and saves the session to `e2e/.auth/user.json`; `c
 - **Data setup** goes through `ApiClient` (`e2e/api/api-client.ts`), built from the `request`
   fixture, hitting the e2e backend on :8001 directly.
 
-The **authoring seed** (`tests/seed.spec.ts`, the `seed` project) navigates to `/` and
-`page.pause()`s so `playwright-cli` can drive one live session under `--debug=cli`. It is excluded
-from the browser projects via `testIgnore`, from CI via a `process.env['CI']` check in
-`playwright.config.ts` (it's an interactive tool, not a regression check), and runs with
-`timeout: 0`. The authoring loop is in the skill. Note: `seed_dev.py`, the dev-data seeder it runs,
-doesn't yet authenticate its own HTTP calls — currently broken for both this project and standalone
-local dev seeding; unresolved, tracked as follow-up work.
+The **authoring seed** (`tests/seed.spec.ts`, the `seed` project) runs `seed_dev.py`, logs the
+browser in, then navigates to `/` and `page.pause()`s so `playwright-cli` can drive one live
+session under `--debug=cli`. It is excluded from the browser projects via `testIgnore`, from CI via
+a `process.env['CI']` check in `playwright.config.ts` (it's an interactive tool, not a regression
+check), and runs with `timeout: 0`. The authoring loop is in the skill. `seed_dev.py`, the dev-data
+seeder it runs, authenticates via `POST /auth/test-login` with `persona: "dev"` before creating any
+books/engagements — the same email `reset()` already hardcodes, so both agree on one user
+regardless of which database (local dev or e2e) it points at. The spec itself then makes that same
+`persona: "dev"` call via `page.request` before navigating, so the paused session is logged in as
+the user the data actually belongs to and lands on the authenticated app with the seeded books
+visible, not the guest landing page.
 
 > Forward note: serial truncation is the **current** model, not the destination. Parallelism is a
 > known future direction (#65) and will retire the global truncate in favour of
