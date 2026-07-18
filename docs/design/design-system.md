@@ -210,6 +210,10 @@ blank-box-on- audio paper cut, and the answer to "did I already log this?" It's 
 **dotted underline** (no pencil); an edited `From` is signalled by **colour alone**, so the layout
 never shifts. Because `From` carries the reference, `To` can open empty.
 
+**Date and notes are quiet secondaries.** The log defaults to **today**, with an "edit yesterday"
+escape hatch for a session entered late [ADR-0019]. **Notes** are an optional, expandable
+`journal_entry` on the log — the seed of the review/journal prose (and the eventual blog).
+
 **From and Format collapse by default — so re-reads aren't a separate mode.** Two sub-controls
 modulate the range and both stay collapsed on a normal linear log: **From** pre-fills to your last
 spot _in that format_ and is only touched to re-read a section (pull it back), restart at 0, or fix
@@ -230,7 +234,9 @@ Reading a book in a second edition is entered deliberately from the card's **`�
 **edition picker** (pick from the book's editions — all three formats exist from add-time
 [ADR-0022]; "want a specific one?" → the book page; no edition creation in the modal). Only _after_
 binding does the sheet grow a **format switch**, for that engagement only. Each format keeps its own
-last spot; switching re-projects From, the unit, and the feedback onto the selected format.
+last spot; switching re-projects From, the unit, and the feedback onto the selected format. A
+freshly bound format has no last spot yet, so its `From` opens at 0 (the start), corrected on the
+first log via the editable `From`.
 
 **Status changes split by their tie to a logging session.** **Finish** is session-bound ("I just
 read the last page"), so it lives in the sheet as the secondary action, and the finished book
@@ -246,6 +252,85 @@ the frontier, amber sits behind it), not a tag. Tapping a row **reopens the same
 mode (Delete lives there); a subordinate **"Add a past session"** opens it on a back-date. Because a
 back-dated or edited log can re-derive the logs that continued from it, any such save raises a
 **reflow confirmation** itemising the knock-on — never a silent recompute.
+
+### State & flow reference
+
+The logic the sheet implements. **An engagement-as-a-read has four state dimensions:**
+
+| Dimension                       | What it is                                                           | Cardinality               | Source        |
+| ------------------------------- | -------------------------------------------------------------------- | ------------------------- | ------------- |
+| **Lifecycle status**            | `interested / tbr / reading / paused / finished / dnf`               | exactly **one**           | ADR-0005      |
+| **Format-set in play**          | which editions are bound (`EngagementEdition`)                       | **one or more**           | ADR-0021/0022 |
+| **Per-format position** `P_fmt` | last endpoint logged in _that_ format's ruler                        | one **per bound edition** | this design   |
+| **The frontier** (covered set)  | union of covered intervals on the fraction axis; drives completion % | exactly **one**           | ADR-0007      |
+
+`P_fmt` and the frontier differ: `P_fmt` lives on each format's own ruler (print p.200 / audio
+3:00), the frontier lives on the shared fraction axis — which is why they're stored separately.
+
+**Lifecycle machine + where each transition is initiated:**
+
+```
+                 ┌─────────────┐   add to TBR    ┌──────┐
+                 │ interested  │ ───────────────▶│ tbr  │
+                 └─────────────┘                 └──┬───┘
+                        │  start reading            │ start reading
+                        └──────────────┬────────────┘
+                                       ▼
+                                 ┌───────────┐   finish     ┌──────────┐
+                        ┌───────▶│  reading  │─────────────▶│ finished │
+                 resume │        └─────┬─────┘◀── unfinish  └────┬─────┘
+                        │        pause │ │ DNF                   │ read
+                 ┌──────┴──┐           │ │              ┌────────┘ again
+                 │ paused  │◀──────────┘ │              ▼
+                 └─────────┘             ▼        ┌───────────────┐
+                                    ┌───────┐     │ NEW engagement│
+                                    │  dnf  │     │  (reading)    │
+                                    └───────┘     └───────────────┘
+                                (resume → reading also allowed)
+```
+
+| Transition                                   | Touches               | Initiated from                                |
+| -------------------------------------------- | --------------------- | --------------------------------------------- |
+| interested→tbr, tbr→reading                  | status                | Book page / Library                           |
+| **finish** (reading→finished)                | status; then _linger_ | the sheet (secondary action) + card           |
+| **unfinish** (finished→reading)              | status                | card `⋯` (next to the "rate & review?" nudge) |
+| **pause** (reading→paused)                   | status                | card `⋯` + Book page — _not_ the sheet        |
+| **DNF** (reading→dnf)                        | status                | card `⋯` + Book page — _not_ the sheet        |
+| **resume** (paused/dnf→reading)              | status                | Book page / Library                           |
+| **read again** (finished → _new_ engagement) | creates a **new** row | Book page only                                |
+
+**Logging action space** (all within `status = reading`). Every row is the _same_ sheet and the same
+`[From → To]` range, differing only in whether **Format** and **From** are touched; "what the API
+derives" is never a user input [ADR-0007]. Rows 4–7 add **no new UI** over 1–3 — they are the
+From/Format controls being touched.
+
+| #   | Action                               | Format ctrl                 | From ctrl                     | What the API derives                                                      |
+| --- | ------------------------------------ | --------------------------- | ----------------------------- | ------------------------------------------------------------------------- |
+| 1   | **Linear log** (~99% case)           | quiet (fixed)               | quiet (`= P_fmt`)             | span outside covered set → new_ground; frontier grows; `P_fmt` updated    |
+| 2   | **Switch format** (both bound)       | pick bound edition          | quiet (`= P_otherfmt`)        | often starts inside covered set → auto-split re-coverage then new_ground  |
+| 3   | **Add a format** (bind edition)      | picker → **edition picker** | quiet                         | binds new `EngagementEdition`; then behaves like #2                       |
+| 4   | **Re-cover, same format**            | quiet                       | pull From back behind `P_fmt` | span inside covered set → all re-coverage; completion holds, volume rises |
+| 5   | **Re-cover, cross format**           | switch/add format           | From back or `= 0`            | new format's span inside covered set → re-coverage in that format         |
+| 6   | **Restart at 0, same format**        | quiet                       | From `= 0`                    | all inside covered set → re-coverage from start                           |
+| 7   | **Jump / non-linear** (out of order) | quiet                       | From = jump start             | may fill a gap in the covered set → new_ground                            |
+
+**Data-model additions this design assumes** (additive; capture as an ADR/issue, not designed here):
+a `percent` unit (`LogUnit.percent`) alongside pages/minutes, and per-format last-position storage
+for the `From` pre-fill.
+
+### Open questions — resolve when the sheet is built
+
+Not yet designed; flagged so they aren't lost. Each needs a decision before or during
+implementation.
+
+- **Alternating-format `From` default.** For an _intentional_ alternating read (moving forward
+  through one book, handing off audio↔print), a format's last spot sits _behind_ the shared
+  frontier, so defaulting `From` to it would start you behind where you actually are. Alternating
+  wants `From` to default to the **frontier**, converted to the current format's unit. Diverges only
+  in multi-format (single-format: frontier == last spot).
+- **Finish during a multi-format read.** What should the sheet's **Finish** do when more than one
+  format is bound to the engagement — mark the whole engagement finished regardless of which format
+  you're logging, require all formats complete, or something else? Undecided.
 
 ## 9. Search & adding books
 
@@ -307,5 +392,8 @@ Structure accommodates these; they get designed when pulled.
 - **Streak mechanics** — the feature is placed on Home; the rules are undesigned.
 - **Blog** — Substack migration, possibly owner-only; lands in the reserved 5th nav slot, with
   cross-linking to reviews/journal. Serif prose already has a home.
+- **Completion-strip visual** ("heatmappy progress bars") — the live new-vs-re-covered feedback in
+  the log sheet (§8) is a decided _concept_; its visual form is deferred (several bar treatments
+  read confusingly). A swap-anytime cosmetic.
 - **Sharable public curated lists** — incl. the cross-referenced X-Men reading order.
 - **Public / logged-out pages** — confirmed _additive_; can be bolted on later without rework.
