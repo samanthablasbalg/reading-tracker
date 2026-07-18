@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reading Tracker — Finish &amp; linger (the finished card stays, gently)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: #cfc7c2;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color: #241c22;
+        padding: 30px 16px 60px;
+      }
+      .head {
+        max-width: 1320px;
+        margin: 0 auto 22px;
+      }
+      .head h1 {
+        font-size: 22px;
+      }
+      .head p {
+        color: #6b5f66;
+        font-size: 14px;
+        margin-top: 2px;
+        max-width: 940px;
+      }
+      .stage {
+        display: flex;
+        gap: 28px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .labeled {
+        text-align: center;
+      }
+      .labeled > .cap {
+        font-size: 12px;
+        font-weight: 700;
+        color: #4a4046;
+        margin-bottom: 10px;
+        max-width: 388px;
+      }
+      .labeled > .cap b {
+        color: #c02a7a;
+      }
+
+      .phone {
+        width: 388px;
+        border-radius: 44px;
+        padding: 14px;
+        background: #0e0a10;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      }
+      .screen {
+        border-radius: 32px;
+        overflow: hidden;
+        height: 812px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        background: #18131b;
+        color: #f3e9ee;
+        --surface: #241c26;
+        --surface2: #2e2432;
+        --muted: #b7a7b0;
+        --track: #3a2f3f;
+        --accent: #ff5fab;
+        --accent2: #ffa24d;
+        --line: rgba(255, 255, 255, 0.09);
+        --blue: #9ab4e6;
+        --gold: #ffc46b;
+      }
+
+      /* ---- card scaffold (matches add-format-via-menu) ---- */
+      .cardwrap {
+        padding: 20px 18px;
+      }
+      .ptitle {
+        font-family: 'Lora', serif;
+        font-size: 26px;
+        font-weight: 600;
+        margin: 6px 2px 16px;
+      }
+      .card {
+        background: var(--surface);
+        border-radius: 20px;
+        padding: 16px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+        position: relative;
+      }
+      /* finished card: gold hairline + faint gold wash so it reads "done, resting" */
+      .card.finished {
+        border: 1px solid rgba(255, 196, 107, 0.22);
+        background:
+          linear-gradient(180deg, rgba(255, 196, 107, 0.05), rgba(255, 196, 107, 0) 120px),
+          var(--surface);
+      }
+      .crow {
+        display: flex;
+        gap: 14px;
+      }
+      .cvwrap {
+        position: relative;
+        flex: none;
+      }
+      .cv {
+        border-radius: 9px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+        width: 60px;
+        height: 90px;
+      }
+      .donebadge {
+        position: absolute;
+        right: -7px;
+        bottom: -7px;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--gold);
+        color: #2a1c05;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+        border: 2px solid var(--surface);
+      }
+      .donebadge svg {
+        width: 15px;
+        height: 15px;
+      }
+      .cinfo {
+        flex: 1;
+        padding-right: 34px;
+      }
+      .btitle {
+        font-family: 'Lora', serif;
+        font-weight: 600;
+        font-size: 18px;
+        line-height: 1.15;
+      }
+      .bauthor {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .badges {
+        display: flex;
+        gap: 6px;
+        margin-top: 9px;
+      }
+      .finpill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10.5px;
+        font-weight: 800;
+        padding: 5px 10px;
+        border-radius: 99px;
+        background: rgba(255, 196, 107, 0.14);
+        color: var(--gold);
+        letter-spacing: 0.02em;
+      }
+      .finpill svg {
+        width: 12px;
+        height: 12px;
+      }
+      .kebab {
+        position: absolute;
+        top: 14px;
+        right: 12px;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        background: var(--surface2);
+      }
+      .kebab.active {
+        color: var(--gold);
+        background: rgba(255, 196, 107, 0.16);
+      }
+      .kebab svg {
+        width: 20px;
+        height: 20px;
+      }
+      .ubar {
+        height: 9px;
+        border-radius: 99px;
+        background: var(--track);
+        position: relative;
+        margin: 16px 0 8px;
+        overflow: hidden;
+      }
+      .ubar > span {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: 99px;
+        background: var(--accent);
+      }
+      .ubar.done > span {
+        background: linear-gradient(90deg, var(--accent), var(--gold));
+      }
+      .ulabel {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+      }
+      .ulabel .l {
+        color: var(--muted);
+      }
+      .ulabel .r {
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        color: var(--gold);
+      }
+
+      /* ---- rate & review nudge (dismissible, until next refresh) ---- */
+      .nudge {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 16px;
+        padding: 12px 12px 12px 14px;
+        border-radius: 14px;
+        background: rgba(255, 95, 171, 0.1);
+        border: 1px solid rgba(255, 95, 171, 0.24);
+      }
+      .nstar {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 95, 171, 0.16);
+        color: #ff8fc5;
+      }
+      .nstar svg {
+        width: 19px;
+        height: 19px;
+      }
+      .ntext {
+        flex: 1;
+        line-height: 1.3;
+      }
+      .ntext b {
+        display: block;
+        font-size: 13.5px;
+        font-weight: 800;
+        color: #ffd0e6;
+      }
+      .ntext span {
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+      .ndismiss {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+      }
+      .ndismiss svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      /* ---- resting line (panel 3, after dismiss) ---- */
+      .restline {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: 16px;
+        padding: 12px 4px 2px;
+        border-top: 1px dashed var(--track);
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .restline svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+      }
+      .restline b {
+        color: #e4d8de;
+      }
+
+      /* ---- the still-reading card below, for context ---- */
+      .card.reading {
+        margin-top: 14px;
+      }
+      .card.reading .cv {
+        width: 54px;
+        height: 81px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10.5px;
+        font-weight: 700;
+        padding: 5px 9px;
+        border-radius: 99px;
+        background: var(--surface2);
+        color: var(--muted);
+      }
+      .badge svg {
+        width: 12px;
+        height: 12px;
+      }
+      .logbtn {
+        width: 100%;
+        margin-top: 14px;
+        border: none;
+        border-radius: 13px;
+        padding: 12px;
+        font-weight: 800;
+        font-size: 14px;
+        background: var(--accent);
+        color: #23111b;
+      }
+
+      /* ---- popover menu ---- */
+      .menu {
+        position: absolute;
+        top: 52px;
+        right: 12px;
+        width: 232px;
+        background: var(--surface2);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 6px;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+        z-index: 5;
+      }
+      .mi {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 11px 12px;
+        font-size: 13.5px;
+        font-weight: 700;
+        color: #ebdfe6;
+        border-radius: 10px;
+      }
+      .mi svg {
+        width: 17px;
+        height: 17px;
+        flex: none;
+        color: var(--muted);
+      }
+      .mi.primary {
+        color: #ff8fc5;
+      }
+      .mi.primary svg {
+        color: #ff8fc5;
+      }
+      .mi small {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-top: 1px;
+      }
+      .mdiv {
+        height: 1px;
+        background: var(--line);
+        margin: 5px 8px;
+      }
+
+      .foot {
+        max-width: 1320px;
+        margin: 20px auto 0;
+        text-align: center;
+        color: #6b5f66;
+        font-size: 12.5px;
+        line-height: 1.55;
+      }
+      .foot b {
+        color: #4a4046;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="head">
+      <h1>Finish &amp; linger — the finished book doesn't vanish</h1>
+      <p>
+        Tapping <b>I finished the book</b> on the log sheet marks it finished but
+        <b>keeps the card on Currently Reading</b> until the next app open — no forced review, no
+        jarring disappear. The card wears a quiet gold "done" treatment and offers a
+        <b>dismissible</b> "rate &amp; review?" nudge. <b>Undo-finish</b> and
+        <b>Rate &amp; review</b> live in the same ⋯ menu that holds Pause / DNF / Add-format — so
+        the sheet stays clean.
+      </p>
+    </div>
+    <div class="stage">
+      <!-- ===== STATE 1: just finished — nudge showing ===== -->
+      <div class="labeled">
+        <div class="cap">
+          1 · <b>Just finished.</b> Bar fills to 100% gold, a "Finished today" pill appears, and a
+          gentle <b>rate &amp; review?</b> nudge slides in — with its own ✕
+        </div>
+        <div class="phone">
+          <div class="screen">
+            <div class="cardwrap">
+              <div class="ptitle">Currently reading</div>
+
+              <!-- finished, lingering -->
+              <div class="card finished">
+                <div class="kebab">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="12" cy="19" r="2" />
+                  </svg>
+                </div>
+                <div class="crow">
+                  <div class="cvwrap">
+                    <div
+                      class="cv"
+                      style="background: linear-gradient(150deg, #6a4bb0, #241033)"
+                    ></div>
+                    <div class="donebadge">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="cinfo">
+                    <div class="btitle">The Fifth Season</div>
+                    <div class="bauthor">N. K. Jemisin</div>
+                    <div class="badges">
+                      <span class="finpill">
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2.4"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M20 6 9 17l-5-5" /></svg
+                        >Finished today
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="ubar done"><span style="width: 100%"></span></div>
+                <div class="ulabel">
+                  <span class="l">All 7:10:00 heard</span><span class="r">100%</span>
+                </div>
+
+                <div class="nudge">
+                  <div class="nstar">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path
+                        d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.9 6.1 20.3l1.3-6.5L2.5 9.3l6.6-.8z"
+                      />
+                    </svg>
+                  </div>
+                  <div class="ntext">
+                    <b>How was it?</b><span>Rate &amp; review — capture it while it's fresh</span>
+                  </div>
+                  <div class="ndismiss">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.2"
+                      stroke-linecap="round"
+                    >
+                      <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- another book still in progress, for context -->
+              <div class="card reading">
+                <div class="crow">
+                  <div class="cvwrap">
+                    <div
+                      class="cv"
+                      style="background: linear-gradient(150deg, #b7b7b7, #6d6d6d)"
+                    ></div>
+                  </div>
+                  <div class="cinfo">
+                    <div class="btitle">Babel</div>
+                    <div class="bauthor">R. F. Kuang</div>
+                    <div class="badges">
+                      <span class="badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="6" y="3" width="12" height="18" rx="2" /></svg
+                        >Ebook</span
+                      >
+                    </div>
+                  </div>
+                </div>
+                <div class="ubar"><span style="width: 22%"></span></div>
+                <div class="ulabel">
+                  <span class="l">Page 123 · ch 6</span><span class="r">22%</span>
+                </div>
+                <button class="logbtn">Log progress</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== STATE 2: ⋯ menu — Undo-finish + Rate & review live here ===== -->
+      <div class="labeled">
+        <div class="cap">
+          2 · The card <b>⋯ menu</b> — same home as Pause / DNF / Add-format. <b>Undo finish</b> is
+          the only way back to <em>reading</em>; Rate &amp; review is here too
+        </div>
+        <div class="phone">
+          <div class="screen">
+            <div class="cardwrap">
+              <div class="ptitle">Currently reading</div>
+
+              <div class="card finished">
+                <div class="kebab active">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="12" cy="19" r="2" />
+                  </svg>
+                </div>
+                <div class="crow">
+                  <div class="cvwrap">
+                    <div
+                      class="cv"
+                      style="background: linear-gradient(150deg, #6a4bb0, #241033)"
+                    ></div>
+                    <div class="donebadge">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="cinfo">
+                    <div class="btitle">The Fifth Season</div>
+                    <div class="bauthor">N. K. Jemisin</div>
+                    <div class="badges">
+                      <span class="finpill">
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2.4"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M20 6 9 17l-5-5" /></svg
+                        >Finished today
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="ubar done"><span style="width: 100%"></span></div>
+                <div class="ulabel">
+                  <span class="l">All 7:10:00 heard</span><span class="r">100%</span>
+                </div>
+
+                <div class="nudge">
+                  <div class="nstar">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path
+                        d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.9 6.1 20.3l1.3-6.5L2.5 9.3l6.6-.8z"
+                      />
+                    </svg>
+                  </div>
+                  <div class="ntext">
+                    <b>How was it?</b><span>Rate &amp; review — capture it while it's fresh</span>
+                  </div>
+                  <div class="ndismiss">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.2"
+                      stroke-linecap="round"
+                    >
+                      <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div class="menu">
+                  <div class="mi primary">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path
+                        d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.9 6.1 20.3l1.3-6.5L2.5 9.3l6.6-.8z"
+                      /></svg
+                    >Rate &amp; review
+                  </div>
+                  <div class="mdiv"></div>
+                  <div class="mi">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M4 4v6h6M4 10a8 8 0 1 1 2 5" />
+                    </svg>
+                    <span>Undo finish<small>Back to Currently reading</small></span>
+                  </div>
+                  <div class="mdiv"></div>
+                  <div class="mi">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M3 6h13M3 12h9M3 18h13" />
+                      <path d="M17 15l3 3 3-3" opacity="0" /></svg
+                    >See reading log
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== STATE 3: nudge dismissed — resting until refresh ===== -->
+      <div class="labeled">
+        <div class="cap">
+          3 · <b>Dismissed.</b> The nudge is gone; the card just rests, finished, until the next app
+          open moves it to your Library. Rate &amp; review is still one tap away in ⋯
+        </div>
+        <div class="phone">
+          <div class="screen">
+            <div class="cardwrap">
+              <div class="ptitle">Currently reading</div>
+
+              <div class="card finished">
+                <div class="kebab">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="12" cy="19" r="2" />
+                  </svg>
+                </div>
+                <div class="crow">
+                  <div class="cvwrap">
+                    <div
+                      class="cv"
+                      style="background: linear-gradient(150deg, #6a4bb0, #241033)"
+                    ></div>
+                    <div class="donebadge">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="cinfo">
+                    <div class="btitle">The Fifth Season</div>
+                    <div class="bauthor">N. K. Jemisin</div>
+                    <div class="badges">
+                      <span class="finpill">
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2.4"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <path d="M20 6 9 17l-5-5" /></svg
+                        >Finished today
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="ubar done"><span style="width: 100%"></span></div>
+                <div class="ulabel">
+                  <span class="l">All 7:10:00 heard</span><span class="r">100%</span>
+                </div>
+
+                <div class="restline">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M4 4h6v16H4z" />
+                    <path d="M10 4h6v16h-6z" />
+                    <path d="M16 4l4 .8-3 15.5-4-.8" />
+                  </svg>
+                  <span>Moves to your <b>Library</b> shelf next time you open the app.</span>
+                </div>
+              </div>
+
+              <div class="card reading">
+                <div class="crow">
+                  <div class="cvwrap">
+                    <div
+                      class="cv"
+                      style="background: linear-gradient(150deg, #b7b7b7, #6d6d6d)"
+                    ></div>
+                  </div>
+                  <div class="cinfo">
+                    <div class="btitle">Babel</div>
+                    <div class="bauthor">R. F. Kuang</div>
+                    <div class="badges">
+                      <span class="badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="6" y="3" width="12" height="18" rx="2" /></svg
+                        >Ebook</span
+                      >
+                    </div>
+                  </div>
+                </div>
+                <div class="ubar"><span style="width: 22%"></span></div>
+                <div class="ulabel">
+                  <span class="l">Page 123 · ch 6</span><span class="r">22%</span>
+                </div>
+                <button class="logbtn">Log progress</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <b>The through-line:</b> finishing is a soft landing, not a trapdoor. The book stays put for
+      the rest of the session (state 1), you can rate it or take it back with
+      <b>Undo finish</b> from ⋯ (state 2), and once you dismiss the nudge it simply waits to
+      graduate to Library (state 3). &nbsp;·&nbsp; <b>Finish is triggered from the log sheet's</b>
+      <span style="color: #c02a7a">"I finished the book"</span> secondary action — everything here
+      is the aftermath.
+    </div>
+  </body>
+</html>

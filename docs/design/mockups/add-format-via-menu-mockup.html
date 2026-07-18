@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reading Tracker — Add a format via the ⋯ menu (pull, not push)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: #cfc7c2;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color: #241c22;
+        padding: 30px 16px 60px;
+      }
+      .head {
+        max-width: 1320px;
+        margin: 0 auto 22px;
+      }
+      .head h1 {
+        font-size: 22px;
+      }
+      .head p {
+        color: #6b5f66;
+        font-size: 14px;
+        margin-top: 2px;
+        max-width: 900px;
+      }
+      .stage {
+        display: flex;
+        gap: 28px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .labeled {
+        text-align: center;
+      }
+      .labeled > .cap {
+        font-size: 12px;
+        font-weight: 700;
+        color: #4a4046;
+        margin-bottom: 10px;
+        max-width: 388px;
+      }
+      .labeled > .cap b {
+        color: #c02a7a;
+      }
+
+      .phone {
+        width: 388px;
+        border-radius: 44px;
+        padding: 14px;
+        background: #0e0a10;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      }
+      .screen {
+        border-radius: 32px;
+        overflow: hidden;
+        height: 812px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        background: #18131b;
+        color: #f3e9ee;
+        --surface: #241c26;
+        --surface2: #2e2432;
+        --muted: #b7a7b0;
+        --track: #3a2f3f;
+        --accent: #ff5fab;
+        --accent2: #ffa24d;
+        --line: rgba(255, 255, 255, 0.09);
+        --blue: #9ab4e6;
+        --covered: #6e5568;
+      }
+      .bgpeek {
+        position: absolute;
+        inset: 0;
+        padding: 56px 20px;
+        opacity: 0.16;
+      }
+      .bgpeek .h {
+        font-family: 'Lora', serif;
+        font-size: 26px;
+      }
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+      }
+
+      /* ---- card ---- */
+      .cardwrap {
+        padding: 20px 18px;
+      }
+      .ptitle {
+        font-family: 'Lora', serif;
+        font-size: 26px;
+        font-weight: 600;
+        margin: 6px 2px 16px;
+      }
+      .card {
+        background: var(--surface);
+        border-radius: 20px;
+        padding: 16px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+        position: relative;
+      }
+      .crow {
+        display: flex;
+        gap: 14px;
+      }
+      .cv {
+        border-radius: 9px;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+        flex: none;
+      }
+      .card .cv {
+        width: 60px;
+        height: 90px;
+      }
+      .btitle {
+        font-family: 'Lora', serif;
+        font-weight: 600;
+        font-size: 18px;
+        line-height: 1.15;
+      }
+      .bauthor {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .badges {
+        display: flex;
+        gap: 6px;
+        margin-top: 9px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 10.5px;
+        font-weight: 700;
+        padding: 5px 9px;
+        border-radius: 99px;
+        background: var(--surface2);
+        color: var(--muted);
+      }
+      .badge svg {
+        width: 12px;
+        height: 12px;
+      }
+      .kebab {
+        position: absolute;
+        top: 14px;
+        right: 12px;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        background: var(--surface2);
+      }
+      .kebab.active {
+        color: #ff8fc5;
+        background: rgba(255, 95, 171, 0.14);
+      }
+      .kebab svg {
+        width: 20px;
+        height: 20px;
+      }
+      .ubar {
+        height: 9px;
+        border-radius: 99px;
+        background: var(--track);
+        position: relative;
+        margin: 16px 0 8px;
+        overflow: hidden;
+      }
+      .ubar > span {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: 99px;
+        background: var(--accent);
+      }
+      .ulabel {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+      }
+      .ulabel .l {
+        color: var(--muted);
+      }
+      .ulabel .r {
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .logbtn {
+        width: 100%;
+        margin-top: 16px;
+        border: none;
+        border-radius: 13px;
+        padding: 13px;
+        font-weight: 800;
+        font-size: 14px;
+        background: var(--accent);
+        color: #23111b;
+      }
+
+      /* ---- popover menu (state 1) ---- */
+      .menu {
+        position: absolute;
+        top: 52px;
+        right: 12px;
+        width: 224px;
+        background: var(--surface2);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 6px;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+        z-index: 5;
+      }
+      .mi {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 11px 12px;
+        font-size: 13.5px;
+        font-weight: 700;
+        color: #ebdfe6;
+        border-radius: 10px;
+      }
+      .mi svg {
+        width: 17px;
+        height: 17px;
+        flex: none;
+        color: var(--muted);
+      }
+      .mi.primary {
+        color: #ff8fc5;
+      }
+      .mi.primary svg {
+        color: #ff8fc5;
+      }
+      .mi.danger {
+        color: #f4a6b8;
+      }
+      .mi.danger svg {
+        color: #f4a6b8;
+      }
+      .mdiv {
+        height: 1px;
+        background: var(--line);
+        margin: 5px 8px;
+      }
+
+      /* ---- sheet ---- */
+      .sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--surface);
+        border-radius: 28px 28px 0 0;
+        padding: 8px 20px 24px;
+        box-shadow: 0 -14px 44px rgba(0, 0, 0, 0.5);
+      }
+      .grab {
+        width: 38px;
+        height: 4px;
+        border-radius: 99px;
+        background: var(--track);
+        margin: 8px auto 16px;
+      }
+      .sheettitle {
+        font-family: 'Lora', serif;
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0 2px 3px;
+      }
+      .sheetsub {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin: 0 2px 18px;
+      }
+      .bookhead {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        margin-bottom: 16px;
+      }
+      .bookhead .cv {
+        width: 44px;
+        height: 66px;
+      }
+      .bookhead .t {
+        font-family: 'Lora', serif;
+        font-weight: 600;
+        font-size: 18px;
+        line-height: 1.15;
+      }
+      .bookhead .a {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+
+      /* edition rows (state 2) */
+      .edrow {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        padding: 14px 4px;
+        border-top: 1px solid var(--line);
+      }
+      .edrow:first-of-type {
+        border-top: none;
+      }
+      .edico {
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        background: var(--surface2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+        flex: none;
+      }
+      .edico svg {
+        width: 19px;
+        height: 19px;
+      }
+      .edmeta .n {
+        font-size: 14.5px;
+        font-weight: 800;
+      }
+      .edmeta .s {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 1px;
+        font-variant-numeric: tabular-nums;
+      }
+      .edadd {
+        margin-left: auto;
+        border: 1.5px solid var(--accent);
+        color: #ff8fc5;
+        background: rgba(255, 95, 171, 0.08);
+        font-weight: 800;
+        font-size: 13px;
+        padding: 8px 16px;
+        border-radius: 99px;
+      }
+      .edcur {
+        margin-left: auto;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--accent2);
+        background: rgba(255, 162, 77, 0.14);
+        padding: 6px 11px;
+        border-radius: 99px;
+      }
+      .edmiss {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--blue);
+        font-size: 12.5px;
+        font-weight: 700;
+        padding: 14px 4px 4px;
+        margin-top: 6px;
+        border-top: 1px dashed var(--track);
+      }
+      .edmiss svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      /* format switch (state 3) */
+      .fmtswitch {
+        display: flex;
+        gap: 9px;
+        margin-bottom: 18px;
+      }
+      .fmtpill {
+        flex: 1;
+        background: var(--surface2);
+        border-radius: 14px;
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        border: 1.5px solid transparent;
+      }
+      .fmtpill.on {
+        border-color: var(--accent);
+        background: rgba(255, 95, 171, 0.1);
+      }
+      .fmtpill .top {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 800;
+      }
+      .fmtpill .top svg {
+        width: 14px;
+        height: 14px;
+      }
+      .fmtpill.on .top {
+        color: #ff8fc5;
+      }
+      .fmtpill .sub {
+        font-size: 11px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .newtag {
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        color: var(--accent2);
+      }
+
+      .ilabel {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+      .bignum {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        background: var(--surface2);
+        border-radius: 16px;
+        padding: 16px 18px;
+      }
+      .bignum .pre {
+        font-size: 14px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .bignum .val {
+        font-size: 32px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        color: #f3e9ee;
+        border-bottom: 2px solid var(--accent);
+        padding: 0 4px;
+      }
+      .bignum .suf {
+        font-size: 14px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .startline {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        font-size: 12px;
+        color: var(--muted);
+        padding: 2px 4px;
+      }
+      .startline .edit {
+        margin-left: auto;
+        color: var(--blue);
+        font-weight: 700;
+      }
+
+      .comp {
+        margin-top: 14px;
+        background: var(--surface2);
+        border-radius: 14px;
+        padding: 14px;
+      }
+      .comp .track {
+        height: 12px;
+        border-radius: 99px;
+        background: var(--track);
+        position: relative;
+        overflow: visible;
+      }
+      .comp .fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        border-radius: 99px;
+        background: repeating-linear-gradient(
+          45deg,
+          var(--covered),
+          var(--covered) 5px,
+          #5c4658 5px,
+          #5c4658 10px
+        );
+      }
+      .comp .frontier {
+        position: absolute;
+        top: -4px;
+        height: 20px;
+        width: 2px;
+        background: #fff;
+      }
+      .comp .you {
+        position: absolute;
+        top: -7px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid var(--surface2);
+        transform: translateX(-50%);
+      }
+      .comp .scale {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 9px;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .comp .cap {
+        font-size: 12px;
+        color: #e4d8de;
+        margin-top: 11px;
+        line-height: 1.45;
+      }
+      .comp .cap b {
+        color: var(--accent2);
+      }
+
+      .note .add {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--muted);
+        font-size: 13.5px;
+        font-weight: 700;
+        padding: 6px 2px;
+        margin-top: 14px;
+      }
+      .note .add svg {
+        width: 17px;
+        height: 17px;
+      }
+      .daterow {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: 16px;
+      }
+      .dchip {
+        font-size: 12.5px;
+        font-weight: 700;
+        padding: 8px 14px;
+        border-radius: 99px;
+        background: var(--surface2);
+        color: var(--muted);
+      }
+      .dchip.on {
+        background: rgba(255, 95, 171, 0.16);
+        color: #ff8fc5;
+      }
+      .dcal {
+        margin-left: auto;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--surface2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+      }
+      .dcal svg {
+        width: 17px;
+        height: 17px;
+      }
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .save {
+        border: none;
+        border-radius: 14px;
+        padding: 15px;
+        font-weight: 800;
+        font-size: 15px;
+        background: var(--accent);
+        color: #23111b;
+      }
+      .finish {
+        border: none;
+        background: none;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 13.5px;
+        padding: 4px;
+      }
+
+      .foot {
+        max-width: 1320px;
+        margin: 20px auto 0;
+        text-align: center;
+        color: #6b5f66;
+        font-size: 12.5px;
+        line-height: 1.5;
+      }
+      .foot b {
+        color: #4a4046;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="head">
+      <h1>Add a format — via the ⋯ menu (pull, not push)</h1>
+      <p>
+        Multi-format is <b>never</b> advertised on a log. You go looking for it in the card's ⋯ menu
+        — the same menu that holds Pause / DNF / Undo-finish. It opens the edition picker; only
+        <em>after</em> that does the log sheet grow a format switch, for that engagement only.
+        Single-format logging stays clean forever.
+      </p>
+    </div>
+    <div class="stage">
+      <!-- ===== STATE 1: card ⋯ menu open ===== -->
+      <div class="labeled">
+        <div class="cap">
+          1 · Card <b>⋯ menu</b> — the one home for standing changes (Add format · Pause · DNF)
+        </div>
+        <div class="phone">
+          <div class="screen">
+            <div class="cardwrap">
+              <div class="ptitle">Currently reading</div>
+              <div class="card">
+                <div class="kebab active">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="12" cy="19" r="2" />
+                  </svg>
+                </div>
+                <div class="crow">
+                  <div class="cv" style="background: linear-gradient(150deg, #2f7d54, #111)"></div>
+                  <div style="flex: 1; padding-right: 34px">
+                    <div class="btitle">Green City Wars</div>
+                    <div class="bauthor">Adrian Tchaikovsky</div>
+                    <div class="badges">
+                      <span class="badge"
+                        ><svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path d="M9 18V5l12-2v13" />
+                          <circle cx="6" cy="18" r="3" />
+                          <circle cx="18" cy="16" r="3" /></svg
+                        >Audio</span
+                      >
+                    </div>
+                  </div>
+                </div>
+                <div class="ubar"><span style="width: 40%"></span></div>
+                <div class="ulabel">
+                  <span class="l">Heard to chapter 8 · 3:40:00</span><span class="r">40%</span>
+                </div>
+                <button class="logbtn">Log progress</button>
+
+                <div class="menu">
+                  <div class="mi primary">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M12 5v14M5 12h14" /></svg
+                    >Add another format
+                  </div>
+                  <div class="mdiv"></div>
+                  <div class="mi">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="6" y="5" width="4" height="14" rx="1" />
+                      <rect x="14" y="5" width="4" height="14" rx="1" /></svg
+                    >Pause reading
+                  </div>
+                  <div class="mi danger">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                    >
+                      <path d="M18 6 6 18M6 6l12 12" /></svg
+                    >Mark as DNF
+                  </div>
+                  <div class="mdiv"></div>
+                  <div class="mi">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M4 4v6h6M4 10a8 8 0 1 1 2 5" /></svg
+                    >Edit / correct a log
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== STATE 2: edition picker ===== -->
+      <div class="labeled">
+        <div class="cap">
+          2 · <b>Edition picker</b> — pick an existing edition to read alongside (no creation here)
+        </div>
+        <div class="phone">
+          <div class="screen">
+            <div class="bgpeek"><div class="h">Currently reading</div></div>
+            <div class="scrim"></div>
+            <div class="sheet">
+              <div class="grab"></div>
+              <div class="sheettitle">Add another format</div>
+              <div class="sheetsub">
+                Green City Wars — read it in more than one edition at once. Progress stays one book.
+              </div>
+
+              <div class="edrow">
+                <div class="edico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 18V5l12-2v13" />
+                    <circle cx="6" cy="18" r="3" />
+                    <circle cx="18" cy="16" r="3" />
+                  </svg>
+                </div>
+                <div class="edmeta">
+                  <div class="n">Audio</div>
+                  <div class="s">7:10:00 · you're at 3:40</div>
+                </div>
+                <div class="edcur">Reading</div>
+              </div>
+              <div class="edrow">
+                <div class="edico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z" />
+                  </svg>
+                </div>
+                <div class="edmeta">
+                  <div class="n">Print</div>
+                  <div class="s">~380 pages</div>
+                </div>
+                <button class="edadd">Add</button>
+              </div>
+              <div class="edrow">
+                <div class="edico">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="4" y="3" width="16" height="18" rx="2" />
+                    <path d="M8 7h8M8 11h8M8 15h5" />
+                  </svg>
+                </div>
+                <div class="edmeta">
+                  <div class="n">Ebook</div>
+                  <div class="s">~380 pages</div>
+                </div>
+                <button class="edadd">Add</button>
+              </div>
+
+              <div class="edmiss">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M5 12h14M13 6l6 6-6 6" /></svg
+                >Want a specific edition? Add it on the book page
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== STATE 3: sheet now multi-format ===== -->
+      <div class="labeled">
+        <div class="cap">
+          3 · Log sheet <b>now has the format switch</b> — this engagement only; each side keeps its
+          own last spot
+        </div>
+        <div class="phone">
+          <div class="screen">
+            <div class="bgpeek"><div class="h">Currently reading</div></div>
+            <div class="scrim"></div>
+            <div class="sheet">
+              <div class="grab"></div>
+              <div class="bookhead">
+                <div class="cv" style="background: linear-gradient(150deg, #2f7d54, #111)"></div>
+                <div>
+                  <div class="t">Green City Wars</div>
+                  <div class="a">Adrian Tchaikovsky</div>
+                </div>
+              </div>
+              <div class="fmtswitch">
+                <div class="fmtpill">
+                  <div class="top">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M9 18V5l12-2v13" />
+                      <circle cx="6" cy="18" r="3" />
+                      <circle cx="18" cy="16" r="3" /></svg
+                    >Audio
+                  </div>
+                  <div class="sub">last 3:40:00</div>
+                </div>
+                <div class="fmtpill on">
+                  <div class="top">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z" /></svg
+                    >Print <span class="newtag">NEW</span>
+                  </div>
+                  <div class="sub">no spot yet</div>
+                </div>
+              </div>
+              <div class="ilabel">Where are you now? · Print</div>
+              <div class="bignum">
+                <span class="pre">Page</span><span class="val">52</span
+                ><span class="suf">of ~380</span>
+              </div>
+              <div class="startline">
+                <span>from p.&nbsp;1 · start of print</span
+                ><span class="edit">Continue from ch 8? · Jumped?</span>
+              </div>
+
+              <div class="comp">
+                <div class="track">
+                  <div class="fill" style="width: 40%"></div>
+                  <div class="frontier" style="left: 40%"></div>
+                  <div class="you" style="left: 14%"></div>
+                </div>
+                <div class="scale">
+                  <span>start</span><span>print p.52 · 14%</span><span>furthest · 40%</span>
+                </div>
+                <div class="cap">
+                  Behind your furthest point, so this reads as <b>re-reading</b> — it adds reading
+                  time but <b>completion holds at 40%</b> until print passes chapter 8.
+                </div>
+              </div>
+
+              <div class="note">
+                <div class="add">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M4 20h4L18 10l-4-4L4 16z" /></svg
+                  >Add a note
+                </div>
+              </div>
+              <div class="daterow">
+                <span class="dchip on">Today</span><span class="dchip">Yesterday</span>
+                <div class="dcal">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <path d="M3 9h18M8 3v4M16 3v4" />
+                  </svg>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="save">Save</button
+                ><button class="finish">I finished the book</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <b>The through-line:</b> single-format cards (state 1) show one badge and no format UI on the
+      sheet. Going multi-format is a deliberate pull from ⋯ → edition picker (state 2) → and only
+      then does the sheet grow the format switch (state 3), permanently, for that engagement.
+      &nbsp;·&nbsp;
+      <b
+        >Deliberately different from the old
+        <span style="color: #c02a7a">“Also reading this in another format?”</span> nudge</b
+      >, which pushed the question onto every log.
+    </div>
+  </body>
+</html>

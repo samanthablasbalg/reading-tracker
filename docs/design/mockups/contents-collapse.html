@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Contents — collapse</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: #18131b;
+        color: #f3e9ee;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        padding: 34px 18px 70px;
+        --surface: #241c26;
+        --surface2: #2e2432;
+        --muted: #b7a7b0;
+        --track: #3a2f3f;
+        --accent: #ff5fab;
+        --line: rgba(255, 255, 255, 0.09);
+      }
+      .head {
+        max-width: 760px;
+        margin: 0 auto 20px;
+      }
+      .head h1 {
+        font-size: 20px;
+      }
+      .head p {
+        color: var(--muted);
+        font-size: 13.5px;
+        margin-top: 3px;
+      }
+      .cols {
+        display: flex;
+        gap: 26px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .col {
+        width: 360px;
+      }
+      .col > h2 {
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 10px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+      }
+
+      .sectitle {
+        font-family: 'Lora', serif;
+        font-weight: 600;
+        font-size: 18px;
+        margin: 0 2px 10px;
+      }
+
+      .contents {
+        background: var(--surface);
+        border-radius: 18px;
+        padding: 4px 4px 6px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+      }
+      .chead {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 14px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .chead .lab {
+        flex: 1;
+      }
+      .chead .lab .t {
+        font-family: 'Lora', serif;
+        font-weight: 600;
+        font-size: 15.5px;
+      }
+      .chead .lab .s {
+        font-size: 11.5px;
+        color: var(--muted);
+        font-weight: 700;
+        margin-top: 3px;
+      }
+      .chev {
+        width: 22px;
+        height: 22px;
+        flex: none;
+        transition: transform 0.22s ease;
+        color: var(--muted);
+      }
+      .collapsible.open > .chead .chev {
+        transform: rotate(180deg);
+      }
+
+      .cbar {
+        height: 6px;
+        border-radius: 99px;
+        background: var(--track);
+        overflow: hidden;
+        margin: 0 14px 2px;
+      }
+      .cbar > i {
+        display: block;
+        height: 100%;
+        background: var(--accent);
+        border-radius: 99px;
+      }
+
+      .peek {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 14px 12px;
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+      .peek b {
+        color: #e4d8de;
+        font-weight: 600;
+      }
+      .peek .go {
+        margin-left: auto;
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 11.5px;
+      }
+      .collapsible.open > .peek {
+        display: none;
+      }
+
+      .list {
+        overflow: hidden;
+      }
+      .collapsible:not(.open) > .list {
+        display: none;
+      }
+
+      .entry {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        border-top: 1px solid var(--line);
+      }
+      .mark {
+        width: 21px;
+        height: 21px;
+        border-radius: 50%;
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .mark.done {
+        background: var(--accent);
+        color: #23111b;
+      }
+      .mark.done svg {
+        width: 12px;
+        height: 12px;
+      }
+      .mark.todo {
+        border: 2px solid var(--track);
+      }
+      .entry .t {
+        flex: 1;
+        min-width: 0;
+      }
+      .entry .t .nm {
+        font-family: 'Lora', serif;
+        font-size: 14px;
+        line-height: 1.2;
+      }
+      .entry.readdone .t .nm {
+        opacity: 0.55;
+      }
+      .entry .t .pp {
+        font-size: 10.5px;
+        color: var(--muted);
+        margin-top: 2px;
+        font-variant-numeric: tabular-nums;
+      }
+      .entry .log {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--accent);
+        background: none;
+        border: none;
+        cursor: pointer;
+        flex: none;
+      }
+      .hint {
+        font-size: 11px;
+        color: var(--muted);
+        padding: 10px 14px 6px;
+        line-height: 1.4;
+        border-top: 1px solid var(--line);
+      }
+      .hint b {
+        color: #e4d8de;
+      }
+
+      /* nested arc */
+      .arc {
+        border-top: 1px solid var(--line);
+      }
+      .ahead {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 11px 14px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .ahead .an {
+        flex: 1;
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .ahead .ac {
+        font-size: 11px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .ahead .chev {
+        width: 18px;
+        height: 18px;
+      }
+      .arc .list .entry {
+        padding-left: 26px;
+      }
+      .arc:not(.open) > .list {
+        display: none;
+      }
+      .arc.open > .ahead .chev {
+        transform: rotate(180deg);
+      }
+      .tip {
+        text-align: center;
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .tip b {
+        color: #f3e9ee;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="head">
+      <h1>Contents — collapsible</h1>
+      <p>
+        Click any header to expand / collapse. Left: a short collection. Right: a big omnibus
+        grouped by arc.
+      </p>
+    </div>
+
+    <div class="cols">
+      <!-- ===== simple collapse ===== -->
+      <div class="col">
+        <h2>SHORT COLLECTION — collapsed by default</h2>
+        <div class="sectitle">Exhalation</div>
+        <div class="contents collapsible" id="c1">
+          <div class="chead" data-toggle="c1">
+            <div class="lab">
+              <div class="t">Contents</div>
+              <div class="s">2 of 9 stories read · 22%</div>
+            </div>
+            <svg
+              class="chev"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </div>
+          <div class="cbar"><i style="width: 22%"></i></div>
+          <div class="peek">
+            <span>Next up: <b>What's Expected of Us</b></span
+            ><span class="go">Log ›</span>
+          </div>
+          <div class="list">
+            <div class="entry readdone">
+              <div class="mark done">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+              <div class="t">
+                <div class="nm">The Merchant and the Alchemist's Gate</div>
+                <div class="pp">pp. 1–30 · read Jun 28</div>
+              </div>
+            </div>
+            <div class="entry readdone">
+              <div class="mark done">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+              <div class="t">
+                <div class="nm">Exhalation</div>
+                <div class="pp">pp. 31–57 · read today</div>
+              </div>
+            </div>
+            <div class="entry">
+              <div class="mark todo"></div>
+              <div class="t">
+                <div class="nm">What's Expected of Us</div>
+                <div class="pp">pp. 58–62</div>
+              </div>
+              <button class="log">Log</button>
+            </div>
+            <div class="entry">
+              <div class="mark todo"></div>
+              <div class="t">
+                <div class="nm">The Lifecycle of Software Objects</div>
+                <div class="pp">pp. 63–172</div>
+              </div>
+              <button class="log">Log</button>
+            </div>
+            <div class="entry">
+              <div class="mark todo"></div>
+              <div class="t">
+                <div class="nm">Omphalos</div>
+                <div class="pp">pp. 235–270</div>
+              </div>
+              <button class="log">Log</button>
+            </div>
+            <div class="hint">
+              Logging a single story tracks <b>just that story</b> — it won't flip the book to
+              "Currently reading."
+            </div>
+          </div>
+        </div>
+        <div class="tip">Collapsed = one tidy row + a <b>next-up</b> nudge.</div>
+      </div>
+
+      <!-- ===== nested omnibus ===== -->
+      <div class="col">
+        <h2>OMNIBUS — grouped by arc, each collapses</h2>
+        <div class="sectitle">Uncanny X-Men Omnibus, Vol. 2</div>
+        <div class="contents collapsible open" id="c2">
+          <div class="chead" data-toggle="c2">
+            <div class="lab">
+              <div class="t">Contents</div>
+              <div class="s">6 of 27 issues · 3 arcs</div>
+            </div>
+            <svg
+              class="chev"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </div>
+          <div class="cbar"><i style="width: 22%"></i></div>
+          <div class="list">
+            <div class="arc open" id="a1">
+              <div class="ahead" data-toggle="a1">
+                <span class="an">The Dark Phoenix Saga</span><span class="ac">4/9</span
+                ><svg
+                  class="chev"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </div>
+              <div class="list">
+                <div class="entry readdone">
+                  <div class="mark done">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </div>
+                  <div class="t">
+                    <div class="nm">Uncanny X-Men #129</div>
+                    <div class="pp">pp. 5–27</div>
+                  </div>
+                </div>
+                <div class="entry readdone">
+                  <div class="mark done">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </div>
+                  <div class="t">
+                    <div class="nm">Uncanny X-Men #130</div>
+                    <div class="pp">pp. 28–50</div>
+                  </div>
+                </div>
+                <div class="entry">
+                  <div class="mark todo"></div>
+                  <div class="t">
+                    <div class="nm">Uncanny X-Men #131</div>
+                    <div class="pp">pp. 51–73</div>
+                  </div>
+                  <button class="log">Log</button>
+                </div>
+                <div class="entry">
+                  <div class="mark todo"></div>
+                  <div class="t">
+                    <div class="nm">Uncanny X-Men #132</div>
+                    <div class="pp">pp. 74–96</div>
+                  </div>
+                  <button class="log">Log</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="arc" id="a2">
+              <div class="ahead" data-toggle="a2">
+                <span class="an">Days of Future Past</span><span class="ac">2/2</span
+                ><svg
+                  class="chev"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </div>
+              <div class="list">
+                <div class="entry readdone">
+                  <div class="mark done">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </div>
+                  <div class="t">
+                    <div class="nm">Uncanny X-Men #141</div>
+                    <div class="pp">pp. 210–232</div>
+                  </div>
+                </div>
+                <div class="entry readdone">
+                  <div class="mark done">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </div>
+                  <div class="t">
+                    <div class="nm">Uncanny X-Men #142</div>
+                    <div class="pp">pp. 233–255</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="arc" id="a3">
+              <div class="ahead" data-toggle="a3">
+                <span class="an">The Brood Saga</span><span class="ac">0/8</span
+                ><svg
+                  class="chev"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.4"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </div>
+              <div class="list">
+                <div class="entry">
+                  <div class="mark todo"></div>
+                  <div class="t">
+                    <div class="nm">Uncanny X-Men #155</div>
+                    <div class="pp">pp. 400–422</div>
+                  </div>
+                  <button class="log">Log</button>
+                </div>
+                <div class="entry">
+                  <div class="mark todo"></div>
+                  <div class="t">
+                    <div class="nm">Uncanny X-Men #156</div>
+                    <div class="pp">pp. 423–445</div>
+                  </div>
+                  <button class="log">Log</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tip">
+          Arcs nest inside Contents — collapse the whole thing, or just the arcs you've finished.
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.querySelectorAll('[data-toggle]').forEach((h) => {
+        h.addEventListener('click', (e) => {
+          e.stopPropagation();
+          document.getElementById(h.dataset.toggle).classList.toggle('open');
+        });
+      });
+    </script>
+  </body>
+</html>
