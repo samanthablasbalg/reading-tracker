@@ -203,11 +203,6 @@
   flex-wrap: wrap;
 }
 
-.hero__helper {
-  font-size: 13px;
-  color: var(--color-muted);
-}
-
 .hero__media {
   position: relative;
   display: flex;
@@ -427,79 +422,6 @@
   margin: 0;
 }
 
-/* Currently-reading showcase */
-
-.reading-showcase {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 48px 32px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 56px;
-  align-items: center;
-}
-
-.reading-showcase__image-wrap {
-  display: flex;
-  justify-content: center;
-}
-
-.reading-showcase__image {
-  width: 280px;
-  max-width: 100%;
-  height: auto;
-  border-radius: 32px;
-  box-shadow: 0 24px 50px -18px color-mix(in srgb, var(--color-text) 25%, transparent);
-}
-
-.reading-showcase__title {
-  font-family: var(--font-serif);
-  font-size: 32px;
-  font-weight: 600;
-  margin: 0 0 16px;
-  letter-spacing: -0.01em;
-}
-
-.reading-showcase__body {
-  font-family: var(--font-reading);
-  font-size: 18px;
-  line-height: 1.6;
-  color: var(--color-muted);
-  margin: 0 0 24px;
-  max-width: 440px;
-}
-
-.reading-showcase__list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.reading-showcase__list-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 15px;
-  color: var(--color-text);
-}
-
-.reading-showcase__check {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--color-tint-1);
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 800;
-  flex-shrink: 0;
-}
-
 /* Insights showcase — dark band, see the :host comment above */
 
 .insights-band {
@@ -535,25 +457,6 @@
   color: var(--color-muted);
   margin: 0 0 28px;
   max-width: 440px;
-}
-
-.insights-band__stats {
-  display: grid;
-  grid-template-columns: repeat(3, auto);
-  gap: 36px;
-}
-
-.insights-band__stat-value {
-  font-family: var(--font-serif);
-  font-size: 30px;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.insights-band__stat-label {
-  font-size: 13px;
-  color: var(--color-muted);
-  margin-top: 4px;
 }
 
 .insights-band__image-wrap {
