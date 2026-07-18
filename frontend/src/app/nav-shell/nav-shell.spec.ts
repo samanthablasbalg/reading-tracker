@@ -135,7 +135,7 @@ describe('NavShellComponent', () => {
     expect(document.querySelector('.menu-header')!.textContent).toContain('me@example.com');
   });
 
-  it('logs out and navigates to /login when "Log out" is clicked', () => {
+  it('logs out and navigates to / when "Log out" is clicked', () => {
     configure(false);
     const fixture = TestBed.createComponent(NavShellComponent);
     fixture.detectChanges();
@@ -151,6 +151,6 @@ describe('NavShellComponent', () => {
     logoutButton.click();
     httpTesting.expectOne('/api/auth/logout').flush(null);
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/login']);
+    expect(navigateSpy).toHaveBeenCalledWith(['/']);
   });
 });

@@ -9,9 +9,9 @@ import {
   UrlTree,
 } from '@angular/router';
 import { firstValueFrom, Observable } from 'rxjs';
-import { authGuard } from './auth.guard';
+import { guestGuard } from './guest.guard';
 
-describe('authGuard', () => {
+describe('guestGuard', () => {
   let httpTesting: HttpTestingController;
 
   beforeEach(() => {
@@ -27,22 +27,22 @@ describe('authGuard', () => {
 
   function runGuard(): Observable<boolean | UrlTree> {
     return TestBed.runInInjectionContext(() =>
-      authGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
+      guestGuard({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot),
     ) as Observable<boolean | UrlTree>;
   }
 
-  it('allows navigation when a session exists', async () => {
+  it('allows navigation when there is no session', async () => {
     const resultPromise = firstValueFrom(runGuard());
-    httpTesting.expectOne('/api/auth/me').flush({ id: 'user-1', email: 'me@example.com' });
+    httpTesting.expectOne('/api/auth/me').flush(null, { status: 401, statusText: 'Unauthorized' });
 
     expect(await resultPromise).toBe(true);
   });
 
-  it('redirects to / when there is no session', async () => {
+  it('redirects to /currently-reading when a session exists', async () => {
     const router = TestBed.inject(Router);
     const resultPromise = firstValueFrom(runGuard());
-    httpTesting.expectOne('/api/auth/me').flush(null, { status: 401, statusText: 'Unauthorized' });
+    httpTesting.expectOne('/api/auth/me').flush({ id: 'user-1', email: 'me@example.com' });
 
-    expect(await resultPromise).toEqual(router.createUrlTree(['/']));
+    expect(await resultPromise).toEqual(router.createUrlTree(['/currently-reading']));
   });
 });
