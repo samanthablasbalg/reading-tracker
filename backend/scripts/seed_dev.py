@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import http.cookiejar
 import json
 import os
 import urllib.error
@@ -13,6 +14,12 @@ load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env
 DATABASE_URL = os.environ["DATABASE_URL"]
 BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8000")
 
+# A plain urllib call carries no cookies, so without this, every request below
+# would look like an anonymous visitor and get 401'd — see login().
+_opener = urllib.request.build_opener(
+    urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar())
+)
+
 
 def _request(
     method: str, path: str, body: dict[str, object] | None = None
@@ -25,8 +32,15 @@ def _request(
         method=method,
     )
     try:
-        with urllib.request.urlopen(req) as resp:
+        with _opener.open(req) as resp:
             return cast(dict[str, object], json.loads(resp.read()))
+    except urllib.error.HTTPError as exc:
+        if path == "/auth/test-login":
+            print(
+                "POST /auth/test-login failed — is ALLOW_TEST_LOGIN=true set "
+                f"for the backend at {BASE_URL}?"
+            )
+        raise SystemExit(1) from exc
     except urllib.error.URLError as exc:
         print(f"Could not reach the backend at {BASE_URL}. Is it running?")
         raise SystemExit(1) from exc
@@ -38,6 +52,12 @@ def post(path: str, body: dict[str, object]) -> dict[str, object]:
 
 def patch(path: str, body: dict[str, object]) -> None:
     _request("PATCH", path, body)
+
+
+def login() -> None:
+    # "dev" matches the email reset() hardcodes below, so whichever database
+    # this points at (local dev or the e2e db), the two agree on one user.
+    post("/auth/test-login", {"persona": "dev"})
 
 
 def reset() -> None:
@@ -115,6 +135,7 @@ def dnf(engagement_id: str) -> None:
 
 
 reset()
+login()
 print("Seeding...")
 
 # Catalog only

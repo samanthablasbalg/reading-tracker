@@ -1,0 +1,70 @@
+/* Dark band on an otherwise light page — the parent LandingComponent fixes
+   color-scheme to light for the rest of the page (see landing.css), but
+   scoping `color-scheme: dark` to just this subtree flips every
+   `light-dark()`-based --color-* token used inside it to its dark value,
+   with no separate dark stylesheet. */
+
+.insights-band {
+  color-scheme: dark;
+  background: var(--color-background);
+  color: var(--color-text);
+  margin-top: 56px;
+}
+
+.insights-band__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 80px 32px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: center;
+}
+
+.insights-band__title {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 600;
+  margin: 0 0 16px;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.insights-band__body {
+  font-family: var(--font-reading);
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--color-muted);
+  margin: 0 0 28px;
+  max-width: 440px;
+}
+
+.insights-band__image-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.insights-band__image {
+  width: 280px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 32px;
+  box-shadow: 0 30px 60px -20px color-mix(in srgb, black 50%, transparent);
+}
+
+@media (max-width: 720px) {
+  .insights-band__inner {
+    grid-template-columns: 1fr;
+    padding: 56px 20px;
+    gap: 32px;
+  }
+
+  .insights-band__title {
+    font-size: 26px;
+  }
+
+  .insights-band__body {
+    font-size: 16px;
+    max-width: none;
+  }
+}

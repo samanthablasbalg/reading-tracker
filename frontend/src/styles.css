@@ -55,3 +55,85 @@
   font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
 }
+
+/* Shared UI primitives (pill button, eyebrow label, tag pill) used across
+   the landing page's components. Global rather than scoped to one component
+   because Angular's per-component style encapsulation would otherwise hide
+   these from sibling components that also need them. */
+
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  border-radius: 100px;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.pill-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.pill-btn--primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  padding: 15px 26px;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-primary) 28%, transparent);
+}
+
+.pill-btn--primary:hover {
+  background: color-mix(in srgb, var(--color-primary) 88%, black);
+}
+
+.pill-btn--outline {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-text) 5%, transparent);
+}
+
+.pill-btn--outline:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.eyebrow {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.eyebrow--primary {
+  color: var(--color-primary);
+}
+
+.eyebrow--secondary {
+  color: var(--color-secondary);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  background: var(--color-tint-1);
+  padding: 5px 11px;
+  border-radius: 100px;
+  margin-bottom: 16px;
+}

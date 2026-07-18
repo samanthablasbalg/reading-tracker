@@ -1,0 +1,39 @@
+<section class="hero">
+  <div class="hero__copy">
+    <p class="hero__badge">
+      <span class="hero__badge-dot" aria-hidden="true"></span>
+      Early build, live today — the vision below is what's next
+    </p>
+    <h1 class="hero__title">Your reading, tracked <em>your way.</em></h1>
+    <p class="hero__body">
+      A reading tracker in progress: log in today for basic tracking, and see below for what is
+      coming next.
+    </p>
+    <div class="hero__actions">
+      <button type="button" class="pill-btn pill-btn--primary hero__cta" (click)="auth.login()">
+        <app-google-icon variant="onDark" />
+        Continue with Google
+      </button>
+    </div>
+  </div>
+
+  <div class="hero__media">
+    <div class="hero__glow" aria-hidden="true"></div>
+    <img
+      ngSrc="/landing/home-dark.png"
+      alt="Rainbow Sam Reads home screen concept, dark mode"
+      width="1152"
+      height="2622"
+      priority
+      class="hero__image hero__image--primary"
+    />
+    <img
+      ngSrc="/landing/insights-light.png"
+      alt="Rainbow Sam Reads insights screen concept, light mode"
+      width="1152"
+      height="1968"
+      class="hero__image hero__image--secondary"
+    />
+    <div class="hero__concept-badge">Design concept</div>
+  </div>
+</section>
