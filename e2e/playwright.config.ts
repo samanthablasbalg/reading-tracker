@@ -88,9 +88,11 @@ export default defineConfig({
         APP_DATABASE_URL: process.env['E2E_DATABASE_URL'] ?? '',
         SESSION_SECRET: process.env['SESSION_SECRET'] ?? '',
         // Enables POST /auth/test-login, the Google-bypass the auth setup
-        // project uses. Scoped to this dedicated :8001 process only — never
-        // set for dev (:8000) or the pytest suite.
-        E2E_TEST_AUTH: 'true',
+        // project uses (defaults to the "e2e" persona). Scoped to this
+        // dedicated :8001 process — local dev (:8000) sets this too, to let
+        // scripts/seed_dev.py authenticate as the "dev" persona, but the
+        // pytest suite never does.
+        ALLOW_TEST_LOGIN: 'true',
       },
     },
     {

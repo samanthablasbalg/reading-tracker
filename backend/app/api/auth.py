@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import os
-from typing import cast
+from typing import Literal, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -15,6 +16,16 @@ from app.oauth import oauth
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 E2E_TEST_USER_EMAIL = "test-user@example.com"
+DEV_TEST_USER_EMAIL = "blasbalgs@gmail.com"
+
+_TEST_LOGIN_PERSONAS: dict[str, str] = {
+    "e2e": E2E_TEST_USER_EMAIL,
+    "dev": DEV_TEST_USER_EMAIL,
+}
+
+
+class TestLoginRequest(BaseModel):
+    persona: Literal["e2e", "dev"] = "e2e"
 
 
 def _get_or_create_user(db: Session, email: str) -> User:
@@ -88,11 +99,14 @@ def logout(request: Request) -> dict[str, bool]:
 
 @router.post("/test-login")
 def test_login(
-    request: Request, db: Session = Depends(get_unscoped_db)
+    request: Request,
+    payload: TestLoginRequest = TestLoginRequest(),
+    db: Session = Depends(get_unscoped_db),
 ) -> dict[str, bool]:
-    if os.getenv("E2E_TEST_AUTH") != "true":
+    if os.getenv("ALLOW_TEST_LOGIN") != "true":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    user = _get_or_create_user(db, E2E_TEST_USER_EMAIL)
+    email = _TEST_LOGIN_PERSONAS[payload.persona]
+    user = _get_or_create_user(db, email)
     request.session["user_id"] = str(user.id)
-    request.session["email"] = E2E_TEST_USER_EMAIL
+    request.session["email"] = email
     return {"ok": True}

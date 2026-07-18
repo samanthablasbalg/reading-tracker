@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from starlette.requests import Request
 
-from app.api.auth import E2E_TEST_USER_EMAIL
+from app.api.auth import DEV_TEST_USER_EMAIL, E2E_TEST_USER_EMAIL
 from app.main import app
 from app.models.user import User
 from app.oauth import oauth
@@ -115,14 +115,14 @@ def test_logout_clears_the_session(
     assert client.get("/api/auth/me").status_code == 401
 
 
-def test_test_login_is_absent_without_the_e2e_flag(client: TestClient) -> None:
+def test_test_login_is_absent_without_the_flag(client: TestClient) -> None:
     assert client.post("/api/auth/test-login").status_code == 404
 
 
-def test_test_login_starts_a_session_when_e2e_flagged(
+def test_test_login_defaults_to_the_e2e_persona_when_flagged(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("E2E_TEST_AUTH", "true")
+    monkeypatch.setenv("ALLOW_TEST_LOGIN", "true")
 
     response = client.post("/api/auth/test-login")
     assert response.status_code == 200
@@ -140,10 +140,28 @@ def test_test_login_starts_a_session_when_e2e_flagged(
     }
 
 
+def test_test_login_dev_persona_logs_in_as_the_dev_user(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("ALLOW_TEST_LOGIN", "true")
+
+    response = client.post("/api/auth/test-login", json={"persona": "dev"})
+    assert response.status_code == 200
+
+    user = db.execute(
+        select(User).where(User.email == DEV_TEST_USER_EMAIL)
+    ).scalar_one()
+
+    me = client.get("/api/auth/me")
+    assert me.status_code == 200
+    assert me.json()["email"] == DEV_TEST_USER_EMAIL
+    assert me.json()["id"] == str(user.id)
+
+
 def test_test_login_reuses_the_same_user_on_repeat_calls(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("E2E_TEST_AUTH", "true")
+    monkeypatch.setenv("ALLOW_TEST_LOGIN", "true")
 
     client.post("/api/auth/test-login")
     first_id = client.get("/api/auth/me").json()["id"]
