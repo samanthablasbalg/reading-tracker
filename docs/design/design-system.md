@@ -190,17 +190,15 @@ The app's primary daily action. Logging happens in a **focused sheet** (`MatBott
 `MatDialog` on web) launched from a Currently Reading row — never inline, never a separate page
 [ADR-0019]. One sheet hosts the whole act: a format-aware range input, the date, notes, live
 completion feedback, and Finish. Mockups:
-[`mockups/progress-logging-wip/input-and-strip-mockup.html`](./mockups/progress-logging-wip/input-and-strip-mockup.html)
-(the input) and
-[`add-format-via-menu-mockup.html`](./mockups/progress-logging-wip/add-format-via-menu-mockup.html)
-(going multi-format), and
-[`finish-and-linger-card-mockup.html`](./mockups/progress-logging-wip/finish-and-linger-card-mockup.html)
-(the finished card). The reading log and its edit/delete:
-[`progress-logs-list-mockup.html`](./mockups/progress-logging-wip/progress-logs-list-mockup.html).
-The covered-set model in the hard cases:
-[`omnibus-out-of-order-log-mockup.html`](./mockups/progress-logging-wip/omnibus-out-of-order-log-mockup.html)
+[`mockups/input-and-strip-mockup.html`](./mockups/input-and-strip-mockup.html) (the input) and
+[`add-format-via-menu-mockup.html`](./mockups/add-format-via-menu-mockup.html) (going multi-format),
+and [`finish-and-linger-card-mockup.html`](./mockups/finish-and-linger-card-mockup.html) (the
+finished card). The reading log and its edit/delete:
+[`progress-logs-list-mockup.html`](./mockups/progress-logs-list-mockup.html). The covered-set model
+in the hard cases:
+[`omnibus-out-of-order-log-mockup.html`](./mockups/omnibus-out-of-order-log-mockup.html)
 (non-linear) and
-[`multiformat-alternating-log-mockup.html`](./mockups/progress-logging-wip/multiformat-alternating-log-mockup.html)
+[`multiformat-alternating-log-mockup.html`](./mockups/multiformat-alternating-log-mockup.html)
 (alternating formats).
 
 **One input shape for every log.** Every log is a range **`From → To`** in a chosen format, in a
