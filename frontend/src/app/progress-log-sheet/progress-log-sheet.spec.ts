@@ -73,12 +73,12 @@ describe('ProgressLogSheetComponent', () => {
     expect(img.getAttribute('src')).toBe('https://example.com/cover.jpg');
   });
 
-  it('pre-fills the page input with resume_from_page', async () => {
+  it('opens the page input empty', async () => {
     await setup();
-    expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('50');
+    expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('');
   });
 
-  it('disables Save on open when the pre-filled page equals resume_from_page', async () => {
+  it('disables Save on open before any page is entered', async () => {
     await setup();
     expect(
       (screen.getByRole('button', { name: 'Save progress for Dune' }) as HTMLButtonElement)
@@ -86,15 +86,39 @@ describe('ProgressLogSheetComponent', () => {
     ).toBe(true);
   });
 
-  it('does not show a min error for the pre-filled value before any edit', async () => {
+  it('does not show an error just from blurring an untouched field', async () => {
     await setup();
     fireEvent.blur(screen.getByRole('spinbutton'));
     expect(screen.queryByText(/must be greater than page 50/i)).toBeNull();
   });
 
-  it('shows a min error once the page is edited to a value at or below resume_from_page', async () => {
+  it('does not show a min error while still typing, before the field is left', async () => {
+    await setup();
+    const input = screen.getByRole('spinbutton');
+    fireEvent.focus(input);
+    fireEvent.input(input, { target: { value: '50' } });
+    expect(screen.queryByText(/must be greater than page 50/i)).toBeNull();
+  });
+
+  it('shows the min error again if you refocus and edit after already leaving the field once', async () => {
+    await setup();
+    const input = screen.getByRole('spinbutton');
+    fireEvent.focus(input);
+    fireEvent.input(input, { target: { value: '100' } });
+    fireEvent.blur(input);
+    expect(screen.queryByText(/must be greater than page 50/i)).toBeNull();
+
+    fireEvent.focus(input);
+    fireEvent.input(input, { target: { value: '50' } });
+    expect(screen.queryByText(/must be greater than page 50/i)).toBeNull();
+    fireEvent.blur(input);
+    expect(screen.getByText(/must be greater than page 50/i)).toBeTruthy();
+  });
+
+  it('shows a min error once an invalid page is entered and the field is left', async () => {
     await setup();
     fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '50' } });
+    fireEvent.blur(screen.getByRole('spinbutton'));
     expect(screen.getByText(/must be greater than page 50/i)).toBeTruthy();
   });
 
@@ -196,12 +220,12 @@ describe('ProgressLogSheetComponent', () => {
     );
   });
 
-  it('enables Save on open when resume_from_page equals the page count', async () => {
+  it('still requires entering the final page when resume_from_page equals the page count', async () => {
     await setup({ resume_from_page: 200, default_page_count: 200 });
     expect(
       (screen.getByRole('button', { name: 'Save progress for Dune' }) as HTMLButtonElement)
         .disabled,
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('calls logProgress with the final page when resume_from_page equals the page count', async () => {
@@ -209,6 +233,7 @@ describe('ProgressLogSheetComponent', () => {
       resume_from_page: 200,
       default_page_count: 200,
     });
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '200' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
     expect(mockEngagementService.logProgress).toHaveBeenCalledWith(
       'eng-1',
@@ -464,12 +489,12 @@ describe('ProgressLogSheetComponent', () => {
     expect(screen.queryByRole('spinbutton')).toBeNull();
   });
 
-  it('pre-fills the minute input with formatted resume_from_minute', async () => {
+  it('opens the minute input empty', async () => {
     await setup(audioData);
-    expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('01:15');
+    expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('');
   });
 
-  it('disables Save on open when the pre-filled time equals resume_from_minute', async () => {
+  it('disables Save on open before any timestamp is entered', async () => {
     await setup(audioData);
     expect(
       (screen.getByRole('button', { name: 'Save progress for Dune' }) as HTMLButtonElement)

@@ -248,9 +248,9 @@ export class CurrentlyReadingComponent {
     };
 
     if (this.breakpointObserver.isMatched('(max-width: 599px)')) {
-      this.bottomSheet.open(ProgressLogSheetComponent, { data });
+      this.bottomSheet.open(ProgressLogSheetComponent, { data, autoFocus: 'dialog' });
     } else {
-      this.dialog.open(ProgressLogSheetComponent, { data });
+      this.dialog.open(ProgressLogSheetComponent, { data, autoFocus: 'dialog' });
     }
   }
 

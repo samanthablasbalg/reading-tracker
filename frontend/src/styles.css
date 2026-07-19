@@ -137,3 +137,8 @@
   border-radius: 100px;
   margin-bottom: 16px;
 }
+
+.mat-bottom-sheet-container {
+  border-top-left-radius: var(--mat-bottom-sheet-container-shape, 28px) !important;
+  border-top-right-radius: var(--mat-bottom-sheet-container-shape, 28px) !important;
+}
