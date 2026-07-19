@@ -250,7 +250,12 @@ export class CurrentlyReadingComponent {
     if (this.breakpointObserver.isMatched('(max-width: 599px)')) {
       this.bottomSheet.open(ProgressLogSheetComponent, { data, autoFocus: 'dialog' });
     } else {
-      this.dialog.open(ProgressLogSheetComponent, { data, autoFocus: 'dialog' });
+      this.dialog.open(ProgressLogSheetComponent, {
+        data,
+        autoFocus: 'dialog',
+        width: '440px',
+        maxWidth: '92vw',
+      });
     }
   }
 

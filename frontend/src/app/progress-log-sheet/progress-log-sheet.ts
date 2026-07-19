@@ -36,6 +36,24 @@ function yesterdayDateString(today: string): string {
   selector: 'app-progress-log-sheet',
   imports: [NgOptimizedImage, ReactiveFormsModule, MatButtonModule, MatIconModule, MatDialogTitle],
   templateUrl: './progress-log-sheet.html',
+  styles: `
+    /* mat-dialog-title's MDC classes (only active inside a real MatDialog,
+       which is why the bottom-sheet variant of this same template is
+       unaffected) carry their own font, padding, and an invisible ::before
+       spacer sized for Material's default headline font. Tailwind's utility
+       classes live in a lower-priority CSS layer, so Material silently wins
+       that fight; these declarations are plain, unlayered CSS so they take
+       precedence and make the title match what the Tailwind classes say. */
+    .mdc-dialog__title {
+      padding: 0 !important;
+      margin: 0 !important;
+      font: 600 1.125rem/1.25 var(--font-serif) !important;
+      color: var(--color-text) !important;
+    }
+    .mdc-dialog__title::before {
+      display: none;
+    }
+  `,
 })
 export class ProgressLogSheetComponent {
   protected readonly dialogRef = inject(MatDialogRef, { optional: true });
