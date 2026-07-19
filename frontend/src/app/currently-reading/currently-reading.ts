@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -7,7 +7,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatBottomSheet, MatBottomSheetRef } from '@angular/material/bottom-sheet';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { RouterLink } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
@@ -231,14 +231,6 @@ export class CurrentlyReadingComponent {
     { initialValue: true },
   );
 
-  /** True while the mobile log sheet is open. Read by `logSheetOpenGuard` so the browser
-   *  back button closes the sheet instead of navigating away from this route — Router
-   *  consults `canDeactivate` guards even for popstate-triggered navigations, which makes
-   *  this a reliable way to intercept the back button without racing Router's own
-   *  popstate listener. */
-  readonly logSheetOpen = signal(false);
-  private openBottomSheetRef: MatBottomSheetRef<ProgressLogSheetComponent> | null = null;
-
   protected coverUrl(engagement: Engagement): string | null {
     return engagement.cover_url;
   }
@@ -256,22 +248,10 @@ export class CurrentlyReadingComponent {
     };
 
     if (this.breakpointObserver.isMatched('(max-width: 599px)')) {
-      const ref = this.bottomSheet.open(ProgressLogSheetComponent, { data, autoFocus: 'dialog' });
-      this.openBottomSheetRef = ref;
-      this.logSheetOpen.set(true);
-      ref.afterDismissed().subscribe(() => {
-        this.logSheetOpen.set(false);
-        this.openBottomSheetRef = null;
-      });
+      this.bottomSheet.open(ProgressLogSheetComponent, { data, autoFocus: 'dialog' });
     } else {
       this.dialog.open(ProgressLogSheetComponent, { data, autoFocus: 'dialog' });
     }
-  }
-
-  /** Called by `logSheetOpenGuard` when the back button tries to navigate away while the
-   *  mobile log sheet is open. */
-  closeLogSheet(): void {
-    this.openBottomSheetRef?.dismiss();
   }
 
   protected deleteEngagement(engagement: Engagement): void {
