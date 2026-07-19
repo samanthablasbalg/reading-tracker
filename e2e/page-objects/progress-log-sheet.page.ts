@@ -16,8 +16,8 @@ export class ProgressLogSheetPage {
 
   /** @param page - The Playwright page the sheet is open on. */
   constructor(public readonly page: Page) {
-    this.pageInput = page.getByRole('spinbutton', { name: 'Current page' });
-    this.minuteInput = page.getByRole('textbox', { name: 'Current position' });
+    this.pageInput = page.getByRole('spinbutton', { name: 'To · now' });
+    this.minuteInput = page.getByRole('textbox', { name: 'To · now' });
     this.cancelButton = page.getByRole('button', { name: 'Cancel' });
     this.confirmationMessage = page.getByText('Finish and discard the page you entered');
     this.finishButton = page.getByRole('button', { name: /finish/i });
@@ -34,6 +34,15 @@ export class ProgressLogSheetPage {
    */
   getSaveButton(title: string): Locator {
     return this.page.getByRole('button', { name: `Save progress for ${title}` });
+  }
+
+  /**
+   * Locates the static "From" value showing the position last logged before this sheet opened.
+   * @param value - The expected displayed value, e.g. '100' or '01:15'.
+   * @returns The From-value locator.
+   */
+  getFromDisplay(value: string): Locator {
+    return this.page.getByText(value, { exact: true });
   }
 
   /**
