@@ -47,6 +47,17 @@ html {
       outline: var(--color-border),
     )
   );
+
+  @include mat.bottom-sheet-overrides(
+    (
+      container-shape: 28px,
+    )
+  );
+  @include mat.dialog-overrides(
+    (
+      container-shape: 24px,
+    )
+  );
 }
 
 body {

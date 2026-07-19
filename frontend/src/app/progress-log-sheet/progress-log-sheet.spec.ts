@@ -1,7 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/angular';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 import { MATERIAL_ANIMATIONS } from '@angular/material/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MAT_BOTTOM_SHEET_DATA, MatBottomSheetRef } from '@angular/material/bottom-sheet';
 import { ProgressLogSheetComponent, ProgressLogSheetData } from './progress-log-sheet';
 import { EngagementService } from '../engagement.service';
 
@@ -35,7 +36,7 @@ async function setup(
     ...serviceOverrides,
   } as unknown as MockEngagementService;
 
-  await render(ProgressLogSheetComponent, {
+  const { fixture } = await render(ProgressLogSheetComponent, {
     providers: [
       { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
       { provide: MAT_DIALOG_DATA, useValue: { ...baseData, ...dataOverrides } },
@@ -44,7 +45,64 @@ async function setup(
     ],
   });
 
-  return { mockDialogRef, mockEngagementService };
+  return { mockDialogRef, mockEngagementService, fixture };
+}
+
+/** Minimal `VisualViewport` stand-in: real `resize`/`scroll` listener bookkeeping,
+ *  plus a `setHeight` helper that mimics the viewport shrinking under an OS keyboard. */
+function createMockVisualViewport(initialHeight: number) {
+  const listeners: Record<'resize' | 'scroll', Set<() => void>> = {
+    resize: new Set(),
+    scroll: new Set(),
+  };
+  return {
+    height: initialHeight,
+    offsetTop: 0,
+    addEventListener: (type: 'resize' | 'scroll', cb: () => void) => listeners[type].add(cb),
+    removeEventListener: (type: 'resize' | 'scroll', cb: () => void) => listeners[type].delete(cb),
+    listenerCount: (type: 'resize' | 'scroll') => listeners[type].size,
+    setHeight(next: number) {
+      this.height = next;
+      listeners.resize.forEach((cb) => cb());
+    },
+  };
+}
+
+/** Builds a `MatBottomSheetRef` mock whose `dismiss()` actually emits on
+ *  `afterDismissed()`, the way the real ref does. */
+function createMockBottomSheetRef() {
+  const afterDismissed$ = new Subject<void>();
+  const mockBottomSheetRef = {
+    dismiss: vi.fn(() => afterDismissed$.next()),
+    afterDismissed: () => afterDismissed$.asObservable(),
+  };
+  return mockBottomSheetRef;
+}
+
+async function setupBottomSheet(
+  dataOverrides: Partial<ProgressLogSheetData> = {},
+  serviceOverrides: Record<string, unknown> = {},
+) {
+  const mockBottomSheetRef = createMockBottomSheetRef();
+  const mockEngagementService = {
+    logProgress: vi.fn(() => of({})),
+    patchEngagementInPlace: vi.fn(),
+    markFinished: vi.fn(() => of({})),
+    markDnf: vi.fn(() => of({})),
+    reloadEngagements: vi.fn(),
+    ...serviceOverrides,
+  } as unknown as MockEngagementService;
+
+  const { fixture } = await render(ProgressLogSheetComponent, {
+    providers: [
+      { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
+      { provide: MAT_BOTTOM_SHEET_DATA, useValue: { ...baseData, ...dataOverrides } },
+      { provide: MatBottomSheetRef, useValue: mockBottomSheetRef },
+      { provide: EngagementService, useValue: mockEngagementService },
+    ],
+  });
+
+  return { mockBottomSheetRef, mockEngagementService, fixture };
 }
 
 describe('ProgressLogSheetComponent', () => {
@@ -55,6 +113,8 @@ describe('ProgressLogSheetComponent', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('renders the book title', async () => {
@@ -73,12 +133,12 @@ describe('ProgressLogSheetComponent', () => {
     expect(img.getAttribute('src')).toBe('https://example.com/cover.jpg');
   });
 
-  it('pre-fills the page input with resume_from_page', async () => {
+  it('opens the page input empty', async () => {
     await setup();
-    expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('50');
+    expect((screen.getByRole('spinbutton') as HTMLInputElement).value).toBe('');
   });
 
-  it('disables Save on open when the pre-filled page equals resume_from_page', async () => {
+  it('disables Save on open before any page is entered', async () => {
     await setup();
     expect(
       (screen.getByRole('button', { name: 'Save progress for Dune' }) as HTMLButtonElement)
@@ -86,15 +146,39 @@ describe('ProgressLogSheetComponent', () => {
     ).toBe(true);
   });
 
-  it('does not show a min error for the pre-filled value before any edit', async () => {
+  it('does not show an error just from blurring an untouched field', async () => {
     await setup();
     fireEvent.blur(screen.getByRole('spinbutton'));
     expect(screen.queryByText(/must be greater than page 50/i)).toBeNull();
   });
 
-  it('shows a min error once the page is edited to a value at or below resume_from_page', async () => {
+  it('does not show a min error while still typing, before the field is left', async () => {
+    await setup();
+    const input = screen.getByRole('spinbutton');
+    fireEvent.focus(input);
+    fireEvent.input(input, { target: { value: '50' } });
+    expect(screen.queryByText(/must be greater than page 50/i)).toBeNull();
+  });
+
+  it('shows the min error again if you refocus and edit after already leaving the field once', async () => {
+    await setup();
+    const input = screen.getByRole('spinbutton');
+    fireEvent.focus(input);
+    fireEvent.input(input, { target: { value: '100' } });
+    fireEvent.blur(input);
+    expect(screen.queryByText(/must be greater than page 50/i)).toBeNull();
+
+    fireEvent.focus(input);
+    fireEvent.input(input, { target: { value: '50' } });
+    expect(screen.queryByText(/must be greater than page 50/i)).toBeNull();
+    fireEvent.blur(input);
+    expect(screen.getByText(/must be greater than page 50/i)).toBeTruthy();
+  });
+
+  it('shows a min error once an invalid page is entered and the field is left', async () => {
     await setup();
     fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '50' } });
+    fireEvent.blur(screen.getByRole('spinbutton'));
     expect(screen.getByText(/must be greater than page 50/i)).toBeTruthy();
   });
 
@@ -196,12 +280,12 @@ describe('ProgressLogSheetComponent', () => {
     );
   });
 
-  it('enables Save on open when resume_from_page equals the page count', async () => {
+  it('still requires entering the final page when resume_from_page equals the page count', async () => {
     await setup({ resume_from_page: 200, default_page_count: 200 });
     expect(
       (screen.getByRole('button', { name: 'Save progress for Dune' }) as HTMLButtonElement)
         .disabled,
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('calls logProgress with the final page when resume_from_page equals the page count', async () => {
@@ -209,6 +293,7 @@ describe('ProgressLogSheetComponent', () => {
       resume_from_page: 200,
       default_page_count: 200,
     });
+    fireEvent.input(screen.getByRole('spinbutton'), { target: { value: '200' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save progress for Dune' }));
     expect(mockEngagementService.logProgress).toHaveBeenCalledWith(
       'eng-1',
@@ -464,12 +549,12 @@ describe('ProgressLogSheetComponent', () => {
     expect(screen.queryByRole('spinbutton')).toBeNull();
   });
 
-  it('pre-fills the minute input with formatted resume_from_minute', async () => {
+  it('opens the minute input empty', async () => {
     await setup(audioData);
-    expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('01:15');
+    expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('');
   });
 
-  it('disables Save on open when the pre-filled time equals resume_from_minute', async () => {
+  it('disables Save on open before any timestamp is entered', async () => {
     await setup(audioData);
     expect(
       (screen.getByRole('button', { name: 'Save progress for Dune' }) as HTMLButtonElement)
@@ -546,5 +631,71 @@ describe('ProgressLogSheetComponent', () => {
     expect(
       screen.getByText(/finish and discard the timestamp you entered \(02:30\)/i),
     ).toBeTruthy();
+  });
+
+  // --- Keyboard-aware lifting (mobile bottom sheet only) ---
+
+  it('shows the secondary actions and no spacer before the keyboard opens', async () => {
+    vi.stubGlobal('visualViewport', createMockVisualViewport(window.innerHeight));
+    await setupBottomSheet();
+    expect(screen.getByRole('button', { name: 'Mark Dune as finished' })).toBeTruthy();
+    const spacer = document.querySelector('div[aria-hidden="true"][style]') as HTMLElement;
+    expect(spacer.style.height).toBe('0px');
+  });
+
+  it('hides the secondary actions and grows the spacer once the keyboard opens', async () => {
+    const viewport = createMockVisualViewport(window.innerHeight);
+    vi.stubGlobal('visualViewport', viewport);
+    const { fixture } = await setupBottomSheet();
+
+    viewport.setHeight(window.innerHeight - 400);
+    fixture.detectChanges();
+
+    expect(screen.queryByRole('button', { name: 'Mark Dune as finished' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Mark Dune as DNF' })).toBeNull();
+    const spacer = document.querySelector('div[aria-hidden="true"][style]') as HTMLElement;
+    expect(spacer.style.height).toBe('400px');
+  });
+
+  it('brings the secondary actions back once the keyboard closes', async () => {
+    const viewport = createMockVisualViewport(window.innerHeight);
+    vi.stubGlobal('visualViewport', viewport);
+    const { fixture } = await setupBottomSheet();
+
+    viewport.setHeight(window.innerHeight - 400);
+    fixture.detectChanges();
+    viewport.setHeight(window.innerHeight);
+    fixture.detectChanges();
+
+    expect(screen.getByRole('button', { name: 'Mark Dune as finished' })).toBeTruthy();
+  });
+
+  it('ignores small viewport jitter that is not a real keyboard', async () => {
+    const viewport = createMockVisualViewport(window.innerHeight);
+    vi.stubGlobal('visualViewport', viewport);
+    const { fixture } = await setupBottomSheet();
+
+    viewport.setHeight(window.innerHeight - 40);
+    fixture.detectChanges();
+
+    expect(screen.getByRole('button', { name: 'Mark Dune as finished' })).toBeTruthy();
+  });
+
+  it('never wires up visualViewport for a desktop dialog', async () => {
+    const viewport = createMockVisualViewport(window.innerHeight);
+    vi.stubGlobal('visualViewport', viewport);
+    await setup();
+    expect(viewport.listenerCount('resize')).toBe(0);
+    expect(viewport.listenerCount('scroll')).toBe(0);
+  });
+
+  it('stops listening on visualViewport once the sheet is destroyed', async () => {
+    const viewport = createMockVisualViewport(window.innerHeight);
+    vi.stubGlobal('visualViewport', viewport);
+    const { fixture } = await setupBottomSheet();
+    expect(viewport.listenerCount('resize')).toBe(1);
+    fixture.destroy();
+    expect(viewport.listenerCount('resize')).toBe(0);
+    expect(viewport.listenerCount('scroll')).toBe(0);
   });
 });

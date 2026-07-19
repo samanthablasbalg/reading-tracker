@@ -137,3 +137,12 @@
   border-radius: 100px;
   margin-bottom: 16px;
 }
+
+.mat-bottom-sheet-container {
+  border-top-left-radius: var(--mat-bottom-sheet-container-shape, 28px) !important;
+  border-top-right-radius: var(--mat-bottom-sheet-container-shape, 28px) !important;
+  /* Material's default 80vh cap can stop the sheet growing before the keyboard-inset
+     spacer (progress-log-sheet.ts) finishes lifting it clear of the on-screen keyboard. */
+  max-height: 100vh !important;
+  overflow-y: auto !important;
+}

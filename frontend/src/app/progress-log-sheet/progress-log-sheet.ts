@@ -1,13 +1,12 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { ShowOnDirtyErrorStateMatcher } from '@angular/material/core';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogTitle } from '@angular/material/dialog';
 import { MatBottomSheetRef, MAT_BOTTOM_SHEET_DATA } from '@angular/material/bottom-sheet';
 import { EngagementService, localDateString } from '../engagement.service';
+import { formatIcon } from '../format-icon';
 import {
   parseHhmm,
   formatHhmm,
@@ -27,163 +26,45 @@ export interface ProgressLogSheetData {
   default_audio_minutes: number | null;
 }
 
+/** The day before `today` (an ISO `logDate()` value), for the "Yesterday" chip. */
+function yesterdayDateString(today: string): string {
+  const [year, month, day] = today.split('-').map(Number);
+  return localDateString(new Date(year, month - 1, day - 1));
+}
+
 @Component({
   selector: 'app-progress-log-sheet',
-  imports: [
-    ReactiveFormsModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatIconModule,
-    MatInputModule,
-    MatDialogTitle,
-  ],
-  template: `
-    <div
-      style="display: flex; flex-direction: column; align-items: center; padding: 16px; gap: 12px;"
-    >
-      @if (data.cover_url) {
-        <img
-          [src]="data.cover_url"
-          [alt]="data.title + ' cover'"
-          style="height: 120px; width: auto;"
-        />
-      }
-      <h2 mat-dialog-title style="margin: 0; text-align: center;">{{ data.title }}</h2>
-      @if (isAudio) {
-        <mat-form-field style="width: 100%;" hideRequiredMarker>
-          <mat-label>Current position</mat-label>
-          <input
-            matInput
-            [formControl]="minuteControl"
-            [errorStateMatcher]="errorMatcher"
-            placeholder="HH:MM"
-          />
-          <button
-            matSuffix
-            type="button"
-            mat-icon-button
-            aria-label="Log for a different day"
-            (click)="toggleDatePicker()"
-          >
-            <mat-icon>event</mat-icon>
-          </button>
-          @if (minuteControl.hasError('hhmm')) {
-            <mat-error>Enter a time in HH:MM format</mat-error>
-          }
-          @if (minuteControl.hasError('min')) {
-            <mat-error>Must be after {{ formatHhmm(data.resume_from_minute) }}</mat-error>
-          }
-          @if (minuteControl.hasError('max')) {
-            <mat-error>Cannot exceed {{ formatHhmm(data.default_audio_minutes!) }}</mat-error>
-          }
-        </mat-form-field>
-      } @else {
-        <mat-form-field style="width: 100%;" hideRequiredMarker>
-          <mat-label>Current page</mat-label>
-          <input
-            matInput
-            type="number"
-            [attr.min]="effectiveMin"
-            [formControl]="pageControl"
-            [errorStateMatcher]="errorMatcher"
-          />
-          <button
-            matSuffix
-            type="button"
-            mat-icon-button
-            aria-label="Log for a different day"
-            (click)="toggleDatePicker()"
-          >
-            <mat-icon>event</mat-icon>
-          </button>
-          @if (pageControl.hasError('min')) {
-            <mat-error>Must be greater than page {{ data.resume_from_page }}</mat-error>
-          }
-          @if (pageControl.hasError('max')) {
-            <mat-error>Cannot exceed {{ data.default_page_count }} pages</mat-error>
-          }
-        </mat-form-field>
-      }
-      @if (showDatePicker()) {
-        <mat-form-field style="width: 100%;">
-          <mat-label>Log date</mat-label>
-          <input
-            matInput
-            type="date"
-            [value]="logDate()"
-            [attr.max]="todayLocal"
-            aria-label="Log date"
-            (change)="onDateChange($event)"
-          />
-        </mat-form-field>
-      }
-      @if (error()) {
-        <p role="alert" style="color: var(--mat-sys-error); margin: 0;">{{ error() }}</p>
-      }
-      @if (mode() === 'idle') {
-        <button
-          mat-flat-button
-          style="width: 100%;"
-          [disabled]="saveDisabled || submitting()"
-          (click)="save()"
-          [attr.aria-label]="'Save progress for ' + data.title"
-        >
-          {{ saving() ? 'Saving…' : 'Save' }}
-        </button>
-        <button
-          mat-button
-          style="width: 100%;"
-          [disabled]="submitting()"
-          (click)="onFinish()"
-          [attr.aria-label]="'Mark ' + data.title + ' as finished'"
-        >
-          I finished the book
-        </button>
-        <button
-          mat-button
-          style="width: 100%;"
-          [disabled]="submitting()"
-          (click)="onDnf()"
-          [attr.aria-label]="'Mark ' + data.title + ' as DNF'"
-        >
-          I'm giving up on this book
-        </button>
-        <button mat-button style="width: 100%;" (click)="close()">Cancel</button>
-      } @else {
-        <p style="text-align: center; margin: 0;">
-          {{ confirmText().prompt }}
-        </p>
-        <button
-          mat-flat-button
-          style="width: 100%;"
-          [disabled]="submitting()"
-          (click)="onConfirm()"
-          [attr.aria-label]="confirmText().ariaLabel"
-        >
-          {{ submitting() ? confirmText().submittingLabel : confirmText().label }}
-        </button>
-        <button
-          mat-button
-          style="width: 100%;"
-          [disabled]="submitting()"
-          (click)="mode.set('idle')"
-        >
-          Go back
-        </button>
-      }
-    </div>
+  imports: [NgOptimizedImage, ReactiveFormsModule, MatButtonModule, MatIconModule, MatDialogTitle],
+  templateUrl: './progress-log-sheet.html',
+  styles: `
+    /* mat-dialog-title's MDC classes (only active inside a real MatDialog,
+       which is why the bottom-sheet variant of this same template is
+       unaffected) carry their own font, padding, and an invisible ::before
+       spacer sized for Material's default headline font. Tailwind's utility
+       classes live in a lower-priority CSS layer, so Material silently wins
+       that fight; these declarations are plain, unlayered CSS so they take
+       precedence and make the title match what the Tailwind classes say. */
+    .mdc-dialog__title {
+      padding: 0 !important;
+      margin: 0 !important;
+      font: 600 1.125rem/1.25 var(--font-serif) !important;
+      color: var(--color-text) !important;
+    }
+    .mdc-dialog__title::before {
+      display: none;
+    }
   `,
 })
 export class ProgressLogSheetComponent {
-  private readonly dialogRef = inject(MatDialogRef, { optional: true });
-  private readonly bottomSheetRef = inject(MatBottomSheetRef, { optional: true });
+  protected readonly dialogRef = inject(MatDialogRef, { optional: true });
+  protected readonly bottomSheetRef = inject(MatBottomSheetRef, { optional: true });
   protected readonly data: ProgressLogSheetData =
     inject<ProgressLogSheetData>(MAT_DIALOG_DATA, { optional: true }) ??
     inject<ProgressLogSheetData>(MAT_BOTTOM_SHEET_DATA);
   private readonly engagementService = inject(EngagementService);
 
+  protected readonly formatIcon = formatIcon;
   protected readonly formatHhmm = formatHhmm;
-  protected readonly errorMatcher = new ShowOnDirtyErrorStateMatcher();
   protected readonly isAudio = this.data.formats.includes('audio');
   protected readonly defaultValue = this.isAudio
     ? this.data.default_audio_minutes
@@ -192,9 +73,34 @@ export class ProgressLogSheetComponent {
   protected readonly resumeFromProperty = this.isAudio ? 'resume_from_minute' : 'resume_from_page';
   protected readonly entryText = this.isAudio ? 'timestamp' : 'page';
 
+  /** The static "From" reference shown in the rangebox — never edited in this build. */
+  protected readonly fromDisplay = this.isAudio
+    ? formatHhmm(this.data.resume_from_minute)
+    : String(this.data.resume_from_page);
+
+  protected readonly toLabelId = 'progress-log-to-label';
+  protected readonly valueErrorId = 'progress-log-value-error';
+
+  /** Whether the To field currently has focus — used to hide its error while actively editing. */
+  protected readonly valueFocused = signal(false);
+
   protected readonly todayLocal = localDateString();
+  protected readonly yesterdayLocal = yesterdayDateString(this.todayLocal);
   protected readonly logDate = signal(this.todayLocal);
   protected readonly showDatePicker = signal(false);
+
+  protected readonly isToday = computed(() => this.logDate() === this.todayLocal);
+  protected readonly isYesterday = computed(() => this.logDate() === this.yesterdayLocal);
+  protected readonly isCustomDate = computed(() => !this.isToday() && !this.isYesterday());
+  /** "Jul 5"-style label for the picked-date chip once it's neither today nor yesterday. */
+  protected readonly pickedDateLabel = computed(() => {
+    if (!this.isCustomDate()) return null;
+    const [year, month, day] = this.logDate().split('-').map(Number);
+    return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    });
+  });
 
   protected readonly saving = signal(false);
   protected readonly mode = signal<
@@ -207,8 +113,8 @@ export class ProgressLogSheetComponent {
   protected readonly confirmText = computed(() => {
     if (this.mode() === 'confirmingFinish' || this.mode() === 'finishing') {
       const discarding = this.isAudio
-        ? this.minuteControl.value !== formatHhmm(this.data.resume_from_minute)
-        : this.pageControl.value !== this.data.resume_from_page;
+        ? this.minuteControl.value != null && this.minuteControl.value !== ''
+        : this.pageControl.value != null;
       const enteredValue = this.isAudio ? this.minuteControl.value : this.pageControl.value;
       return {
         prompt: discarding
@@ -233,7 +139,7 @@ export class ProgressLogSheetComponent {
       ? Math.min(this.data.resume_from_page + 1, this.data.default_page_count)
       : this.data.resume_from_page + 1;
 
-  protected readonly pageControl = new FormControl<number | null>(this.data.resume_from_page, {
+  protected readonly pageControl = new FormControl<number | null>(null, {
     validators: [
       Validators.required,
       Validators.min(this.effectiveMin),
@@ -243,19 +149,16 @@ export class ProgressLogSheetComponent {
     ],
   });
 
-  protected readonly minuteControl = new FormControl<string | null>(
-    formatHhmm(this.data.resume_from_minute),
-    {
-      validators: [
-        Validators.required,
-        hhmmFormatValidator(),
-        hhmmMinValidator(this.data.resume_from_minute),
-        ...(this.data.default_audio_minutes !== null
-          ? [hhmmMaxValidator(this.data.default_audio_minutes)]
-          : []),
-      ],
-    },
-  );
+  protected readonly minuteControl = new FormControl<string | null>(null, {
+    validators: [
+      Validators.required,
+      hhmmFormatValidator(),
+      hhmmMinValidator(this.data.resume_from_minute),
+      ...(this.data.default_audio_minutes !== null
+        ? [hhmmMaxValidator(this.data.default_audio_minutes)]
+        : []),
+    ],
+  });
 
   protected get saveDisabled(): boolean {
     if (this.isAudio) {
@@ -264,9 +167,72 @@ export class ProgressLogSheetComponent {
     return this.pageControl.invalid;
   }
 
+  protected get valueInvalid(): boolean {
+    if (this.valueFocused()) return false;
+    return this.isAudio ? this.minuteControl.invalid : this.pageControl.invalid;
+  }
+
+  protected get valueErrorMessage(): string | null {
+    if (!this.valueInvalid) return null;
+    if (this.isAudio) {
+      if (this.minuteControl.hasError('hhmm')) return 'Enter a time in HH:MM format';
+      if (this.minuteControl.hasError('min')) {
+        return `Must be after ${formatHhmm(this.data.resume_from_minute)}`;
+      }
+      if (this.minuteControl.hasError('max')) {
+        return `Cannot exceed ${formatHhmm(this.data.default_audio_minutes!)}`;
+      }
+      return null;
+    }
+    if (this.pageControl.hasError('min')) {
+      return `Must be greater than page ${this.data.resume_from_page}`;
+    }
+    if (this.pageControl.hasError('max')) {
+      return `Cannot exceed ${this.data.default_page_count} pages`;
+    }
+    return null;
+  }
+
+  /** Pixels of the viewport currently covered by the OS keyboard, via `visualViewport`. */
+  protected readonly keyboardInset = signal(0);
+  /** True once the keyboard has opened far enough to be worth reacting to — a threshold
+   *  keeps small viewport jitter (e.g. browser chrome) from toggling the layout. */
+  protected readonly keyboardVisible = computed(() => this.keyboardInset() > 100);
+
+  /** The visual viewport height at construction time, i.e. before any input is focused —
+   *  the sheet always opens unfocused, so this is a reliable "no keyboard" baseline. We
+   *  diff future measurements against this frozen value rather than a live `window.innerHeight`
+   *  read, because some Android browsers shrink the layout viewport right along with the
+   *  keyboard, which would make a live comparison read ~0 and under-detect the keyboard. */
+  private readonly noKeyboardViewportHeight = window.visualViewport?.height ?? 0;
+
+  private readonly updateKeyboardInset = (): void => {
+    const viewport = window.visualViewport!;
+    this.keyboardInset.set(
+      Math.max(0, this.noKeyboardViewportHeight - viewport.height - viewport.offsetTop),
+    );
+  };
+
   constructor() {
     this.pageControl.valueChanges.subscribe(() => this.error.set(null));
     this.minuteControl.valueChanges.subscribe(() => this.error.set(null));
+
+    const destroyRef = inject(DestroyRef);
+
+    // Mobile only: lift the sheet above the OS keyboard by growing a bottom spacer
+    // (see template) rather than transforming our content, so the sheet's card
+    // background — owned by MatBottomSheetContainer, not this component — moves
+    // with it instead of staying pinned behind the keyboard.
+    if (this.bottomSheetRef && window.visualViewport) {
+      const viewport = window.visualViewport;
+      viewport.addEventListener('resize', this.updateKeyboardInset);
+      viewport.addEventListener('scroll', this.updateKeyboardInset);
+      destroyRef.onDestroy(() => {
+        viewport.removeEventListener('resize', this.updateKeyboardInset);
+        viewport.removeEventListener('scroll', this.updateKeyboardInset);
+      });
+      this.updateKeyboardInset();
+    }
 
     effect(() => {
       if (this.mode() === 'idle') {
@@ -283,6 +249,25 @@ export class ProgressLogSheetComponent {
         }
       }
     });
+  }
+
+  /** Returns the Tailwind classes for a date chip's on/off look. */
+  protected chipClass(active: boolean): string {
+    return active
+      ? 'bg-primary/10 border-primary/30 text-primary'
+      : 'bg-surface-2 border-border text-muted';
+  }
+
+  protected setToday(): void {
+    this.showDatePicker.set(false);
+    this.logDate.set(this.todayLocal);
+    this.error.set(null);
+  }
+
+  protected setYesterday(): void {
+    this.showDatePicker.set(false);
+    this.logDate.set(this.yesterdayLocal);
+    this.error.set(null);
   }
 
   protected toggleDatePicker(): void {

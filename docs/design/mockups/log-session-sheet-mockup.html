@@ -1,0 +1,1987 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reading Tracker — Log a session (restyled sheet, keyboard-aware)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: #cfc7c2;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color: #241c22;
+        padding: 30px 16px 60px;
+      }
+      .head {
+        max-width: 1320px;
+        margin: 0 auto 22px;
+      }
+      .head h1 {
+        font-size: 22px;
+      }
+      .head p {
+        color: #6b5f66;
+        font-size: 14px;
+        margin-top: 2px;
+        max-width: 1040px;
+      }
+      .head p + p {
+        margin-top: 8px;
+      }
+      .stage {
+        display: flex;
+        gap: 28px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .labeled {
+        text-align: center;
+      }
+      .labeled > .cap {
+        font-size: 12px;
+        font-weight: 700;
+        color: #4a4046;
+        margin-bottom: 10px;
+        max-width: 388px;
+        line-height: 1.5;
+      }
+      .labeled > .cap b {
+        color: #c02a7a;
+      }
+
+      .phone {
+        width: 388px;
+        border-radius: 44px;
+        padding: 14px;
+        background: #0e0a10;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      }
+      .screen {
+        border-radius: 32px;
+        overflow: hidden;
+        height: 812px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        background: #18131b;
+        color: #f3e9ee;
+        --bg: #18131b;
+        --surface: #241c26;
+        --surface2: #2e2432;
+        --muted: #b7a7b0;
+        --track: #3a2f3f;
+        --accent: #ff5fab;
+        --accent2: #ffa24d;
+        --on-accent: #23111b;
+        --line: rgba(255, 255, 255, 0.09);
+        --danger: #ff6b81;
+        --text: #f3e9ee;
+      }
+      /* light mode — design-system §4 tokens */
+      .screen.light {
+        background: #fbf6ee;
+        color: #241c22;
+        --bg: #fbf6ee;
+        --surface: #ffffff;
+        --surface2: #fffdf9;
+        --muted: #8a7a82;
+        --track: #f0e7db;
+        --accent: #e11584;
+        --accent2: #ff7a2f;
+        --on-accent: #ffffff;
+        --line: #efe4d8;
+        --danger: #d1435b;
+        --text: #241c22;
+      }
+
+      /* the log surface faintly visible behind the sheet */
+      .bgpeek {
+        position: absolute;
+        inset: 0;
+        padding: 56px 20px;
+        opacity: 0.14;
+      }
+      .bgpeek .h {
+        font-family: 'Lora', serif;
+        font-size: 24px;
+      }
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+      }
+      .screen.light .scrim {
+        background: rgba(60, 40, 50, 0.4);
+      }
+
+      /* system gesture nav — a transparent overlay with just the pill; the sheet and
+         keyboard run under it, so their bottoms are padded to clear it. (3-button nav on
+         some devices instead eats a solid ~48px bar — see footer.) */
+      .navbar {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 28px;
+        z-index: 7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+      .navbar .pillbar {
+        width: 135px;
+        height: 5px;
+        border-radius: 99px;
+        background: rgba(255, 255, 255, 0.5);
+      }
+      .screen.light .navbar .pillbar {
+        background: rgba(0, 0, 0, 0.38);
+      }
+
+      /* ============ THE SHEET ============ */
+      .sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: var(--surface);
+        border-radius: 28px 28px 0 0;
+        padding: 8px 20px 30px;
+        box-shadow: 0 -14px 44px rgba(0, 0, 0, 0.5);
+        display: flex;
+        flex-direction: column;
+      }
+      .grab {
+        width: 38px;
+        height: 4px;
+        border-radius: 99px;
+        background: var(--track);
+        margin: 8px auto 14px;
+        flex: none;
+      }
+
+      /* compact header — cover thumb + title inline (was a big 120px centered cover) */
+      .shead {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .shead .cov {
+        width: 44px;
+        height: 66px;
+        border-radius: 7px;
+        object-fit: cover;
+        flex: none;
+        background: linear-gradient(150deg, #6a4a63, #3a2b3f);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+        display: flex;
+        align-items: flex-end;
+        padding: 6px;
+        font-family: 'Lora', serif;
+        font-size: 8px;
+        line-height: 1.15;
+        color: rgba(255, 255, 255, 0.82);
+      }
+      .shead .meta {
+        min-width: 0;
+        text-align: left;
+      }
+      .shead .ttl {
+        font-family: 'Lora', serif;
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 1.15;
+        color: var(--text);
+      }
+      .shead .fmt {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 5px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .shead .fmt svg {
+        width: 13px;
+        height: 13px;
+      }
+
+      /* From -> To range box (design-system §8 shape; carried from the reference sheet) */
+      .rangebox {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: var(--surface2);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 15px 18px;
+        flex: none;
+      }
+      .rb-col {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .rb-lbl {
+        font-size: 9.5px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .rb-from .val {
+        font-size: 21px;
+        font-weight: 800;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        padding-bottom: 3px;
+        width: max-content;
+      }
+      /* the dotted underline = the quiet "you can edit this" hint. Editing From
+         (re-cover / non-linear resume) is FUTURE scope, so it appears ONLY in the
+         reference panel below — never in the current-build sheets. */
+      .rb-from .val.editable {
+        border-bottom: 2px dotted rgba(183, 167, 176, 0.55);
+      }
+      .screen.light .rb-from .val.editable {
+        border-bottom-color: rgba(138, 122, 130, 0.6);
+      }
+      .rb-arrow {
+        color: var(--muted);
+        align-self: flex-end;
+        padding-bottom: 8px;
+      }
+      .rb-arrow svg {
+        width: 19px;
+        height: 19px;
+      }
+      /* the To field is the primary input — carries the weight, ~90% of the interaction */
+      .rb-to .val {
+        font-size: 34px;
+        font-weight: 800;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+        border-bottom: 2.5px solid var(--accent);
+        padding-bottom: 2px;
+        line-height: 1;
+        width: max-content;
+        min-width: 30px;
+        display: inline-flex;
+        align-items: flex-end;
+      }
+      .rb-to .val.empty {
+        color: var(--muted);
+        opacity: 0.5;
+      }
+      .caret {
+        display: inline-block;
+        width: 2px;
+        height: 30px;
+        background: var(--accent);
+        margin-left: 2px;
+        animation: blink 1s step-end infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+      .rb-of {
+        margin-left: auto;
+        align-self: flex-end;
+        font-size: 13px;
+        color: var(--muted);
+        font-weight: 700;
+        padding-bottom: 6px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* date — quiet secondary, following the reference sheet's chip row
+         (design-system §8: defaults to today, with a yesterday / pick-a-date escape hatch) */
+      .daterow {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: 16px;
+        flex: none;
+      }
+      .dchip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12.5px;
+        font-weight: 700;
+        padding: 9px 14px;
+        border-radius: 99px;
+        background: var(--surface2);
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
+      .dchip svg {
+        width: 14px;
+        height: 14px;
+      }
+      .dchip.on {
+        background: rgba(255, 95, 171, 0.14);
+        border-color: rgba(255, 95, 171, 0.32);
+        color: var(--accent);
+      }
+      .screen.light .dchip.on {
+        background: rgba(225, 21, 132, 0.1);
+        border-color: rgba(225, 21, 132, 0.28);
+      }
+
+      /* inline calendar — "Pick a date" expands here, IN the sheet, so choosing an
+         arbitrary past date never summons a native picker (which would re-cover the
+         sheet — the exact problem we're solving). Future dates are disabled. */
+      .cal {
+        margin-top: 12px;
+        background: var(--surface2);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 14px 14px 10px;
+        flex: none;
+      }
+      .calhead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .calhead .m {
+        font-size: 13.5px;
+        font-weight: 800;
+        color: var(--text);
+      }
+      .calnav {
+        display: flex;
+        gap: 6px;
+      }
+      .calnav button {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        border: none;
+        background: var(--surface);
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .calnav button:disabled {
+        color: var(--muted);
+        opacity: 0.4;
+      }
+      .calnav button svg {
+        width: 16px;
+        height: 16px;
+      }
+      .calgrid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 3px;
+      }
+      .caldow {
+        font-size: 10px;
+        font-weight: 800;
+        color: var(--muted);
+        text-align: center;
+        padding-bottom: 6px;
+      }
+      .calday {
+        aspect-ratio: 1 / 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 9px;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      .calday.pad {
+        color: transparent;
+      }
+      .calday.future {
+        color: var(--muted);
+        opacity: 0.32;
+      }
+      .calday.today {
+        box-shadow: inset 0 0 0 1.5px var(--muted);
+      }
+      .calday.sel {
+        background: var(--accent);
+        color: var(--on-accent);
+      }
+
+      /* actions */
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 20px;
+        flex: none;
+      }
+      .save {
+        border: none;
+        border-radius: 14px;
+        padding: 15px;
+        font-family: inherit;
+        font-weight: 800;
+        font-size: 15px;
+        background: var(--accent);
+        color: var(--on-accent);
+      }
+      .save.disabled {
+        background: var(--surface2);
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
+      /* Finish — session-bound secondary (design-system §8) */
+      .finish {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 13px;
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13.5px;
+        background: transparent;
+        color: var(--text);
+      }
+      /* DNF + Cancel — quietest, on one row */
+      .quietrow {
+        display: flex;
+        gap: 8px;
+      }
+      .quietrow button {
+        flex: 1;
+        border: none;
+        background: none;
+        color: var(--muted);
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 8px;
+      }
+      .quietrow .dnf {
+        color: var(--danger);
+        opacity: 0.85;
+      }
+
+      /* ---- confirm sub-state (finish / DNF) ---- */
+      .confirm {
+        text-align: center;
+        padding: 4px 4px 0;
+        flex: none;
+      }
+      .confirm p {
+        font-family: 'Lora', serif;
+        font-size: 16px;
+        line-height: 1.4;
+        color: var(--text);
+        margin: 6px 6px 18px;
+      }
+
+      /* browser chrome — this ships as a website, not a PWA, so the status bar + Chrome
+         address bar eat real headroom off the top. Modeled honestly so the keyboard-up
+         fit is trustworthy. */
+      .chrome {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 5;
+        background: #17131a;
+        color: #b7abb3;
+      }
+      .screen.light .chrome {
+        background: #e9e3ea;
+        color: #4a4046;
+      }
+      .statusbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 9px 20px 3px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .statusbar .sright {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .statusbar .batt {
+        color: #4ade80;
+        font-weight: 800;
+      }
+      .urlbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 4px 14px 11px;
+      }
+      .urlbar .pill {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #2e2833;
+        border-radius: 99px;
+        padding: 9px 14px;
+        font-size: 12.5px;
+      }
+      .screen.light .urlbar .pill {
+        background: #fbfafc;
+      }
+      .urlbar .pill .u {
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .urlbar .ic {
+        display: flex;
+        opacity: 0.85;
+        flex: none;
+      }
+      .urlbar svg {
+        width: 17px;
+        height: 17px;
+      }
+
+      /* ============ KEYBOARD-UP — realistic Gboard numeric layout ============ */
+      /* the sheet is lifted so From->To + date + Save park just above the keyboard */
+      .sheet.lifted {
+        bottom: 296px;
+        border-radius: 28px 28px 0 0;
+      }
+      .oskb {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 6;
+        height: 296px;
+        background: #1a1512;
+        padding: 0 5px calc(22px + env(safe-area-inset-bottom, 6px));
+        display: flex;
+        flex-direction: column;
+      }
+      .screen.light .oskb {
+        background: #ded7d1;
+      }
+      /* Gboard's top toolbar strip (emoji / GIF / clipboard / settings / mic) */
+      .oskb .kbtool {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 22px 8px;
+        color: #9d9088;
+      }
+      .screen.light .oskb .kbtool {
+        color: #6b6058;
+      }
+      .oskb .kbtool svg {
+        width: 19px;
+        height: 19px;
+      }
+      .oskb .kbtool .gif {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.03em;
+      }
+      .oskb .kgrid {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-auto-rows: 1fr;
+        gap: 6px;
+        padding: 2px 4px;
+      }
+      .oskb .key {
+        background: #3a302b;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        font-weight: 500;
+        color: #f3eaea;
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+      }
+      .screen.light .oskb .key {
+        background: #fbf7f4;
+        color: #241c1a;
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.16);
+      }
+      /* the warmer 4th-column function keys (—, space, backspace, enter) */
+      .oskb .key.fn {
+        background: #4a3a30;
+        color: #d8c7bd;
+      }
+      .screen.light .oskb .key.fn {
+        background: #efe6df;
+        color: #6b5a4e;
+      }
+      .oskb .key svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      /* ============ KEYBOARD-UP — custom in-sheet number pad ============ */
+      .padwrap {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        flex: none;
+      }
+      .padkey {
+        background: var(--surface2);
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        padding: 15px 0;
+        font-family: inherit;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .padkey.muted {
+        color: var(--muted);
+      }
+      .padkey svg {
+        width: 22px;
+        height: 22px;
+      }
+
+      /* ============ DESKTOP MODAL (MatDialog, >599px) ============ */
+      /* no soft keyboard, no bottom pinning, no browser-chrome squeeze — the calm version */
+      .win {
+        width: 900px;
+        border-radius: 16px;
+        overflow: hidden;
+        background: #0e0a10;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      }
+      .winbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: #211c26;
+      }
+      .winbar .lights {
+        display: flex;
+        gap: 7px;
+      }
+      .winbar .lights i {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        display: block;
+      }
+      .winbar .url {
+        flex: 1;
+        max-width: 440px;
+        margin: 0 auto;
+        background: #2e2833;
+        border-radius: 8px;
+        padding: 6px 14px;
+        font-size: 12px;
+        color: #b7abb3;
+        text-align: center;
+      }
+      .deskscreen {
+        position: relative;
+        height: 600px;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        --bg: #18131b;
+        --surface: #241c26;
+        --surface2: #2e2432;
+        --muted: #b7a7b0;
+        --track: #3a2f3f;
+        --accent: #ff5fab;
+        --accent2: #ffa24d;
+        --on-accent: #23111b;
+        --line: rgba(255, 255, 255, 0.09);
+        --danger: #ff6b81;
+        --text: #f3e9ee;
+      }
+      .deskscreen.light {
+        background: var(--bg);
+        color: var(--text);
+        --bg: #fbf6ee;
+        --surface: #ffffff;
+        --surface2: #fffdf9;
+        --muted: #8a7a82;
+        --track: #f0e7db;
+        --accent: #e11584;
+        --accent2: #ff7a2f;
+        --on-accent: #ffffff;
+        --line: #efe4d8;
+        --danger: #d1435b;
+        --text: #241c22;
+      }
+      .deskscreen.light .dchip.on {
+        background: rgba(225, 21, 132, 0.1);
+        border-color: rgba(225, 21, 132, 0.28);
+      }
+      .deskscreen.light .rb-from .val.editable {
+        border-bottom-color: rgba(138, 122, 130, 0.6);
+      }
+      .deskbackdrop {
+        position: absolute;
+        inset: 0;
+        opacity: 0.12;
+        padding: 40px 64px;
+      }
+      .deskbackdrop h2 {
+        font-family: 'Lora', serif;
+        font-size: 34px;
+        margin-bottom: 22px;
+      }
+      .deskbackdrop .brow {
+        height: 66px;
+        background: var(--surface);
+        border-radius: 16px;
+        margin-bottom: 14px;
+      }
+      .deskscrim {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+      }
+      .modal {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 420px;
+        background: var(--surface);
+        border-radius: 24px;
+        padding: 22px 24px 24px;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+        border: 1px solid var(--line);
+      }
+      .mclose {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        border: none;
+        background: var(--surface2);
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .mclose svg {
+        width: 17px;
+        height: 17px;
+      }
+
+      .foot {
+        max-width: 1320px;
+        margin: 26px auto 0;
+        color: #4a4046;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .foot h3 {
+        font-size: 14px;
+        margin: 18px 0 4px;
+        color: #241c22;
+      }
+      .foot p {
+        max-width: 1040px;
+        margin-bottom: 4px;
+      }
+      .foot b {
+        color: #241c22;
+      }
+      .foot code {
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 12px;
+        background: #ded6d1;
+        padding: 1px 5px;
+        border-radius: 5px;
+      }
+      .foot .flag {
+        color: #b5701f;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="head">
+      <h1>Log a session — restyled sheet, keyboard-aware</h1>
+      <p>
+        A re-dress of the <b>shipped</b> progress-logging sheet in the "Add a past session"
+        aesthetic. The scope is exactly what ships today: the <b>From → To</b> range (From = where
+        you left off, the reference; To = the value you type), a quiet <b>date</b> defaulting to
+        today, and four actions — <b>Save · I finished the book · Give up · Cancel</b>. No unit
+        toggle, no notes, no multi-format.
+      </p>
+      <p>
+        The keyboard fork is <b>panel 3</b> (keep the OS keyboard and lift the sheet so From→To +
+        date + Save stay parked above it) vs <b>panel 4</b> (a custom number pad inside the sheet,
+        no OS keyboard). <b>Chosen: panel 3</b> — the OS keyboard; panel 4 is kept as a parked
+        fast-follow in case the native keyboard doesn't feel right. Everything else is shared.
+      </p>
+    </div>
+
+    <div class="stage">
+      <!-- ===== PANEL 1: resting (keyboard down) ===== -->
+      <div class="labeled">
+        <div class="cap">
+          1 · <b>Resting</b> — just opened, keyboard down. Compact header, From→To, quiet date, and
+          all four actions. To opens empty <em>and unfocused</em> (From carries the reference), so
+          the keyboard stays down until you tap To, and Save is disabled until you enter a page.
+        </div>
+        <div class="phone">
+          <div class="screen">
+            <div class="bgpeek"><div class="h">Currently reading</div></div>
+            <div class="scrim"></div>
+            <div class="navbar"><div class="pillbar"></div></div>
+            <div class="sheet">
+              <div class="grab"></div>
+              <div class="shead">
+                <div class="cov">Green City Wars</div>
+                <div class="meta">
+                  <div class="ttl">Green City Wars</div>
+                  <div class="fmt">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z" />
+                    </svg>
+                    Print
+                  </div>
+                </div>
+              </div>
+
+              <div class="rangebox">
+                <div class="rb-col rb-from">
+                  <div class="rb-lbl">From</div>
+                  <div class="val">214</div>
+                </div>
+                <div class="rb-arrow">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </div>
+                <div class="rb-col rb-to">
+                  <div class="rb-lbl">To · now</div>
+                  <div class="val empty">—</div>
+                </div>
+                <div class="rb-of">of 560</div>
+              </div>
+
+              <div class="daterow">
+                <span class="dchip on">Today</span>
+                <span class="dchip">Yesterday</span>
+                <span class="dchip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <path d="M3 9h18M8 3v4M16 3v4" />
+                  </svg>
+                  Pick a date
+                </span>
+              </div>
+
+              <div class="actions">
+                <button class="save disabled">Save</button>
+                <button class="finish">I finished the book</button>
+                <div class="quietrow">
+                  <button class="dnf">Give up</button>
+                  <button>Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PANEL 2: pick a date (inline calendar) ===== -->
+      <div class="labeled">
+        <div class="cap">
+          2 · <b>“Pick a date” opens here.</b> Today / Yesterday set the date with one tap (the ~99%
+          cases). Anything older expands an <b>inline</b> calendar in the sheet — future days
+          disabled; picking a day collapses it back into a dated chip. No native picker (it would
+          re-cover the sheet).
+        </div>
+        <div class="phone">
+          <div class="screen">
+            <div class="bgpeek"><div class="h">Currently reading</div></div>
+            <div class="scrim"></div>
+            <div class="navbar"><div class="pillbar"></div></div>
+            <div class="sheet">
+              <div class="grab"></div>
+              <div class="shead">
+                <div class="cov">Green City Wars</div>
+                <div class="meta">
+                  <div class="ttl">Green City Wars</div>
+                  <div class="fmt">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z" />
+                    </svg>
+                    Print
+                  </div>
+                </div>
+              </div>
+
+              <div class="rangebox">
+                <div class="rb-col rb-from">
+                  <div class="rb-lbl">From</div>
+                  <div class="val">214</div>
+                </div>
+                <div class="rb-arrow">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </div>
+                <div class="rb-col rb-to">
+                  <div class="rb-lbl">To · now</div>
+                  <div class="val">231</div>
+                </div>
+                <div class="rb-of">of 560</div>
+              </div>
+
+              <div class="daterow">
+                <span class="dchip">Today</span>
+                <span class="dchip">Yesterday</span>
+                <span class="dchip on">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <path d="M3 9h18M8 3v4M16 3v4" />
+                  </svg>
+                  Jul 5
+                </span>
+              </div>
+
+              <div class="cal">
+                <div class="calhead">
+                  <div class="m">July 2026</div>
+                  <div class="calnav">
+                    <button aria-label="Previous month">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M15 18l-6-6 6-6" />
+                      </svg>
+                    </button>
+                    <button disabled aria-label="Next month">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M9 18l6-6-6-6" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="calgrid">
+                  <div class="caldow">Su</div>
+                  <div class="caldow">Mo</div>
+                  <div class="caldow">Tu</div>
+                  <div class="caldow">We</div>
+                  <div class="caldow">Th</div>
+                  <div class="caldow">Fr</div>
+                  <div class="caldow">Sa</div>
+                  <div class="calday pad">.</div>
+                  <div class="calday pad">.</div>
+                  <div class="calday pad">.</div>
+                  <div class="calday">1</div>
+                  <div class="calday">2</div>
+                  <div class="calday">3</div>
+                  <div class="calday">4</div>
+                  <div class="calday sel">5</div>
+                  <div class="calday">6</div>
+                  <div class="calday">7</div>
+                  <div class="calday">8</div>
+                  <div class="calday">9</div>
+                  <div class="calday">10</div>
+                  <div class="calday">11</div>
+                  <div class="calday">12</div>
+                  <div class="calday">13</div>
+                  <div class="calday">14</div>
+                  <div class="calday">15</div>
+                  <div class="calday">16</div>
+                  <div class="calday">17</div>
+                  <div class="calday today">18</div>
+                  <div class="calday future">19</div>
+                  <div class="calday future">20</div>
+                  <div class="calday future">21</div>
+                  <div class="calday future">22</div>
+                  <div class="calday future">23</div>
+                  <div class="calday future">24</div>
+                  <div class="calday future">25</div>
+                  <div class="calday future">26</div>
+                  <div class="calday future">27</div>
+                  <div class="calday future">28</div>
+                  <div class="calday future">29</div>
+                  <div class="calday future">30</div>
+                  <div class="calday future">31</div>
+                </div>
+              </div>
+
+              <div class="actions">
+                <button class="save">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PANEL 3: keyboard up — OS keyboard ===== -->
+      <div class="labeled">
+        <div class="cap">
+          3 · <b>OS keyboard, sheet lifted.</b> You tapped To and are typing. The sheet floats up so
+          From→To, the <b>date chips</b>, and Save all sit above the OS number pad — you can flip to
+          Yesterday without dismissing. Only Finish / Give up / Cancel step aside while typing, and
+          return when the keyboard closes. Drawn with the real browser chrome and a full Gboard, so
+          the headroom is honest — not an idealized native frame.
+        </div>
+        <div class="phone">
+          <div class="screen">
+            <div class="bgpeek"><div class="h">Currently reading</div></div>
+            <div class="scrim"></div>
+            <div class="navbar"><div class="pillbar"></div></div>
+            <div class="chrome">
+              <div class="statusbar">
+                <span>2:02</span>
+                <span class="sright">5G&nbsp;&nbsp;▮▮▮&nbsp; <span class="batt">100</span></span>
+              </div>
+              <div class="urlbar">
+                <span class="pill">
+                  <span class="ic">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z" />
+                      <path d="M9 12l2 2 4-4" />
+                    </svg>
+                  </span>
+                  <span class="u">rainbowsamreads.fun/currently-reading</span>
+                </span>
+                <span class="ic">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </span>
+                <span class="ic">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="4" y="4" width="16" height="16" rx="3" />
+                    <path d="M9 9h6v6H9z" />
+                  </svg>
+                </span>
+                <span class="ic">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="1.6" />
+                    <circle cx="12" cy="12" r="1.6" />
+                    <circle cx="12" cy="19" r="1.6" />
+                  </svg>
+                </span>
+              </div>
+            </div>
+            <div class="sheet lifted">
+              <div class="grab"></div>
+              <div class="shead">
+                <div class="cov">Green City Wars</div>
+                <div class="meta">
+                  <div class="ttl">Green City Wars</div>
+                  <div class="fmt">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z" />
+                    </svg>
+                    Print
+                  </div>
+                </div>
+              </div>
+
+              <div class="rangebox">
+                <div class="rb-col rb-from">
+                  <div class="rb-lbl">From</div>
+                  <div class="val">214</div>
+                </div>
+                <div class="rb-arrow">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </div>
+                <div class="rb-col rb-to">
+                  <div class="rb-lbl">To · now</div>
+                  <div class="val">231<span class="caret"></span></div>
+                </div>
+                <div class="rb-of">of 560</div>
+              </div>
+
+              <div class="daterow">
+                <span class="dchip on">Today</span>
+                <span class="dchip">Yesterday</span>
+                <span class="dchip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <path d="M3 9h18M8 3v4M16 3v4" />
+                  </svg>
+                  Pick a date
+                </span>
+              </div>
+
+              <div class="actions">
+                <button class="save">Save</button>
+              </div>
+            </div>
+
+            <!-- realistic Gboard numeric layout: toolbar strip + 4th function column -->
+            <div class="oskb">
+              <div class="kbtool">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                  <circle cx="9" cy="10" r="0.8" />
+                  <circle cx="15" cy="10" r="0.8" />
+                </svg>
+                <span class="gif">GIF</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="5" y="4" width="14" height="17" rx="2" />
+                  <path d="M9 4V3h6v1M9 10h6M9 14h6" />
+                </svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" />
+                </svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="9" y="3" width="6" height="11" rx="3" />
+                  <path d="M6 11a6 6 0 0 0 12 0M12 17v4" />
+                </svg>
+              </div>
+              <div class="kgrid">
+                <div class="key">1</div>
+                <div class="key">2</div>
+                <div class="key">3</div>
+                <div class="key fn">—</div>
+                <div class="key">4</div>
+                <div class="key">5</div>
+                <div class="key">6</div>
+                <div class="key fn">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  >
+                    <path d="M4 10v1.5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10" />
+                  </svg>
+                </div>
+                <div class="key">7</div>
+                <div class="key">8</div>
+                <div class="key">9</div>
+                <div class="key fn">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+                    <path d="M18 9l-6 6M12 9l6 6" />
+                  </svg>
+                </div>
+                <div class="key">,</div>
+                <div class="key">0</div>
+                <div class="key">.</div>
+                <div class="key fn">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M9 10l-5 4 5 4" />
+                    <path d="M4 14h12a4 4 0 0 0 4-4V5" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PANEL 3: keyboard up — custom pad ===== -->
+      <div class="labeled">
+        <div class="cap">
+          4 · <b>Custom pad, no OS keyboard.</b>
+          <b style="color: #b5701f">Parked alternative — kept, not chosen.</b> The number pad lives
+          inside the sheet, styled like the app; nothing is ever covered, so all four actions can
+          stay visible. Direction is the OS keyboard (panel 3); this is retained as a fast-follow if
+          the native keyboard doesn't feel right.
+        </div>
+        <div class="phone">
+          <div class="screen">
+            <div class="bgpeek"><div class="h">Currently reading</div></div>
+            <div class="scrim"></div>
+            <div class="navbar"><div class="pillbar"></div></div>
+            <div class="sheet">
+              <div class="grab"></div>
+              <div class="shead">
+                <div class="cov">Green City Wars</div>
+                <div class="meta">
+                  <div class="ttl">Green City Wars</div>
+                  <div class="fmt">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z" />
+                    </svg>
+                    Print
+                  </div>
+                </div>
+              </div>
+
+              <div class="rangebox">
+                <div class="rb-col rb-from">
+                  <div class="rb-lbl">From</div>
+                  <div class="val">214</div>
+                </div>
+                <div class="rb-arrow">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </div>
+                <div class="rb-col rb-to">
+                  <div class="rb-lbl">To · now</div>
+                  <div class="val">231<span class="caret"></span></div>
+                </div>
+                <div class="rb-of">of 560</div>
+              </div>
+
+              <div class="daterow">
+                <span class="dchip on">Today</span>
+                <span class="dchip">Yesterday</span>
+                <span class="dchip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <path d="M3 9h18M8 3v4M16 3v4" />
+                  </svg>
+                  Pick a date
+                </span>
+              </div>
+
+              <div class="padwrap">
+                <button class="padkey">1</button>
+                <button class="padkey">2</button>
+                <button class="padkey">3</button>
+                <button class="padkey">4</button>
+                <button class="padkey">5</button>
+                <button class="padkey">6</button>
+                <button class="padkey">7</button>
+                <button class="padkey">8</button>
+                <button class="padkey">9</button>
+                <button class="padkey muted">·</button>
+                <button class="padkey">0</button>
+                <button class="padkey muted">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
+                    <path d="M18 9l-6 6M12 9l6 6" />
+                  </svg>
+                </button>
+              </div>
+
+              <div class="actions">
+                <button class="save">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PANEL 4: audio variant ===== -->
+      <div class="labeled">
+        <div class="cap">
+          5 · <b>Audio variant.</b> Same sheet, same From→To shape — the only difference is the unit
+          is a timestamp (HH:MM), matching the shipped audio branch. Shown resting.
+        </div>
+        <div class="phone">
+          <div class="screen">
+            <div class="bgpeek"><div class="h">Currently reading</div></div>
+            <div class="scrim"></div>
+            <div class="navbar"><div class="pillbar"></div></div>
+            <div class="sheet">
+              <div class="grab"></div>
+              <div class="shead">
+                <div class="cov">The Fifth Season</div>
+                <div class="meta">
+                  <div class="ttl">The Fifth Season</div>
+                  <div class="fmt">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M9 18V5l12-2v13" />
+                      <circle cx="6" cy="18" r="3" />
+                      <circle cx="18" cy="16" r="3" />
+                    </svg>
+                    Audio
+                  </div>
+                </div>
+              </div>
+
+              <div class="rangebox">
+                <div class="rb-col rb-from">
+                  <div class="rb-lbl">From</div>
+                  <div class="val">3:40</div>
+                </div>
+                <div class="rb-arrow">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </div>
+                <div class="rb-col rb-to">
+                  <div class="rb-lbl">To · now</div>
+                  <div class="val empty">—:—</div>
+                </div>
+                <div class="rb-of">of 7:10</div>
+              </div>
+
+              <div class="daterow">
+                <span class="dchip on">Today</span>
+                <span class="dchip">Yesterday</span>
+                <span class="dchip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <path d="M3 9h18M8 3v4M16 3v4" />
+                  </svg>
+                  Pick a date
+                </span>
+              </div>
+
+              <div class="actions">
+                <button class="save disabled">Save</button>
+                <button class="finish">I finished the book</button>
+                <div class="quietrow">
+                  <button class="dnf">Give up</button>
+                  <button>Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PANEL 5: finish confirm sub-state ===== -->
+      <div class="labeled">
+        <div class="cap">
+          6 · <b>Finish confirm.</b> The shipped two-step: tapping "I finished the book" swaps the
+          actions for a confirm. (Give up uses the same pattern.)
+        </div>
+        <div class="phone">
+          <div class="screen">
+            <div class="bgpeek"><div class="h">Currently reading</div></div>
+            <div class="scrim"></div>
+            <div class="navbar"><div class="pillbar"></div></div>
+            <div class="sheet">
+              <div class="grab"></div>
+              <div class="shead">
+                <div class="cov">Green City Wars</div>
+                <div class="meta">
+                  <div class="ttl">Green City Wars</div>
+                  <div class="fmt">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z" />
+                    </svg>
+                    Print
+                  </div>
+                </div>
+              </div>
+
+              <div class="confirm">
+                <p>Mark “Green City Wars” as finished?</p>
+              </div>
+
+              <div class="actions">
+                <button class="save">Finish</button>
+                <div class="quietrow">
+                  <button>Go back</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PANEL 6: light mode ===== -->
+      <div class="labeled">
+        <div class="cap">
+          7 · <b>Light mode.</b> The resting state on the cream palette (design-system §4). Both
+          modes are designed together.
+        </div>
+        <div class="phone">
+          <div class="screen light">
+            <div class="bgpeek"><div class="h">Currently reading</div></div>
+            <div class="scrim"></div>
+            <div class="navbar"><div class="pillbar"></div></div>
+            <div class="sheet">
+              <div class="grab"></div>
+              <div class="shead">
+                <div class="cov">Green City Wars</div>
+                <div class="meta">
+                  <div class="ttl">Green City Wars</div>
+                  <div class="fmt">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z" />
+                    </svg>
+                    Print
+                  </div>
+                </div>
+              </div>
+
+              <div class="rangebox">
+                <div class="rb-col rb-from">
+                  <div class="rb-lbl">From</div>
+                  <div class="val">214</div>
+                </div>
+                <div class="rb-arrow">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </div>
+                <div class="rb-col rb-to">
+                  <div class="rb-lbl">To · now</div>
+                  <div class="val">231<span class="caret"></span></div>
+                </div>
+                <div class="rb-of">of 560</div>
+              </div>
+
+              <div class="daterow">
+                <span class="dchip on">Today</span>
+                <span class="dchip">Yesterday</span>
+                <span class="dchip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <path d="M3 9h18M8 3v4M16 3v4" />
+                  </svg>
+                  Pick a date
+                </span>
+              </div>
+
+              <div class="actions">
+                <button class="save">Save</button>
+                <button class="finish">I finished the book</button>
+                <div class="quietrow">
+                  <button class="dnf">Give up</button>
+                  <button>Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- ===== PANEL 8: FUTURE REFERENCE — editable From (out of current scope) ===== -->
+      <div class="labeled">
+        <div class="cap">
+          8 · <b style="color: #b5701f">Future reference — NOT this build.</b> The dotted underline
+          under <b>From</b> is the quiet “you can edit this” affordance for re-covering a section
+          (pulling From back behind your last spot). Parked here so the look exists for when that's
+          built — it is <b>not</b> in the sheet you're shipping now.
+        </div>
+        <div class="phone">
+          <div class="screen">
+            <div class="bgpeek"><div class="h">Currently reading</div></div>
+            <div class="scrim"></div>
+            <div class="navbar"><div class="pillbar"></div></div>
+            <div class="sheet">
+              <div class="grab"></div>
+              <div class="shead">
+                <div class="cov">Green City Wars</div>
+                <div class="meta">
+                  <div class="ttl">Green City Wars</div>
+                  <div class="fmt">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z" />
+                    </svg>
+                    Print
+                  </div>
+                </div>
+              </div>
+
+              <div class="rangebox">
+                <div class="rb-col rb-from">
+                  <div class="rb-lbl">From</div>
+                  <div class="val editable">214</div>
+                </div>
+                <div class="rb-arrow">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </div>
+                <div class="rb-col rb-to">
+                  <div class="rb-lbl">To · now</div>
+                  <div class="val">231</div>
+                </div>
+                <div class="rb-of">of 560</div>
+              </div>
+
+              <div class="daterow">
+                <span class="dchip on">Today</span>
+                <span class="dchip">Yesterday</span>
+                <span class="dchip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <path d="M3 9h18M8 3v4M16 3v4" />
+                  </svg>
+                  Pick a date
+                </span>
+              </div>
+
+              <div class="actions">
+                <button class="save">Save</button>
+                <button class="finish">I finished the book</button>
+                <div class="quietrow">
+                  <button class="dnf">Give up</button>
+                  <button>Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stage" style="margin-top: 28px">
+      <!-- ===== PANEL 9: DESKTOP MODAL ===== -->
+      <div class="labeled">
+        <div class="cap" style="max-width: 900px">
+          9 · <b>Desktop modal (MatDialog).</b> Same content, centered over the app, with a close ✕.
+          None of the mobile constraints apply — physical keyboard, no bottom pinning — so it's the
+          calm version of the exact same sheet. First pass, dark.
+        </div>
+        <div class="win">
+          <div class="winbar">
+            <div class="lights">
+              <i style="background: #ff5f57"></i><i style="background: #febc2e"></i>
+              <i style="background: #28c840"></i>
+            </div>
+            <div class="url">rainbowsamreads.fun/currently-reading</div>
+          </div>
+          <div class="deskscreen">
+            <div class="deskbackdrop">
+              <h2>Currently reading</h2>
+              <div class="brow"></div>
+              <div class="brow"></div>
+              <div class="brow"></div>
+            </div>
+            <div class="deskscrim"></div>
+
+            <div class="modal">
+              <button class="mclose" aria-label="Close">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                >
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+
+              <div class="shead">
+                <div class="cov">Green City Wars</div>
+                <div class="meta">
+                  <div class="ttl">Green City Wars</div>
+                  <div class="fmt">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z" />
+                    </svg>
+                    Print
+                  </div>
+                </div>
+              </div>
+
+              <div class="rangebox">
+                <div class="rb-col rb-from">
+                  <div class="rb-lbl">From</div>
+                  <div class="val">214</div>
+                </div>
+                <div class="rb-arrow">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </div>
+                <div class="rb-col rb-to">
+                  <div class="rb-lbl">To · now</div>
+                  <div class="val">231<span class="caret"></span></div>
+                </div>
+                <div class="rb-of">of 560</div>
+              </div>
+
+              <div class="daterow">
+                <span class="dchip on">Today</span>
+                <span class="dchip">Yesterday</span>
+                <span class="dchip">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <path d="M3 9h18M8 3v4M16 3v4" />
+                  </svg>
+                  Pick a date
+                </span>
+              </div>
+
+              <div class="actions">
+                <button class="save">Save</button>
+                <button class="finish">I finished the book</button>
+                <div class="quietrow">
+                  <button class="dnf">Give up</button>
+                  <button>Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- ===== PANEL 10: DESKTOP MODAL — light + calendar open ===== -->
+      <div class="labeled">
+        <div class="cap" style="max-width: 900px">
+          10 · <b>Desktop modal — light mode, calendar open.</b> Same modal on the cream palette,
+          with “Pick a date” expanded inline — proof the date component is one thing across mobile
+          and desktop, both modes.
+        </div>
+        <div class="win">
+          <div class="winbar">
+            <div class="lights">
+              <i style="background: #ff5f57"></i><i style="background: #febc2e"></i>
+              <i style="background: #28c840"></i>
+            </div>
+            <div class="url">rainbowsamreads.fun/currently-reading</div>
+          </div>
+          <div class="deskscreen light">
+            <div class="deskbackdrop">
+              <h2>Currently reading</h2>
+              <div class="brow"></div>
+              <div class="brow"></div>
+              <div class="brow"></div>
+            </div>
+            <div class="deskscrim"></div>
+
+            <div class="modal">
+              <button class="mclose" aria-label="Close">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                >
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+
+              <div class="shead">
+                <div class="cov">Green City Wars</div>
+                <div class="meta">
+                  <div class="ttl">Green City Wars</div>
+                  <div class="fmt">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M4 5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z" />
+                    </svg>
+                    Print
+                  </div>
+                </div>
+              </div>
+
+              <div class="rangebox">
+                <div class="rb-col rb-from">
+                  <div class="rb-lbl">From</div>
+                  <div class="val">214</div>
+                </div>
+                <div class="rb-arrow">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
+                </div>
+                <div class="rb-col rb-to">
+                  <div class="rb-lbl">To · now</div>
+                  <div class="val">231</div>
+                </div>
+                <div class="rb-of">of 560</div>
+              </div>
+
+              <div class="daterow">
+                <span class="dchip">Today</span>
+                <span class="dchip">Yesterday</span>
+                <span class="dchip on">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <path d="M3 9h18M8 3v4M16 3v4" />
+                  </svg>
+                  Jul 5
+                </span>
+              </div>
+
+              <div class="cal">
+                <div class="calhead">
+                  <div class="m">July 2026</div>
+                  <div class="calnav">
+                    <button aria-label="Previous month">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M15 18l-6-6 6-6" />
+                      </svg>
+                    </button>
+                    <button disabled aria-label="Next month">
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M9 18l6-6-6-6" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="calgrid">
+                  <div class="caldow">Su</div>
+                  <div class="caldow">Mo</div>
+                  <div class="caldow">Tu</div>
+                  <div class="caldow">We</div>
+                  <div class="caldow">Th</div>
+                  <div class="caldow">Fr</div>
+                  <div class="caldow">Sa</div>
+                  <div class="calday pad">.</div>
+                  <div class="calday pad">.</div>
+                  <div class="calday pad">.</div>
+                  <div class="calday">1</div>
+                  <div class="calday">2</div>
+                  <div class="calday">3</div>
+                  <div class="calday">4</div>
+                  <div class="calday sel">5</div>
+                  <div class="calday">6</div>
+                  <div class="calday">7</div>
+                  <div class="calday">8</div>
+                  <div class="calday">9</div>
+                  <div class="calday">10</div>
+                  <div class="calday">11</div>
+                  <div class="calday">12</div>
+                  <div class="calday">13</div>
+                  <div class="calday">14</div>
+                  <div class="calday">15</div>
+                  <div class="calday">16</div>
+                  <div class="calday">17</div>
+                  <div class="calday today">18</div>
+                  <div class="calday future">19</div>
+                  <div class="calday future">20</div>
+                  <div class="calday future">21</div>
+                  <div class="calday future">22</div>
+                  <div class="calday future">23</div>
+                  <div class="calday future">24</div>
+                  <div class="calday future">25</div>
+                  <div class="calday future">26</div>
+                  <div class="calday future">27</div>
+                  <div class="calday future">28</div>
+                  <div class="calday future">29</div>
+                  <div class="calday future">30</div>
+                  <div class="calday future">31</div>
+                </div>
+              </div>
+
+              <div class="actions">
+                <button class="save">Save</button>
+                <button class="finish">I finished the book</button>
+                <div class="quietrow">
+                  <button class="dnf">Give up</button>
+                  <button>Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <h3>Notes on the two open threads</h3>
+      <p>
+        <b>Keyboard (panels 2 vs 3).</b> Panel 2 keeps the native keyboard and lifts the sheet using
+        the <code>visualViewport</code> API so the From→To box and Save stay docked above it; the
+        three secondary actions step aside while typing. Panel 3 removes the OS keyboard entirely
+        with an in-sheet pad, so nothing is ever occluded and all actions can stay — at the cost of
+        a bigger build and a different entry feel. This is the decision to make from these pixels.
+      </p>
+      <p>
+        <b>Device chrome is not fixed.</b> These panels model the gesture-pill nav bar (transparent
+        strip at the very bottom) and a representative Chrome address bar, but both vary by device:
+        3-button nav eats a solid ~48px bar instead of the pill, and some Chrome builds add a home
+        button / taller bar. So the sheet must tolerate a <b>range</b> of top-and-bottom chrome, not
+        a single measured height — the lifted layout leaves margin for that, and nothing
+        load-bearing sits in the outermost few pixels.
+      </p>
+      <p>
+        <b>Back button — implementation note (verify during build).</b> Goal: the Android system
+        back button <em>closes the sheet</em> and returns to Currently Reading, without giving the
+        sheet its own route. Approach to try: on open, push a throwaway history entry
+        (<code>history.pushState</code>); listen for <code>popstate</code> and, when back fires it,
+        dismiss the sheet instead of navigating; on a normal close (Save / Cancel / ✕), pop that
+        entry back off so history stays clean.
+        <span class="flag"
+          >Unverified against Angular's router + Material bottom-sheet/overlay — test this early,
+          before relying on it.</span
+        >
+      </p>
+      <p>
+        <b>Decided: To opens empty and unfocused.</b> Today's shipped sheet pre-fills the single
+        input with your last position. Because From now shows that reference on its own, To opens
+        <b>empty</b> (panels 1 &amp; 4). It also opens <b>unfocused</b>, so the soft keyboard does
+        <em>not</em> auto-pop on open — the sheet appears calm and the keyboard rises only when you
+        tap To. Together this kills two paper cuts (the "clear the box first" edit and the keyboard
+        covering the sheet on open).
+        <span class="flag"
+          >Implementation: Material autofocuses the first focusable control by default (which would
+          summon the keyboard) — disable it (e.g. <code>autoFocus: false</code> on the bottom-sheet
+          / dialog config) so the keyboard stays down until To is tapped.</span
+        >
+      </p>
+    </div>
+  </body>
+</html>

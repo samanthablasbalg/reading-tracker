@@ -29,7 +29,7 @@ test('Logging progress advances the card in place and survives reload', async ({
 
   await test.step('Open the log sheet for Dune', async () => {
     await currentlyReading.openLogSheet('Dune');
-    await expect(sheet.pageInput).toHaveValue('100');
+    await expect(sheet.getFromDisplay('100')).toBeVisible();
   });
 
   await test.step('Log a higher page', async () => {
@@ -140,7 +140,7 @@ test('Marking a book finished after entering text causes confirmation flow', asy
   await test.step('Open the log sheet for Dune', async () => {
     await currentlyReading.goto();
     await currentlyReading.openLogSheet('Dune');
-    await expect(sheet.pageInput).toHaveValue('100');
+    await expect(sheet.getFromDisplay('100')).toBeVisible();
   });
 
   await test.step('Enter a higher page', async () => {
@@ -231,7 +231,7 @@ test('Audio log sheet pre-fills with the last logged minute', async ({ page, api
   });
 
   await test.step('Verify the sheet pre-fills with 01:15', async () => {
-    await expect(sheet.minuteInput).toHaveValue('01:15');
+    await expect(sheet.getFromDisplay('01:15')).toBeVisible();
   });
 });
 
