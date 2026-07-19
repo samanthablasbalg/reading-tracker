@@ -36,7 +36,7 @@ async function setup(
     ...serviceOverrides,
   } as unknown as MockEngagementService;
 
-  await render(ProgressLogSheetComponent, {
+  const { fixture } = await render(ProgressLogSheetComponent, {
     providers: [
       { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
       { provide: MAT_DIALOG_DATA, useValue: { ...baseData, ...dataOverrides } },
@@ -45,7 +45,27 @@ async function setup(
     ],
   });
 
-  return { mockDialogRef, mockEngagementService };
+  return { mockDialogRef, mockEngagementService, fixture };
+}
+
+/** Minimal `VisualViewport` stand-in: real `resize`/`scroll` listener bookkeeping,
+ *  plus a `setHeight` helper that mimics the viewport shrinking under an OS keyboard. */
+function createMockVisualViewport(initialHeight: number) {
+  const listeners: Record<'resize' | 'scroll', Set<() => void>> = {
+    resize: new Set(),
+    scroll: new Set(),
+  };
+  return {
+    height: initialHeight,
+    offsetTop: 0,
+    addEventListener: (type: 'resize' | 'scroll', cb: () => void) => listeners[type].add(cb),
+    removeEventListener: (type: 'resize' | 'scroll', cb: () => void) => listeners[type].delete(cb),
+    listenerCount: (type: 'resize' | 'scroll') => listeners[type].size,
+    setHeight(next: number) {
+      this.height = next;
+      listeners.resize.forEach((cb) => cb());
+    },
+  };
 }
 
 /** Builds a `MatBottomSheetRef` mock whose `dismiss()` actually emits on
@@ -95,6 +115,7 @@ describe('ProgressLogSheetComponent', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('renders the book title', async () => {
@@ -653,5 +674,71 @@ describe('ProgressLogSheetComponent', () => {
     const { fixture } = await setupBottomSheet();
     fixture.destroy();
     expect(removeEventListenerSpy).toHaveBeenCalledWith('popstate', expect.any(Function));
+  });
+
+  // --- Keyboard-aware lifting (mobile bottom sheet only) ---
+
+  it('shows the secondary actions and no spacer before the keyboard opens', async () => {
+    vi.stubGlobal('visualViewport', createMockVisualViewport(window.innerHeight));
+    await setupBottomSheet();
+    expect(screen.getByRole('button', { name: 'Mark Dune as finished' })).toBeTruthy();
+    const spacer = document.querySelector('div[aria-hidden="true"][style]') as HTMLElement;
+    expect(spacer.style.height).toBe('0px');
+  });
+
+  it('hides the secondary actions and grows the spacer once the keyboard opens', async () => {
+    const viewport = createMockVisualViewport(window.innerHeight);
+    vi.stubGlobal('visualViewport', viewport);
+    const { fixture } = await setupBottomSheet();
+
+    viewport.setHeight(window.innerHeight - 400);
+    fixture.detectChanges();
+
+    expect(screen.queryByRole('button', { name: 'Mark Dune as finished' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Mark Dune as DNF' })).toBeNull();
+    const spacer = document.querySelector('div[aria-hidden="true"][style]') as HTMLElement;
+    expect(spacer.style.height).toBe('400px');
+  });
+
+  it('brings the secondary actions back once the keyboard closes', async () => {
+    const viewport = createMockVisualViewport(window.innerHeight);
+    vi.stubGlobal('visualViewport', viewport);
+    const { fixture } = await setupBottomSheet();
+
+    viewport.setHeight(window.innerHeight - 400);
+    fixture.detectChanges();
+    viewport.setHeight(window.innerHeight);
+    fixture.detectChanges();
+
+    expect(screen.getByRole('button', { name: 'Mark Dune as finished' })).toBeTruthy();
+  });
+
+  it('ignores small viewport jitter that is not a real keyboard', async () => {
+    const viewport = createMockVisualViewport(window.innerHeight);
+    vi.stubGlobal('visualViewport', viewport);
+    const { fixture } = await setupBottomSheet();
+
+    viewport.setHeight(window.innerHeight - 40);
+    fixture.detectChanges();
+
+    expect(screen.getByRole('button', { name: 'Mark Dune as finished' })).toBeTruthy();
+  });
+
+  it('never wires up visualViewport for a desktop dialog', async () => {
+    const viewport = createMockVisualViewport(window.innerHeight);
+    vi.stubGlobal('visualViewport', viewport);
+    await setup();
+    expect(viewport.listenerCount('resize')).toBe(0);
+    expect(viewport.listenerCount('scroll')).toBe(0);
+  });
+
+  it('stops listening on visualViewport once the sheet is destroyed', async () => {
+    const viewport = createMockVisualViewport(window.innerHeight);
+    vi.stubGlobal('visualViewport', viewport);
+    const { fixture } = await setupBottomSheet();
+    expect(viewport.listenerCount('resize')).toBe(1);
+    fixture.destroy();
+    expect(viewport.listenerCount('resize')).toBe(0);
+    expect(viewport.listenerCount('scroll')).toBe(0);
   });
 });

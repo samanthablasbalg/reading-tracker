@@ -184,9 +184,31 @@ export class ProgressLogSheetComponent {
     this.bottomSheetRef?.dismiss();
   };
 
+  /** Pixels of the viewport currently covered by the OS keyboard, via `visualViewport`. */
+  protected readonly keyboardInset = signal(0);
+  /** True once the keyboard has opened far enough to be worth reacting to — a threshold
+   *  keeps small viewport jitter (e.g. browser chrome) from toggling the layout. */
+  protected readonly keyboardVisible = computed(() => this.keyboardInset() > 100);
+
+  /** The visual viewport height at construction time, i.e. before any input is focused —
+   *  the sheet always opens unfocused, so this is a reliable "no keyboard" baseline. We
+   *  diff future measurements against this frozen value rather than a live `window.innerHeight`
+   *  read, because some Android browsers shrink the layout viewport right along with the
+   *  keyboard, which would make a live comparison read ~0 and under-detect the keyboard. */
+  private readonly noKeyboardViewportHeight = window.visualViewport?.height ?? 0;
+
+  private readonly updateKeyboardInset = (): void => {
+    const viewport = window.visualViewport!;
+    this.keyboardInset.set(
+      Math.max(0, this.noKeyboardViewportHeight - viewport.height - viewport.offsetTop),
+    );
+  };
+
   constructor() {
     this.pageControl.valueChanges.subscribe(() => this.error.set(null));
     this.minuteControl.valueChanges.subscribe(() => this.error.set(null));
+
+    const destroyRef = inject(DestroyRef);
 
     // Mobile only: make the Android system back button close the sheet instead of
     // navigating the page underneath it. We push a throwaway history entry so back
@@ -195,15 +217,28 @@ export class ProgressLogSheetComponent {
     if (this.bottomSheetRef) {
       history.pushState({ progressLogSheet: true }, '');
       window.addEventListener('popstate', this.handlePopState);
-      inject(DestroyRef).onDestroy(() =>
-        window.removeEventListener('popstate', this.handlePopState),
-      );
+      destroyRef.onDestroy(() => window.removeEventListener('popstate', this.handlePopState));
 
       this.bottomSheetRef.afterDismissed().subscribe(() => {
         if (!this.dismissedByBackButton) {
           history.back();
         }
       });
+    }
+
+    // Mobile only: lift the sheet above the OS keyboard by growing a bottom spacer
+    // (see template) rather than transforming our content, so the sheet's card
+    // background — owned by MatBottomSheetContainer, not this component — moves
+    // with it instead of staying pinned behind the keyboard.
+    if (this.bottomSheetRef && window.visualViewport) {
+      const viewport = window.visualViewport;
+      viewport.addEventListener('resize', this.updateKeyboardInset);
+      viewport.addEventListener('scroll', this.updateKeyboardInset);
+      destroyRef.onDestroy(() => {
+        viewport.removeEventListener('resize', this.updateKeyboardInset);
+        viewport.removeEventListener('scroll', this.updateKeyboardInset);
+      });
+      this.updateKeyboardInset();
     }
 
     effect(() => {

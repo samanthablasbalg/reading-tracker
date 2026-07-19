@@ -165,28 +165,30 @@
       >
         {{ saving() ? 'Saving…' : 'Save' }}
       </button>
-      <button
-        mat-stroked-button
-        class="w-full"
-        [disabled]="submitting()"
-        (click)="onFinish()"
-        [attr.aria-label]="'Mark ' + data.title + ' as finished'"
-      >
-        I finished the book
-      </button>
-      <div class="flex gap-2">
+      @if (!keyboardVisible()) {
         <button
-          mat-button
-          color="warn"
-          class="flex-1"
+          mat-stroked-button
+          class="w-full"
           [disabled]="submitting()"
-          (click)="onDnf()"
-          [attr.aria-label]="'Mark ' + data.title + ' as DNF'"
+          (click)="onFinish()"
+          [attr.aria-label]="'Mark ' + data.title + ' as finished'"
         >
-          Give up
+          I finished the book
         </button>
-        <button mat-button class="flex-1" (click)="close()">Cancel</button>
-      </div>
+        <div class="flex gap-2">
+          <button
+            mat-button
+            color="warn"
+            class="flex-1"
+            [disabled]="submitting()"
+            (click)="onDnf()"
+            [attr.aria-label]="'Mark ' + data.title + ' as DNF'"
+          >
+            Give up
+          </button>
+          <button mat-button class="flex-1" (click)="close()">Cancel</button>
+        </div>
+      }
     </div>
   } @else {
     <p class="font-serif text-base leading-snug text-text text-center mt-1 mb-1">
@@ -208,4 +210,6 @@
       </button>
     </div>
   }
+
+  <div [style.height.px]="keyboardInset()" aria-hidden="true"></div>
 </div>
