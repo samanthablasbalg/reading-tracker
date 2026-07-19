@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -175,9 +175,36 @@ export class ProgressLogSheetComponent {
     return null;
   }
 
+  /** Set once the Android back button (via `popstate`) is what closed the sheet, so the
+   *  `afterDismissed` handler below knows not to pop the history entry a second time. */
+  private dismissedByBackButton = false;
+
+  private readonly handlePopState = (): void => {
+    this.dismissedByBackButton = true;
+    this.bottomSheetRef?.dismiss();
+  };
+
   constructor() {
     this.pageControl.valueChanges.subscribe(() => this.error.set(null));
     this.minuteControl.valueChanges.subscribe(() => this.error.set(null));
+
+    // Mobile only: make the Android system back button close the sheet instead of
+    // navigating the page underneath it. We push a throwaway history entry so back
+    // has something of ours to consume; on any other close we pop it back off so it
+    // doesn't linger in history.
+    if (this.bottomSheetRef) {
+      history.pushState({ progressLogSheet: true }, '');
+      window.addEventListener('popstate', this.handlePopState);
+      inject(DestroyRef).onDestroy(() =>
+        window.removeEventListener('popstate', this.handlePopState),
+      );
+
+      this.bottomSheetRef.afterDismissed().subscribe(() => {
+        if (!this.dismissedByBackButton) {
+          history.back();
+        }
+      });
+    }
 
     effect(() => {
       if (this.mode() === 'idle') {
