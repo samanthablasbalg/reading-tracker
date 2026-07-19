@@ -841,17 +841,17 @@
     <div class="head">
       <h1>Log a session — restyled sheet, keyboard-aware</h1>
       <p>
-        A re-dress of the <b>shipped</b> progress-logging sheet in the "Add a past session" aesthetic.
-        The scope is exactly what ships today: the <b>From → To</b> range (From = where you left off,
-        the reference; To = the value you type), a quiet <b>date</b> defaulting to today, and four
-        actions — <b>Save · I finished the book · Give up · Cancel</b>. No unit toggle, no notes, no
-        multi-format.
+        A re-dress of the <b>shipped</b> progress-logging sheet in the "Add a past session"
+        aesthetic. The scope is exactly what ships today: the <b>From → To</b> range (From = where
+        you left off, the reference; To = the value you type), a quiet <b>date</b> defaulting to
+        today, and four actions — <b>Save · I finished the book · Give up · Cancel</b>. No unit
+        toggle, no notes, no multi-format.
       </p>
       <p>
-        The keyboard fork is <b>panel 3</b> (keep the OS keyboard and lift the sheet so From→To + date
-        + Save stay parked above it) vs <b>panel 4</b> (a custom number pad inside the sheet, no OS
-        keyboard). <b>Chosen: panel 3</b> — the OS keyboard; panel 4 is kept as a parked fast-follow in
-        case the native keyboard doesn't feel right. Everything else is shared.
+        The keyboard fork is <b>panel 3</b> (keep the OS keyboard and lift the sheet so From→To +
+        date + Save stay parked above it) vs <b>panel 4</b> (a custom number pad inside the sheet,
+        no OS keyboard). <b>Chosen: panel 3</b> — the OS keyboard; panel 4 is kept as a parked
+        fast-follow in case the native keyboard doesn't feel right. Everything else is shared.
       </p>
     </div>
 
@@ -860,8 +860,8 @@
       <div class="labeled">
         <div class="cap">
           1 · <b>Resting</b> — just opened, keyboard down. Compact header, From→To, quiet date, and
-          all four actions. To opens empty <em>and unfocused</em> (From carries the reference), so the
-          keyboard stays down until you tap To, and Save is disabled until you enter a page.
+          all four actions. To opens empty <em>and unfocused</em> (From carries the reference), so
+          the keyboard stays down until you tap To, and Save is disabled until you enter a page.
         </div>
         <div class="phone">
           <div class="screen">
@@ -936,9 +936,9 @@
       <div class="labeled">
         <div class="cap">
           2 · <b>“Pick a date” opens here.</b> Today / Yesterday set the date with one tap (the ~99%
-          cases). Anything older expands an <b>inline</b> calendar in the sheet — future days disabled;
-          picking a day collapses it back into a dated chip. No native picker (it would re-cover the
-          sheet).
+          cases). Anything older expands an <b>inline</b> calendar in the sheet — future days
+          disabled; picking a day collapses it back into a dated chip. No native picker (it would
+          re-cover the sheet).
         </div>
         <div class="phone">
           <div class="screen">
@@ -1001,29 +1001,73 @@
                   <div class="m">July 2026</div>
                   <div class="calnav">
                     <button aria-label="Previous month">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                        stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M15 18l-6-6 6-6" />
+                      </svg>
                     </button>
                     <button disabled aria-label="Next month">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                        stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M9 18l6-6-6-6" />
+                      </svg>
                     </button>
                   </div>
                 </div>
                 <div class="calgrid">
-                  <div class="caldow">Su</div><div class="caldow">Mo</div><div class="caldow">Tu</div>
-                  <div class="caldow">We</div><div class="caldow">Th</div><div class="caldow">Fr</div>
+                  <div class="caldow">Su</div>
+                  <div class="caldow">Mo</div>
+                  <div class="caldow">Tu</div>
+                  <div class="caldow">We</div>
+                  <div class="caldow">Th</div>
+                  <div class="caldow">Fr</div>
                   <div class="caldow">Sa</div>
-                  <div class="calday pad">.</div><div class="calday pad">.</div><div class="calday pad">.</div>
-                  <div class="calday">1</div><div class="calday">2</div><div class="calday">3</div><div class="calday">4</div>
-                  <div class="calday sel">5</div><div class="calday">6</div><div class="calday">7</div>
-                  <div class="calday">8</div><div class="calday">9</div><div class="calday">10</div><div class="calday">11</div>
-                  <div class="calday">12</div><div class="calday">13</div><div class="calday">14</div>
-                  <div class="calday">15</div><div class="calday">16</div><div class="calday">17</div><div class="calday today">18</div>
-                  <div class="calday future">19</div><div class="calday future">20</div><div class="calday future">21</div>
-                  <div class="calday future">22</div><div class="calday future">23</div><div class="calday future">24</div><div class="calday future">25</div>
-                  <div class="calday future">26</div><div class="calday future">27</div><div class="calday future">28</div>
-                  <div class="calday future">29</div><div class="calday future">30</div><div class="calday future">31</div>
+                  <div class="calday pad">.</div>
+                  <div class="calday pad">.</div>
+                  <div class="calday pad">.</div>
+                  <div class="calday">1</div>
+                  <div class="calday">2</div>
+                  <div class="calday">3</div>
+                  <div class="calday">4</div>
+                  <div class="calday sel">5</div>
+                  <div class="calday">6</div>
+                  <div class="calday">7</div>
+                  <div class="calday">8</div>
+                  <div class="calday">9</div>
+                  <div class="calday">10</div>
+                  <div class="calday">11</div>
+                  <div class="calday">12</div>
+                  <div class="calday">13</div>
+                  <div class="calday">14</div>
+                  <div class="calday">15</div>
+                  <div class="calday">16</div>
+                  <div class="calday">17</div>
+                  <div class="calday today">18</div>
+                  <div class="calday future">19</div>
+                  <div class="calday future">20</div>
+                  <div class="calday future">21</div>
+                  <div class="calday future">22</div>
+                  <div class="calday future">23</div>
+                  <div class="calday future">24</div>
+                  <div class="calday future">25</div>
+                  <div class="calday future">26</div>
+                  <div class="calday future">27</div>
+                  <div class="calday future">28</div>
+                  <div class="calday future">29</div>
+                  <div class="calday future">30</div>
+                  <div class="calday future">31</div>
                 </div>
               </div>
 
@@ -1057,8 +1101,14 @@
               <div class="urlbar">
                 <span class="pill">
                   <span class="ic">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                      stroke-linecap="round" stroke-linejoin="round">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
                       <path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z" />
                       <path d="M9 12l2 2 4-4" />
                     </svg>
@@ -1066,17 +1116,26 @@
                   <span class="u">rainbowsamreads.fun/currently-reading</span>
                 </span>
                 <span class="ic">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
                 </span>
                 <span class="ic">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="4" y="4" width="16" height="16" rx="3" /><path d="M9 9h6v6H9z" />
+                    <rect x="4" y="4" width="16" height="16" rx="3" />
+                    <path d="M9 9h6v6H9z" />
                   </svg>
                 </span>
                 <span class="ic">
                   <svg viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="12" cy="5" r="1.6" /><circle cx="12" cy="12" r="1.6" />
+                    <circle cx="12" cy="5" r="1.6" />
+                    <circle cx="12" cy="12" r="1.6" />
                     <circle cx="12" cy="19" r="1.6" />
                   </svg>
                 </span>
@@ -1148,21 +1207,36 @@
                   <rect x="14" y="14" width="7" height="7" rx="1.5" />
                 </svg>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="9" /><path d="M8 14s1.5 2 4 2 4-2 4-2" />
-                  <circle cx="9" cy="10" r="0.8" /><circle cx="15" cy="10" r="0.8" />
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                  <circle cx="9" cy="10" r="0.8" />
+                  <circle cx="15" cy="10" r="0.8" />
                 </svg>
                 <span class="gif">GIF</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4V3h6v1M9 10h6M9 14h6" />
+                  <rect x="5" y="4" width="14" height="17" rx="2" />
+                  <path d="M9 4V3h6v1M9 10h6M9 14h6" />
                 </svg>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                >
                   <circle cx="12" cy="12" r="3" />
                   <path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" />
                 </svg>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="9" y="3" width="6" height="11" rx="3" /><path d="M6 11a6 6 0 0 0 12 0M12 17v4" />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="9" y="3" width="6" height="11" rx="3" />
+                  <path d="M6 11a6 6 0 0 0 12 0M12 17v4" />
                 </svg>
               </div>
               <div class="kgrid">
@@ -1174,15 +1248,28 @@
                 <div class="key">5</div>
                 <div class="key">6</div>
                 <div class="key fn">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round"><path d="M4 10v1.5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10" /></svg>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  >
+                    <path d="M4 10v1.5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10" />
+                  </svg>
                 </div>
                 <div class="key">7</div>
                 <div class="key">8</div>
                 <div class="key">9</div>
                 <div class="key fn">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
                     <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
                     <path d="M18 9l-6 6M12 9l6 6" />
                   </svg>
@@ -1191,9 +1278,16 @@
                 <div class="key">0</div>
                 <div class="key">.</div>
                 <div class="key fn">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 10l-5 4 5 4" /><path d="M4 14h12a4 4 0 0 0 4-4V5" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M9 10l-5 4 5 4" />
+                    <path d="M4 14h12a4 4 0 0 0 4-4V5" />
                   </svg>
                 </div>
               </div>
@@ -1207,9 +1301,9 @@
         <div class="cap">
           4 · <b>Custom pad, no OS keyboard.</b>
           <b style="color: #b5701f">Parked alternative — kept, not chosen.</b> The number pad lives
-          inside the sheet, styled like the app; nothing is ever covered, so all four actions can stay
-          visible. Direction is the OS keyboard (panel 3); this is retained as a fast-follow if the
-          native keyboard doesn't feel right.
+          inside the sheet, styled like the app; nothing is ever covered, so all four actions can
+          stay visible. Direction is the OS keyboard (panel 3); this is retained as a fast-follow if
+          the native keyboard doesn't feel right.
         </div>
         <div class="phone">
           <div class="screen">
@@ -1280,8 +1374,14 @@
                 <button class="padkey muted">·</button>
                 <button class="padkey">0</button>
                 <button class="padkey muted">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
                     <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z" />
                     <path d="M18 9l-6 6M12 9l6 6" />
                   </svg>
@@ -1299,8 +1399,8 @@
       <!-- ===== PANEL 4: audio variant ===== -->
       <div class="labeled">
         <div class="cap">
-          5 · <b>Audio variant.</b> Same sheet, same From→To shape — the only difference is the unit is
-          a timestamp (HH:MM), matching the shipped audio branch. Shown resting.
+          5 · <b>Audio variant.</b> Same sheet, same From→To shape — the only difference is the unit
+          is a timestamp (HH:MM), matching the shipped audio branch. Shown resting.
         </div>
         <div class="phone">
           <div class="screen">
@@ -1417,8 +1517,8 @@
       <!-- ===== PANEL 6: light mode ===== -->
       <div class="labeled">
         <div class="cap">
-          7 · <b>Light mode.</b> The resting state on the cream palette (design-system §4). Both modes
-          are designed together.
+          7 · <b>Light mode.</b> The resting state on the cream palette (design-system §4). Both
+          modes are designed together.
         </div>
         <div class="phone">
           <div class="screen light">
@@ -1566,10 +1666,10 @@
       </div>
     </div>
 
-    <div class="stage" style="margin-top: 28px;">
+    <div class="stage" style="margin-top: 28px">
       <!-- ===== PANEL 9: DESKTOP MODAL ===== -->
       <div class="labeled">
-        <div class="cap" style="max-width: 900px;">
+        <div class="cap" style="max-width: 900px">
           9 · <b>Desktop modal (MatDialog).</b> Same content, centered over the app, with a close ✕.
           None of the mobile constraints apply — physical keyboard, no bottom pinning — so it's the
           calm version of the exact same sheet. First pass, dark.
@@ -1593,8 +1693,15 @@
 
             <div class="modal">
               <button class="mclose" aria-label="Close">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                  stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                >
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
               </button>
 
               <div class="shead">
@@ -1616,8 +1723,16 @@
                   <div class="val">214</div>
                 </div>
                 <div class="rb-arrow">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                    stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
                 </div>
                 <div class="rb-col rb-to">
                   <div class="rb-lbl">To · now</div>
@@ -1652,10 +1767,10 @@
       </div>
       <!-- ===== PANEL 10: DESKTOP MODAL — light + calendar open ===== -->
       <div class="labeled">
-        <div class="cap" style="max-width: 900px;">
-          10 · <b>Desktop modal — light mode, calendar open.</b> Same modal on the cream palette, with
-          “Pick a date” expanded inline — proof the date component is one thing across mobile and
-          desktop, both modes.
+        <div class="cap" style="max-width: 900px">
+          10 · <b>Desktop modal — light mode, calendar open.</b> Same modal on the cream palette,
+          with “Pick a date” expanded inline — proof the date component is one thing across mobile
+          and desktop, both modes.
         </div>
         <div class="win">
           <div class="winbar">
@@ -1676,8 +1791,15 @@
 
             <div class="modal">
               <button class="mclose" aria-label="Close">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                  stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                >
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
               </button>
 
               <div class="shead">
@@ -1699,8 +1821,16 @@
                   <div class="val">214</div>
                 </div>
                 <div class="rb-arrow">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                    stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 12h14M13 6l6 6-6 6" />
+                  </svg>
                 </div>
                 <div class="rb-col rb-to">
                   <div class="rb-lbl">To · now</div>
@@ -1726,29 +1856,73 @@
                   <div class="m">July 2026</div>
                   <div class="calnav">
                     <button aria-label="Previous month">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                        stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M15 18l-6-6 6-6" />
+                      </svg>
                     </button>
                     <button disabled aria-label="Next month">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                        stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M9 18l6-6-6-6" />
+                      </svg>
                     </button>
                   </div>
                 </div>
                 <div class="calgrid">
-                  <div class="caldow">Su</div><div class="caldow">Mo</div><div class="caldow">Tu</div>
-                  <div class="caldow">We</div><div class="caldow">Th</div><div class="caldow">Fr</div>
+                  <div class="caldow">Su</div>
+                  <div class="caldow">Mo</div>
+                  <div class="caldow">Tu</div>
+                  <div class="caldow">We</div>
+                  <div class="caldow">Th</div>
+                  <div class="caldow">Fr</div>
                   <div class="caldow">Sa</div>
-                  <div class="calday pad">.</div><div class="calday pad">.</div><div class="calday pad">.</div>
-                  <div class="calday">1</div><div class="calday">2</div><div class="calday">3</div><div class="calday">4</div>
-                  <div class="calday sel">5</div><div class="calday">6</div><div class="calday">7</div>
-                  <div class="calday">8</div><div class="calday">9</div><div class="calday">10</div><div class="calday">11</div>
-                  <div class="calday">12</div><div class="calday">13</div><div class="calday">14</div>
-                  <div class="calday">15</div><div class="calday">16</div><div class="calday">17</div><div class="calday today">18</div>
-                  <div class="calday future">19</div><div class="calday future">20</div><div class="calday future">21</div>
-                  <div class="calday future">22</div><div class="calday future">23</div><div class="calday future">24</div><div class="calday future">25</div>
-                  <div class="calday future">26</div><div class="calday future">27</div><div class="calday future">28</div>
-                  <div class="calday future">29</div><div class="calday future">30</div><div class="calday future">31</div>
+                  <div class="calday pad">.</div>
+                  <div class="calday pad">.</div>
+                  <div class="calday pad">.</div>
+                  <div class="calday">1</div>
+                  <div class="calday">2</div>
+                  <div class="calday">3</div>
+                  <div class="calday">4</div>
+                  <div class="calday sel">5</div>
+                  <div class="calday">6</div>
+                  <div class="calday">7</div>
+                  <div class="calday">8</div>
+                  <div class="calday">9</div>
+                  <div class="calday">10</div>
+                  <div class="calday">11</div>
+                  <div class="calday">12</div>
+                  <div class="calday">13</div>
+                  <div class="calday">14</div>
+                  <div class="calday">15</div>
+                  <div class="calday">16</div>
+                  <div class="calday">17</div>
+                  <div class="calday today">18</div>
+                  <div class="calday future">19</div>
+                  <div class="calday future">20</div>
+                  <div class="calday future">21</div>
+                  <div class="calday future">22</div>
+                  <div class="calday future">23</div>
+                  <div class="calday future">24</div>
+                  <div class="calday future">25</div>
+                  <div class="calday future">26</div>
+                  <div class="calday future">27</div>
+                  <div class="calday future">28</div>
+                  <div class="calday future">29</div>
+                  <div class="calday future">30</div>
+                  <div class="calday future">31</div>
                 </div>
               </div>
 
@@ -1770,39 +1944,43 @@
       <h3>Notes on the two open threads</h3>
       <p>
         <b>Keyboard (panels 2 vs 3).</b> Panel 2 keeps the native keyboard and lifts the sheet using
-        the <code>visualViewport</code> API so the From→To box and Save stay docked above it; the three
-        secondary actions step aside while typing. Panel 3 removes the OS keyboard entirely with an
-        in-sheet pad, so nothing is ever occluded and all actions can stay — at the cost of a bigger
-        build and a different entry feel. This is the decision to make from these pixels.
+        the <code>visualViewport</code> API so the From→To box and Save stay docked above it; the
+        three secondary actions step aside while typing. Panel 3 removes the OS keyboard entirely
+        with an in-sheet pad, so nothing is ever occluded and all actions can stay — at the cost of
+        a bigger build and a different entry feel. This is the decision to make from these pixels.
       </p>
       <p>
         <b>Device chrome is not fixed.</b> These panels model the gesture-pill nav bar (transparent
         strip at the very bottom) and a representative Chrome address bar, but both vary by device:
         3-button nav eats a solid ~48px bar instead of the pill, and some Chrome builds add a home
-        button / taller bar. So the sheet must tolerate a <b>range</b> of top-and-bottom chrome, not a
-        single measured height — the lifted layout leaves margin for that, and nothing load-bearing
-        sits in the outermost few pixels.
+        button / taller bar. So the sheet must tolerate a <b>range</b> of top-and-bottom chrome, not
+        a single measured height — the lifted layout leaves margin for that, and nothing
+        load-bearing sits in the outermost few pixels.
       </p>
       <p>
-        <b>Back button — implementation note (verify during build).</b> Goal: the Android system back
-        button <em>closes the sheet</em> and returns to Currently Reading, without giving the sheet its
-        own route. Approach to try: on open, push a throwaway history entry
+        <b>Back button — implementation note (verify during build).</b> Goal: the Android system
+        back button <em>closes the sheet</em> and returns to Currently Reading, without giving the
+        sheet its own route. Approach to try: on open, push a throwaway history entry
         (<code>history.pushState</code>); listen for <code>popstate</code> and, when back fires it,
-        dismiss the sheet instead of navigating; on a normal close (Save / Cancel / ✕), pop that entry
-        back off so history stays clean.
-        <span class="flag">Unverified against Angular's router + Material bottom-sheet/overlay — test
-        this early, before relying on it.</span>
+        dismiss the sheet instead of navigating; on a normal close (Save / Cancel / ✕), pop that
+        entry back off so history stays clean.
+        <span class="flag"
+          >Unverified against Angular's router + Material bottom-sheet/overlay — test this early,
+          before relying on it.</span
+        >
       </p>
       <p>
-        <b>Decided: To opens empty and unfocused.</b> Today's shipped sheet pre-fills the single input
-        with your last position. Because From now shows that reference on its own, To opens
+        <b>Decided: To opens empty and unfocused.</b> Today's shipped sheet pre-fills the single
+        input with your last position. Because From now shows that reference on its own, To opens
         <b>empty</b> (panels 1 &amp; 4). It also opens <b>unfocused</b>, so the soft keyboard does
-        <em>not</em> auto-pop on open — the sheet appears calm and the keyboard rises only when you tap
-        To. Together this kills two paper cuts (the "clear the box first" edit and the keyboard
+        <em>not</em> auto-pop on open — the sheet appears calm and the keyboard rises only when you
+        tap To. Together this kills two paper cuts (the "clear the box first" edit and the keyboard
         covering the sheet on open).
-        <span class="flag">Implementation: Material autofocuses the first focusable control by default
-        (which would summon the keyboard) — disable it (e.g. <code>autoFocus: false</code> on the
-        bottom-sheet / dialog config) so the keyboard stays down until To is tapped.</span>
+        <span class="flag"
+          >Implementation: Material autofocuses the first focusable control by default (which would
+          summon the keyboard) — disable it (e.g. <code>autoFocus: false</code> on the bottom-sheet
+          / dialog config) so the keyboard stays down until To is tapped.</span
+        >
       </p>
     </div>
   </body>
