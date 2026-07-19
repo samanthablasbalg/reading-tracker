@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { BreakpointObserver } from '@angular/cdk/layout';
@@ -43,8 +43,16 @@ describe('CurrentlyReadingComponent', () => {
     observe: ReturnType<typeof vi.fn>;
   };
 
+  let bottomSheetAfterDismissed: Subject<void>;
+  let mockBottomSheetRef: { dismiss: ReturnType<typeof vi.fn>; afterDismissed: () => unknown };
+
   beforeEach(async () => {
-    mockBottomSheet = { open: vi.fn() };
+    bottomSheetAfterDismissed = new Subject<void>();
+    mockBottomSheetRef = {
+      dismiss: vi.fn(() => bottomSheetAfterDismissed.next()),
+      afterDismissed: () => bottomSheetAfterDismissed.asObservable(),
+    };
+    mockBottomSheet = { open: vi.fn().mockReturnValue(mockBottomSheetRef) };
     mockDialog = { open: vi.fn() };
     mockBreakpointObserver = {
       isMatched: vi.fn().mockReturnValue(false),
@@ -284,6 +292,54 @@ describe('CurrentlyReadingComponent', () => {
 
     expect(mockDialog.open).toHaveBeenCalledOnce();
     expect(mockBottomSheet.open).not.toHaveBeenCalled();
+  });
+
+  describe('logSheetOpen (read by logSheetOpenGuard for the back button)', () => {
+    it('is set once the bottom sheet opens and cleared once it is dismissed', () => {
+      mockBreakpointObserver.isMatched.mockReturnValue(true);
+      const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+      flushReadingList();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.logSheetOpen()).toBe(false);
+
+      findButton(fixture.nativeElement, 'Log progress').click();
+      expect(fixture.componentInstance.logSheetOpen()).toBe(true);
+
+      bottomSheetAfterDismissed.next();
+      expect(fixture.componentInstance.logSheetOpen()).toBe(false);
+    });
+
+    it('stays false for the desktop dialog, which the back-button guard does not cover', () => {
+      const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+      flushReadingList();
+      fixture.detectChanges();
+
+      findButton(fixture.nativeElement, 'Log progress').click();
+
+      expect(fixture.componentInstance.logSheetOpen()).toBe(false);
+    });
+
+    it('closeLogSheet dismisses the open bottom sheet', () => {
+      mockBreakpointObserver.isMatched.mockReturnValue(true);
+      const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+      flushReadingList();
+      fixture.detectChanges();
+
+      findButton(fixture.nativeElement, 'Log progress').click();
+      fixture.componentInstance.closeLogSheet();
+
+      expect(mockBottomSheetRef.dismiss).toHaveBeenCalledOnce();
+    });
+
+    it('closeLogSheet is a no-op when nothing is open', () => {
+      const fixture = TestBed.createComponent(CurrentlyReadingComponent);
+      flushReadingList();
+      fixture.detectChanges();
+
+      expect(() => fixture.componentInstance.closeLogSheet()).not.toThrow();
+      expect(mockBottomSheetRef.dismiss).not.toHaveBeenCalled();
+    });
   });
 
   it('passes cover, title, resume page, and page count to the dialog on wide viewport', () => {

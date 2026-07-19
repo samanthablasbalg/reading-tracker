@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './auth.guard';
 import { guestGuard } from './guest.guard';
+import { logSheetOpenGuard } from './currently-reading/log-sheet-open.guard';
 
 export const routes: Routes = [
   {
@@ -19,6 +20,7 @@ export const routes: Routes = [
     children: [
       {
         path: 'currently-reading',
+        canDeactivate: [logSheetOpenGuard],
         loadComponent: () =>
           import('./currently-reading/currently-reading').then((m) => m.CurrentlyReadingComponent),
       },

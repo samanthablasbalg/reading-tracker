@@ -69,8 +69,7 @@ function createMockVisualViewport(initialHeight: number) {
 }
 
 /** Builds a `MatBottomSheetRef` mock whose `dismiss()` actually emits on
- *  `afterDismissed()`, the way the real ref does, so the popstate/history
- *  wiring in the component can be exercised end to end. */
+ *  `afterDismissed()`, the way the real ref does. */
 function createMockBottomSheetRef() {
   const afterDismissed$ = new Subject<void>();
   const mockBottomSheetRef = {
@@ -632,48 +631,6 @@ describe('ProgressLogSheetComponent', () => {
     expect(
       screen.getByText(/finish and discard the timestamp you entered \(02:30\)/i),
     ).toBeTruthy();
-  });
-
-  // --- Android back button (mobile bottom sheet only) ---
-
-  it('pushes a throwaway history entry when opened as a bottom sheet', async () => {
-    const pushStateSpy = vi.spyOn(history, 'pushState');
-    await setupBottomSheet();
-    expect(pushStateSpy).toHaveBeenCalledWith({ progressLogSheet: true }, '');
-  });
-
-  it('does not touch history when opened as a desktop dialog', async () => {
-    const pushStateSpy = vi.spyOn(history, 'pushState');
-    await setup();
-    expect(pushStateSpy).not.toHaveBeenCalled();
-  });
-
-  it('dismisses the bottom sheet when the back button fires a popstate', async () => {
-    const { mockBottomSheetRef } = await setupBottomSheet();
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    expect(mockBottomSheetRef.dismiss).toHaveBeenCalledOnce();
-  });
-
-  it('pops the throwaway history entry on a normal close', async () => {
-    const backSpy = vi.spyOn(history, 'back').mockImplementation(() => undefined);
-    const { mockBottomSheetRef } = await setupBottomSheet();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(mockBottomSheetRef.dismiss).toHaveBeenCalledOnce();
-    expect(backSpy).toHaveBeenCalledOnce();
-  });
-
-  it('does not pop history again when the close came from the back button', async () => {
-    const backSpy = vi.spyOn(history, 'back').mockImplementation(() => undefined);
-    await setupBottomSheet();
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    expect(backSpy).not.toHaveBeenCalled();
-  });
-
-  it('stops listening for popstate once the sheet is destroyed', async () => {
-    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
-    const { fixture } = await setupBottomSheet();
-    fixture.destroy();
-    expect(removeEventListenerSpy).toHaveBeenCalledWith('popstate', expect.any(Function));
   });
 
   // --- Keyboard-aware lifting (mobile bottom sheet only) ---
