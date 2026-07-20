@@ -34,9 +34,7 @@
         {{ data.title }}
       </h2>
       @if (data.formats[0]) {
-        <div
-          class="flex items-center gap-1.5 mt-1 text-[11px] font-bold uppercase tracking-wide text-muted"
-        >
+        <div class="flex items-center gap-1.5 mt-1 text-label uppercase tracking-wide text-muted">
           <mat-icon class="text-sm leading-none" aria-hidden="true">{{
             formatIcon(data.formats[0])
           }}</mat-icon>
@@ -49,8 +47,7 @@
   <div
     class="grid grid-cols-[auto_auto_1fr_auto] items-center gap-x-3.5 gap-y-1 bg-surface-2 border border-border rounded-2xl px-4.5 py-3.5"
   >
-    <span
-      class="col-start-1 row-start-1 text-[9.5px] font-extrabold uppercase tracking-wide text-muted"
+    <span class="col-start-1 row-start-1 text-label-sm uppercase tracking-wide text-muted"
       >From</span
     >
     <span
@@ -73,7 +70,7 @@
 
     <span
       [id]="toLabelId"
-      class="col-start-3 row-start-1 text-[9.5px] font-extrabold uppercase tracking-wide text-muted"
+      class="col-start-3 row-start-1 text-label-sm uppercase tracking-wide text-muted"
       >To &middot; now</span
     >
     @if (isAudio) {
@@ -85,7 +82,7 @@
         placeholder="HH:MM"
         (focus)="valueFocused.set(true)"
         (blur)="valueFocused.set(false)"
-        class="col-start-3 row-start-2 w-full min-w-0 bg-transparent text-3xl font-extrabold text-text font-sans leading-none border-0 border-b-[2.5px] border-primary outline-none pb-0.5 placeholder:text-muted placeholder:opacity-50"
+        class="col-start-3 row-start-2 w-full min-w-0 bg-transparent text-3xl font-extrabold text-text font-sans leading-none border-0 border-b-2 border-primary outline-none pb-0.5 placeholder:text-muted placeholder:opacity-50"
       />
     } @else {
       <input
@@ -98,13 +95,12 @@
         [attr.aria-invalid]="!!valueErrorMessage"
         (focus)="valueFocused.set(true)"
         (blur)="valueFocused.set(false)"
-        class="col-start-3 row-start-2 w-full min-w-0 bg-transparent text-3xl font-extrabold text-text font-sans leading-none border-0 border-b-[2.5px] border-primary outline-none pb-0.5 placeholder:text-muted placeholder:opacity-50 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        class="col-start-3 row-start-2 w-full min-w-0 bg-transparent text-3xl font-extrabold text-text font-sans leading-none border-0 border-b-2 border-primary outline-none pb-0.5 placeholder:text-muted placeholder:opacity-50 appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />
     }
 
     @if (defaultValue !== null) {
-      <span
-        class="col-start-4 row-start-2 text-[13px] font-bold text-muted font-sans whitespace-nowrap"
+      <span class="col-start-4 row-start-2 text-xs font-bold text-muted font-sans whitespace-nowrap"
         >of {{ isAudio ? formatHhmm(defaultValue) : defaultValue }}</span
       >
     }
@@ -112,7 +108,7 @@
 
   <p
     [id]="valueErrorId"
-    class="-mt-2.5 min-h-4 text-xs font-semibold text-red-600"
+    class="-mt-2.5 min-h-4 text-xs font-semibold text-error"
     aria-live="polite"
   >
     {{ valueErrorMessage }}
@@ -121,7 +117,7 @@
   <div class="flex items-center gap-2 -mt-1">
     <button
       type="button"
-      class="text-[12.5px] font-bold px-3.5 py-2 rounded-full border"
+      class="text-label px-3.5 py-2 rounded-full border"
       [class]="chipClass(isToday())"
       (click)="setToday()"
     >
@@ -129,7 +125,7 @@
     </button>
     <button
       type="button"
-      class="text-[12.5px] font-bold px-3.5 py-2 rounded-full border"
+      class="text-label px-3.5 py-2 rounded-full border"
       [class]="chipClass(isYesterday())"
       (click)="setYesterday()"
     >
@@ -137,7 +133,7 @@
     </button>
     <button
       type="button"
-      class="inline-flex items-center gap-1.5 text-[12.5px] font-bold px-3.5 py-2 rounded-full border"
+      class="inline-flex items-center gap-1.5 text-label px-3.5 py-2 rounded-full border"
       [class]="chipClass(showDatePicker() || isCustomDate())"
       aria-label="Log for a different day"
       (click)="toggleDatePicker()"
@@ -159,7 +155,7 @@
   }
 
   @if (error()) {
-    <p role="alert" class="text-sm font-semibold text-red-600 m-0">{{ error() }}</p>
+    <p role="alert" class="text-sm font-semibold text-error m-0">{{ error() }}</p>
   }
 
   @if (mode() === 'idle') {
