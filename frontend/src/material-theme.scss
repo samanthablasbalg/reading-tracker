@@ -42,9 +42,18 @@ html {
       surface-container: var(--color-surface-2),
       surface-container-high: var(--color-surface-2),
       surface-container-highest: var(--color-surface-2),
+      surface-variant: var(--color-surface-2),
       on-surface: var(--color-text),
       on-surface-variant: var(--color-muted),
       outline: var(--color-border),
+      outline-variant: var(--color-border),
+      error: var(--color-error),
+    )
+  );
+
+  @include mat.progress-bar-overrides(
+    (
+      track-color: var(--color-tint-1),
     )
   );
 

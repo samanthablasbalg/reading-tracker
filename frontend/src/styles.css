@@ -23,10 +23,23 @@
   --color-surface-2: light-dark(#fffdf9, #2e2432);
   --color-text: light-dark(#241c22, #f3e9ee);
   --color-muted: light-dark(#8a7a82, #b7a7b0);
+  /* Same role as --color-muted (secondary text) but darker in light mode. --color-muted
+     itself only measures ~3.8-4.1:1 against --color-background/--color-surface, short of
+     the 4.5:1 floor for small text (§10) - use this variant wherever muted text is small
+     (e.g. nav-shell's 10.5px labels) rather than the body-sized default. */
+  --color-muted-strong: light-dark(#756770, #b7a7b0);
   --color-border: light-dark(#efe4d8, rgba(255, 255, 255, 0.09));
 
   --color-track: light-dark(#f0e7db, #3a2f3f);
   --color-success: light-dark(#16a34a, #4ade80);
+  /* Tailwind's red-600 (#dc2626) measures 4.49:1 on --color-background, just under the
+     4.5:1 floor (§10) - darkened slightly to #d42121 (4.83-5.2:1). Dark side is stock
+     red-400, already 5.4-6.6:1 against every surface it sits on. */
+  --color-error: light-dark(#d42121, #f87171);
+  /* Neutral hover/state wash for interactive rows (e.g. nav-shell's sidebar items).
+     Tinted from the theme's own text/background extremes rather than a flat gray so it
+     reads as "in family" with the rest of the palette. */
+  --color-hover: light-dark(rgba(36, 28, 34, 0.06), rgba(255, 255, 255, 0.08));
 
   /* Categorical data palette (genres, moods, chart series) */
   --color-chart-1: light-dark(#ec4899, #f472b6);
@@ -45,6 +58,32 @@
   --color-tint-4: light-dark(#ffe0cc, #5a3a2a);
   --color-tint-5: light-dark(#d6ebff, #2a3e5a);
   --color-tint-6: light-dark(#ffefb8, #5a4a22);
+}
+
+/* Type scale from docs/design/design-system.md §5 - named sizes so screens stop inventing
+   one-off pixel values. @utility (not a plain class) so these compose with Tailwind
+   variants (dark:, hover:, etc.) the same as any built-in utility. */
+@utility text-page-title {
+  font: 600 30px/1.2 var(--font-serif);
+}
+@utility text-section-title {
+  font: 600 17px/1.3 var(--font-serif);
+}
+@utility text-book-title {
+  font: 600 18px/1.3 var(--font-serif);
+}
+@utility text-prose {
+  font: 400 15px/1.6 var(--font-serif);
+}
+@utility text-stat {
+  font: 800 28px/1.1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+@utility text-label {
+  font: 700 12px/1.2 var(--font-sans);
+}
+@utility text-label-sm {
+  font: 700 10.5px/1.2 var(--font-sans);
 }
 
 .font-serif {
