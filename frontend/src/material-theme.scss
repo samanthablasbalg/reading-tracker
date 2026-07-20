@@ -51,6 +51,12 @@ html {
     )
   );
 
+  @include mat.progress-bar-overrides(
+    (
+      track-color: var(--color-tint-1),
+    )
+  );
+
   @include mat.bottom-sheet-overrides(
     (
       container-shape: 28px,

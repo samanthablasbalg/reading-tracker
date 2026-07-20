@@ -52,7 +52,7 @@ const TOUCH_HANDSET =
               <img
                 [src]="src"
                 alt=""
-                class="w-10 h-10 rounded-full object-cover"
+                class="!w-10 !h-10 rounded-full object-cover"
                 referrerpolicy="no-referrer"
               />
             } @else {
@@ -85,7 +85,11 @@ const TOUCH_HANDSET =
                   routerLinkActive
                   #rla="routerLinkActive"
                   class="flex items-center gap-3 no-underline font-sans font-semibold text-sm rounded-[11px] px-3 py-2.5 hover:bg-hover [--icon-size:20px]"
-                  [class]="rla.isActive ? 'text-primary bg-primary/14' : 'text-muted-strong'"
+                  [class]="
+                    rla.isActive
+                      ? 'text-primary bg-primary/14'
+                      : 'text-muted-strong hover:text-text'
+                  "
                 >
                   <span [innerHTML]="iconSvg(destination.icon)"></span>
                   <span>{{ destination.label }}</span>
