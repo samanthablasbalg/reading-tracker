@@ -382,7 +382,29 @@ set status). Reversible either direction — it's a UI choice with no migration.
 - Touch targets ≥ 44px; visible focus states; respect `prefers-reduced-motion`.
 - Charts get a text/table alternative and a screen-reader summary of the key insight.
 
-## 11. Parked — captured, not yet designed
+## 11. Styling convention
+
+Three vocabularies exist in the frontend today — design tokens (`--color-*`), Material system
+variables (`--mat-sys-*`), and Tailwind utilities — and only one is the default.
+
+**Tailwind utilities in templates are the default.** A `styles:` block on a component is only
+justified by one of three reasons:
+
+1. **`:host`** — unreachable from Tailwind, since utility classes apply to elements inside the
+   template, not the host element itself.
+2. **Overriding Material component internals** — reaching into a Material component's own DOM (its
+   MDC classes) to override styling Tailwind can't target directly.
+3. **Genuinely complex CSS** — keyframe animations, multi-stop gradients, or anything else that
+   would be unreadable as a string of utility classes.
+
+**Components never reference `--mat-sys-*`.** That vocabulary exists so `material-theme.scss` can
+theme Material's own components (buttons, dialogs, form fields) — it is not for styling our own
+markup. Our markup uses the `--color-*` design tokens (directly, or via the Tailwind utilities
+`styles.css` generates from them) — never a hardcoded hex or `rgba()`, and never Material's system
+tokens, which don't carry the same "single source of truth" guarantee (see §4's note in `styles.css`
+on why tokens are defined once and Material points at them, not the reverse).
+
+## 12. Parked — captured, not yet designed
 
 Structure accommodates these; they get designed when pulled.
 
