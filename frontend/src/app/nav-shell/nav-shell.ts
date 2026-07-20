@@ -38,189 +38,83 @@ const TOUCH_HANDSET =
 @Component({
   selector: 'app-nav-shell',
   imports: [RouterLink, RouterLinkActive, MatIconModule, MatButtonModule, MatMenuModule],
-  styles: [
-    `
-      .shell {
-        display: flex;
-        flex-direction: column;
-        min-height: 100vh;
-        background: var(--color-background);
-        color: var(--color-text);
-      }
-
-      .topbar {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        padding: 8px 16px;
-      }
-
-      .avatar-button {
-        width: 40px;
-        height: 40px;
-        padding: 0;
-        border-radius: 50%;
-      }
-
-      .avatar-img {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        object-fit: cover;
-      }
-
-      .avatar-fallback {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(140deg, var(--color-secondary), var(--color-primary));
-        color: #fff;
-        font-family: var(--font-sans);
-        font-weight: 800;
-        font-size: 15px;
-      }
-
-      .menu-header {
-        padding: 8px 16px;
-        font-size: 0.875rem;
-        font-family: var(--font-sans);
-        color: var(--color-muted);
-        border-bottom: 1px solid var(--color-border);
-      }
-
-      .body {
-        flex: 1;
-        display: flex;
-      }
-
-      .content {
-        flex: 1;
-        min-width: 0;
-      }
-
-      .content.with-bottom-bar {
-        padding-bottom: 64px;
-      }
-
-      .sidebar {
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-        width: 236px;
-        flex-shrink: 0;
-        padding: 20px 14px;
-        border-right: 1px solid var(--color-border);
-      }
-
-      .sidebar .nav-item {
-        border-radius: 11px;
-        padding: 10px 12px;
-        font-size: 14px;
-      }
-
-      .sidebar .nav-icon {
-        --icon-size: 20px;
-      }
-
-      .sidebar .nav-item:hover {
-        opacity: 0.85;
-        background: rgba(128, 128, 128, 0.08);
-      }
-
-      .sidebar .nav-item.active {
-        background: color-mix(in srgb, var(--color-primary) 14%, transparent);
-      }
-
-      .bottom-bar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        display: flex;
-        padding: 10px 8px 22px;
-        background: var(--color-surface);
-        border-top: 1px solid var(--color-border);
-      }
-
-      .bottom-bar .nav-item {
-        flex: 1;
-        flex-direction: column;
-        gap: 4px;
-        padding: 0;
-        font-size: 10.5px;
-      }
-
-      .bottom-bar .nav-icon {
-        --icon-size: 23px;
-      }
-
-      .nav-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        text-decoration: none;
-        font-family: var(--font-sans);
-        font-weight: 600;
-        color: var(--color-text);
-        opacity: 0.6;
-      }
-
-      .nav-item.active {
-        opacity: 1;
-        color: var(--color-primary);
-      }
-    `,
-  ],
   template: `
-    <div class="shell">
-      <header class="topbar">
-        <button
-          mat-icon-button
-          class="avatar-button"
-          [matMenuTriggerFor]="accountMenu"
-          aria-label="Account menu"
-        >
-          @if (picture(); as src) {
-            <img [src]="src" alt="" class="avatar-img" referrerpolicy="no-referrer" />
-          } @else {
-            <span class="avatar-fallback">{{ initial() }}</span>
-          }
-        </button>
-        <mat-menu #accountMenu="matMenu">
-          <div class="menu-header">{{ email() }}</div>
-          <button mat-menu-item (click)="logout()">
-            <mat-icon>logout</mat-icon>
-            <span>Log out</span>
-          </button>
-        </mat-menu>
-      </header>
-
-      <div class="body">
-        @if (!isMobile()) {
-          <nav class="sidebar" aria-label="Primary">
-            @for (destination of destinations; track destination.route) {
-              <a [routerLink]="destination.route" routerLinkActive="active" class="nav-item">
-                <span class="nav-icon" [innerHTML]="iconSvg(destination.icon)"></span>
-                <span class="nav-label">{{ destination.label }}</span>
-              </a>
+    <div class="bg-background text-text">
+      <div class="flex flex-col min-h-dvh">
+        <header class="flex justify-end items-center px-4 py-2">
+          <button
+            mat-icon-button
+            class="!w-10 !h-10 !p-0 !rounded-full"
+            [matMenuTriggerFor]="accountMenu"
+            aria-label="Account menu"
+          >
+            @if (picture(); as src) {
+              <img
+                [src]="src"
+                alt=""
+                class="w-10 h-10 rounded-full object-cover"
+                referrerpolicy="no-referrer"
+              />
+            } @else {
+              <span
+                class="flex items-center justify-center w-10 h-10 rounded-full bg-[linear-gradient(140deg,var(--color-secondary),var(--color-primary))] text-on-primary font-sans font-extrabold text-[15px]"
+                >{{ initial() }}</span
+              >
             }
-          </nav>
-        }
+          </button>
+          <mat-menu #accountMenu="matMenu">
+            <div class="px-4 py-2 text-sm font-sans text-muted border-b border-border">
+              {{ email() }}
+            </div>
+            <button mat-menu-item (click)="logout()">
+              <mat-icon>logout</mat-icon>
+              <span>Log out</span>
+            </button>
+          </mat-menu>
+        </header>
 
-        <main class="content" [class.with-bottom-bar]="isMobile()">
-          <ng-content />
-        </main>
+        <div class="flex-1 flex">
+          @if (!isMobile()) {
+            <nav
+              class="flex flex-col gap-[3px] w-[236px] shrink-0 px-3.5 py-5 border-r border-border"
+              aria-label="Primary"
+            >
+              @for (destination of destinations; track destination.route) {
+                <a
+                  [routerLink]="destination.route"
+                  routerLinkActive
+                  #rla="routerLinkActive"
+                  class="flex items-center gap-3 no-underline font-sans font-semibold text-sm rounded-[11px] px-3 py-2.5 hover:bg-hover [--icon-size:20px]"
+                  [class]="rla.isActive ? 'text-primary bg-primary/14' : 'text-muted-strong'"
+                >
+                  <span [innerHTML]="iconSvg(destination.icon)"></span>
+                  <span>{{ destination.label }}</span>
+                </a>
+              }
+            </nav>
+          }
+
+          <main class="flex-1 min-w-0 isolate">
+            <ng-content />
+          </main>
+        </div>
       </div>
 
       @if (isMobile()) {
-        <nav class="bottom-bar" aria-label="Primary">
+        <nav
+          class="sticky bottom-0 flex px-2 pt-2.5 pb-[calc(10px_+_env(safe-area-inset-bottom))] bg-surface border-t border-border"
+          aria-label="Primary"
+        >
           @for (destination of destinations; track destination.route) {
-            <a [routerLink]="destination.route" routerLinkActive="active" class="nav-item">
-              <span class="nav-icon" [innerHTML]="iconSvg(destination.icon)"></span>
-              <span class="nav-label">{{ destination.label }}</span>
+            <a
+              [routerLink]="destination.route"
+              routerLinkActive
+              #rla="routerLinkActive"
+              class="flex-1 flex flex-col items-center gap-1 no-underline text-label-sm [--icon-size:23px]"
+              [class]="rla.isActive ? 'text-primary' : 'text-muted-strong'"
+            >
+              <span [innerHTML]="iconSvg(destination.icon)"></span>
+              <span>{{ destination.label }}</span>
             </a>
           }
         </nav>

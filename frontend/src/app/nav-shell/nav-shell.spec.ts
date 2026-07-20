@@ -9,7 +9,7 @@ import { AuthService } from '../auth.service';
 import { NavShellComponent } from './nav-shell';
 
 function labels(links: NodeListOf<Element>): (string | null | undefined)[] {
-  return Array.from(links).map((a) => a.querySelector('.nav-label')?.textContent?.trim());
+  return Array.from(links).map((a) => a.textContent?.trim());
 }
 
 function openAccountMenu(fixture: { nativeElement: HTMLElement; detectChanges: () => void }): void {
@@ -48,9 +48,17 @@ describe('NavShellComponent', () => {
     const fixture = TestBed.createComponent(NavShellComponent);
     fixture.detectChanges();
 
-    const links = fixture.nativeElement.querySelectorAll('nav.sidebar a');
-    expect(labels(links)).toEqual(['Home', 'Library', 'Insights', 'Challenges']);
-    expect(fixture.nativeElement.querySelector('nav.bottom-bar')).toBeNull();
+    const navs = fixture.nativeElement.querySelectorAll('nav[aria-label="Primary"]');
+    expect(navs.length).toBe(1);
+    // The bottom bar is pinned via `sticky`; the sidebar isn't - a real, load-bearing
+    // class (not a test-only marker), so this also proves it's the sidebar that rendered.
+    expect(navs[0].classList.contains('sticky')).toBe(false);
+    expect(labels(navs[0].querySelectorAll('a'))).toEqual([
+      'Home',
+      'Library',
+      'Insights',
+      'Challenges',
+    ]);
   });
 
   it('renders a bottom bar with all four destinations, in order, on mobile', () => {
@@ -58,9 +66,15 @@ describe('NavShellComponent', () => {
     const fixture = TestBed.createComponent(NavShellComponent);
     fixture.detectChanges();
 
-    const links = fixture.nativeElement.querySelectorAll('nav.bottom-bar a');
-    expect(labels(links)).toEqual(['Home', 'Library', 'Insights', 'Challenges']);
-    expect(fixture.nativeElement.querySelector('nav.sidebar')).toBeNull();
+    const navs = fixture.nativeElement.querySelectorAll('nav[aria-label="Primary"]');
+    expect(navs.length).toBe(1);
+    expect(navs[0].classList.contains('sticky')).toBe(true);
+    expect(labels(navs[0].querySelectorAll('a'))).toEqual([
+      'Home',
+      'Library',
+      'Insights',
+      'Challenges',
+    ]);
   });
 
   it('projects the routed content into the shell', () => {
@@ -99,8 +113,13 @@ describe('NavShellComponent', () => {
     httpTesting.expectOne('/api/auth/me').flush({ id: 'user-1', email: 'me@example.com' });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('.avatar-fallback')!.textContent!.trim()).toBe('M');
-    expect(fixture.nativeElement.querySelector('.avatar-img')).toBeNull();
+    const accountButton = fixture.nativeElement.querySelector('button[aria-label="Account menu"]')!;
+    // mat-icon-button doesn't wrap projected content in a label element - it sits as a
+    // direct child alongside Material's own ripple/focus/touch-target spans, which are
+    // always empty, so the one span with real text is ours.
+    const spans = Array.from(accountButton.querySelectorAll(':scope > span')) as HTMLElement[];
+    expect(spans.find((s) => s.textContent?.trim())?.textContent?.trim()).toBe('M');
+    expect(accountButton.querySelector('img')).toBeNull();
   });
 
   it('shows the Google picture when the user has one', () => {
@@ -116,7 +135,8 @@ describe('NavShellComponent', () => {
     });
     fixture.detectChanges();
 
-    expect((fixture.nativeElement.querySelector('.avatar-img') as HTMLImageElement).src).toBe(
+    const accountButton = fixture.nativeElement.querySelector('button[aria-label="Account menu"]')!;
+    expect((accountButton.querySelector('img') as HTMLImageElement).src).toBe(
       'https://example.com/pic.jpg',
     );
   });
@@ -132,7 +152,10 @@ describe('NavShellComponent', () => {
 
     openAccountMenu(fixture);
 
-    expect(document.querySelector('.menu-header')!.textContent).toContain('me@example.com');
+    const logoutButton = Array.from(document.querySelectorAll('button[mat-menu-item]')).find((b) =>
+      b.textContent?.includes('Log out'),
+    )!;
+    expect(logoutButton.previousElementSibling?.textContent).toContain('me@example.com');
   });
 
   it('logs out and navigates to / when "Log out" is clicked', () => {
