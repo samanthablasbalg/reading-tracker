@@ -132,6 +132,49 @@ def test_create_engagement_on_finished_book_succeeds(client: TestClient) -> None
     assert response.json()["status"] == "reading"
 
 
+def test_create_engagement_at_finished_status(client: TestClient) -> None:
+    book = _create_book(client)
+    response = client.post(
+        "/api/engagements",
+        json={"book_id": book["id"], "edition_format": "print", "status": "finished"},
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["status"] == "finished"
+    assert data["finished_on"] is None
+
+
+def test_create_engagement_at_dnf_status(client: TestClient) -> None:
+    book = _create_book(client)
+    response = client.post(
+        "/api/engagements",
+        json={"book_id": book["id"], "edition_format": "print", "status": "dnf"},
+    )
+    assert response.status_code == 201
+    assert response.json()["status"] == "dnf"
+
+
+def test_create_engagement_invalid_status_returns_422(client: TestClient) -> None:
+    book = _create_book(client)
+    response = client.post(
+        "/api/engagements",
+        json={"book_id": book["id"], "edition_format": "print", "status": "tbr"},
+    )
+    assert response.status_code == 422
+
+
+def test_create_engagement_at_finished_still_blocked_by_active_read(
+    client: TestClient,
+) -> None:
+    book = _create_book(client)
+    _create_engagement(client, book["id"])
+    response = client.post(
+        "/api/engagements",
+        json={"book_id": book["id"], "edition_format": "print", "status": "finished"},
+    )
+    assert response.status_code == 409
+
+
 # --- Transition ---
 
 

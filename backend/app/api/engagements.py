@@ -148,7 +148,7 @@ def create_engagement(
     engagement = Engagement(
         book_id=payload.book_id,
         user_id=current_user.id,
-        status=ReadingStatus.reading,
+        status=ReadingStatus(payload.status),
         started_on=payload.started_on or datetime.date.today(),
     )
     db.add(engagement)
