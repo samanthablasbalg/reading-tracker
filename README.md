@@ -34,10 +34,28 @@ Today you can sign in with Google, add books, track your reads, log daily progre
 review. It is still pretty rough around the edges, but I am adding new improvements and features
 nearly every day.
 
+It's built mobile-friendly first — a phone is where I do most of my reading-tracking, so that's the
+experience I design around, with the desktop layout built just as deliberately. I even run a
+separate staging environment so I can test in-progress work on my real phone before it ships.
+
 What's next is the part I actually built this for: tracking the reading no app has ever fit right.
 Multi-format and non-linear progress, a proper TBR, book and author pages, ownership, stats, as well
 as some infrastructure improvements like a proper local Docker setup and migrating to Orval. It's
 all in the [roadmap](docs/roadmap.md).
+
+## How it's tested
+
+Testing is the discipline I bring to building, so it's not an afterthought:
+
+- **Backend:** pytest against a [dedicated test database](docs/decisions/0014-dedicated-test-database.md)
+  that resets the schema, runs migrations, and truncates between tests — every run starts from a
+  known state.
+- **Frontend:** Vitest via Angular's runner, with Angular Testing Library for component specs.
+- **End-to-end:** Playwright with page objects and fixtures, on a
+  [purpose-built e2e database strategy](docs/decisions/0018-e2e-testing-database-strategy.md), with a
+  test-auth path so runs don't depend on live Google login.
+- **Static analysis:** mypy (strict), Ruff, ESLint, and Prettier — wired into pre-commit and re-run
+  in CI, so nothing merges without passing.
 
 ## Built with an AI assistant
 
@@ -51,12 +69,6 @@ A decade-plus in testing has given me strong instincts for what good software lo
 carry over even where the specifics are new. A lot of this never makes it into the commit history. I
 get real satisfaction every time I catch poor or fragile code patterns and send them back before
 they land. I'm learning a lot, and I'm proud of what's here.
-
-## How it's tested
-
-Testing is where I come from, so it's not an afterthought. The backend runs on pytest, the frontend
-on Angular's runner over Vitest, and end-to-end flows on Playwright with proper page objects and
-fixtures, plus mypy (strict), Ruff, ESLint, and Prettier wired into pre-commit and CI.
 
 ## The stack
 
