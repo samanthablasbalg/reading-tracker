@@ -1,11 +1,10 @@
 import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { BookSearchComponent } from '../book-search/book-search';
 import { BookListComponent } from '../book-list/book-list';
 
 @Component({
   selector: 'app-catalog',
-  imports: [BookSearchComponent, BookListComponent, RouterLink, RouterLinkActive],
+  imports: [BookListComponent, RouterLink, RouterLinkActive],
   styles: [
     `
       .shelves {
@@ -44,7 +43,6 @@ import { BookListComponent } from '../book-list/book-list';
       <a class="shelf" routerLink="/finished" routerLinkActive="active">Finished</a>
       <a class="shelf" routerLink="/dnf" routerLinkActive="active">DNF</a>
     </nav>
-    <app-book-search />
     <app-book-list />
   `,
 })
