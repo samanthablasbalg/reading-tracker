@@ -66,6 +66,7 @@ CSS
 ## Dig in
 
 - **[Architecture](docs/architecture.md)** — the system and data model as one story
+- **[Development guide](docs/development.md)** — how to run the whole stack locally
 - **[Decision records](docs/decisions/README.md)** — the _why_ behind every significant choice
 - **[Learnings](docs/learnings/README.md)** — what I've picked up building hands-on
 - **[Roadmap](docs/roadmap.md)** — where it's going
