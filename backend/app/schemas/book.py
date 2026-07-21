@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, StringConstraints
 
@@ -21,8 +21,10 @@ class BookImportRequest(BaseModel):
     google_books_id: str
 
 
-class BookSearchCandidate(BaseModel):
-    google_books_id: str
+class BookSearchResult(BaseModel):
+    state: Literal["in_library", "in_catalog", "not_in_app"]
+    book_id: uuid.UUID | None
+    google_books_id: str | None
     title: str
     authors: list[str]
     published_date: str | None
@@ -30,6 +32,7 @@ class BookSearchCandidate(BaseModel):
     categories: list[str]
     cover_url: str | None
     language: str | None
+    status: Literal["reading", "finished", "dnf"] | None
 
 
 class AuthorRead(BaseModel):
