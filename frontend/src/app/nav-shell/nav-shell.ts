@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AuthService } from '../auth.service';
+import { SearchPanelComponent } from '../search-panel/search-panel';
 
 interface NavDestination {
   label: string;
@@ -37,11 +38,30 @@ const TOUCH_HANDSET =
 
 @Component({
   selector: 'app-nav-shell',
-  imports: [RouterLink, RouterLinkActive, MatIconModule, MatButtonModule, MatMenuModule],
+  imports: [
+    RouterLink,
+    RouterLinkActive,
+    MatIconModule,
+    MatButtonModule,
+    MatMenuModule,
+    SearchPanelComponent,
+  ],
   template: `
     <div class="bg-background text-text">
       <div class="flex flex-col min-h-dvh">
-        <header class="flex justify-end items-center px-4 py-2">
+        <header class="flex justify-end items-center gap-1 px-4 py-2">
+          <button
+            mat-icon-button
+            class="!w-10 !h-10 !p-0 !rounded-full"
+            [matMenuTriggerFor]="searchMenu"
+            aria-label="Search books"
+          >
+            <mat-icon>search</mat-icon>
+          </button>
+          <mat-menu #searchMenu="matMenu" xPosition="before">
+            <app-search-panel />
+          </mat-menu>
+
           <button
             mat-icon-button
             class="!w-10 !h-10 !p-0 !rounded-full"

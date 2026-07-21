@@ -18,6 +18,11 @@ import { BookSearchResult, BookService } from '../book.service';
     SearchResultRowComponent,
   ],
   templateUrl: './search-panel.html',
+  // MatMenu's panel root closes the menu on any click that bubbles up through its
+  // projected content (see node_modules/@angular/material/fesm2022/menu.mjs) - it assumes
+  // everything inside is a mat-menu-item. Stop the click here so interacting with the
+  // search input/results doesn't close the whole menu.
+  host: { '(click)': '$event.stopPropagation()' },
 })
 export class SearchPanelComponent {
   private readonly bookService = inject(BookService);

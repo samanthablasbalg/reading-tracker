@@ -1,9 +1,12 @@
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
+import { MATERIAL_ANIMATIONS } from '@angular/material/core';
+import { MatMenuTrigger } from '@angular/material/menu';
 import { of } from 'rxjs';
 import { AuthService } from '../auth.service';
 import { NavShellComponent } from './nav-shell';
@@ -15,6 +18,14 @@ function labels(links: NodeListOf<Element>): (string | null | undefined)[] {
 function openAccountMenu(fixture: { nativeElement: HTMLElement; detectChanges: () => void }): void {
   const trigger: HTMLButtonElement = fixture.nativeElement.querySelector(
     'button[aria-label="Account menu"]',
+  )!;
+  trigger.click();
+  fixture.detectChanges();
+}
+
+function openSearchMenu(fixture: { nativeElement: HTMLElement; detectChanges: () => void }): void {
+  const trigger: HTMLButtonElement = fixture.nativeElement.querySelector(
+    'button[aria-label="Search books"]',
   )!;
   trigger.click();
   fixture.detectChanges();
@@ -34,6 +45,7 @@ describe('NavShellComponent', () => {
         provideHttpClientTesting(),
         provideRouter([]),
         { provide: BreakpointObserver, useValue: mockBreakpointObserver },
+        { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
       ],
     });
     httpTesting = TestBed.inject(HttpTestingController);
@@ -94,6 +106,7 @@ describe('NavShellComponent', () => {
         provideHttpClientTesting(),
         provideRouter([]),
         { provide: BreakpointObserver, useValue: mockBreakpointObserver },
+        { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
       ],
     });
     httpTesting = TestBed.inject(HttpTestingController);
@@ -156,6 +169,51 @@ describe('NavShellComponent', () => {
       b.textContent?.includes('Log out'),
     )!;
     expect(logoutButton.previousElementSibling?.textContent).toContain('me@example.com');
+  });
+
+  it('does not close the search menu when the search input is clicked', () => {
+    configure(false);
+    const fixture = TestBed.createComponent(NavShellComponent);
+    fixture.detectChanges();
+
+    const trigger = fixture.debugElement
+      .query(By.css('button[aria-label="Search books"]'))
+      .injector.get(MatMenuTrigger);
+
+    openSearchMenu(fixture);
+    expect(trigger.menuOpen).toBe(true);
+
+    const input = document.querySelector('input') as HTMLInputElement;
+    input.click();
+    fixture.detectChanges();
+
+    // `menuOpen` flips synchronously in MatMenuTrigger the instant a closing action fires -
+    // unlike the overlay's DOM removal, which is deliberately deferred behind an animation
+    // callback and isn't a reliable thing to poll for in a test.
+    expect(trigger.menuOpen).toBe(true);
+  });
+
+  it('keeps the search panel open and runs a search when Enter is pressed inside it', () => {
+    configure(false);
+    const fixture = TestBed.createComponent(NavShellComponent);
+    fixture.detectChanges();
+
+    openSearchMenu(fixture);
+
+    const input = document.querySelector('input') as HTMLInputElement;
+    expect(input).not.toBeNull();
+    input.click();
+    input.value = 'Dune';
+    input.dispatchEvent(new Event('input'));
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    fixture.detectChanges();
+
+    httpTesting.expectOne((req) => req.url.includes('/api/books/search')).flush([]);
+    fixture.detectChanges();
+
+    // The menu must still be open after Enter runs the search — Material's own menu
+    // keydown handling can otherwise treat Enter as "close the panel."
+    expect(document.querySelector('input')).not.toBeNull();
   });
 
   it('logs out and navigates to / when "Log out" is clicked', () => {
