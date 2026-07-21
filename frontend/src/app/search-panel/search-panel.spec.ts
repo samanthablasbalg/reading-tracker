@@ -94,6 +94,55 @@ describe('SearchPanelComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Dune');
   });
 
+  it('groups results by state, under a heading per non-empty group, in a fixed order', () => {
+    const fixture = TestBed.createComponent(SearchPanelComponent);
+    fixture.detectChanges();
+
+    search(fixture, 'Chakraborty');
+
+    httpTesting
+      .expectOne((req) => req.url.includes('/api/books/search'))
+      .flush([
+        {
+          state: 'not_in_app',
+          book_id: null,
+          google_books_id: 'gbid-river',
+          title: 'The River of Silver',
+          authors: ['Shannon Chakraborty'],
+          published_date: '2022',
+          page_count: 656,
+          categories: [],
+          cover_url: null,
+          language: 'en',
+          status: null,
+        },
+        {
+          state: 'in_library',
+          book_id: 'book-amina',
+          google_books_id: 'gbid-amina',
+          title: 'The Adventures of Amina al-Sirafi',
+          authors: ['Shannon Chakraborty'],
+          published_date: '2023',
+          page_count: 496,
+          categories: [],
+          cover_url: null,
+          language: 'en',
+          status: 'reading',
+        },
+      ]);
+    fixture.detectChanges();
+
+    const headings = Array.from(
+      fixture.nativeElement.querySelectorAll('ul > li') as NodeListOf<HTMLElement>,
+    ).map((li) => li.textContent?.trim());
+    expect(headings).toEqual([
+      expect.stringContaining('In your library'),
+      expect.stringContaining('New — from Google Books'),
+    ]);
+    // "Already in the app" (in_catalog) has no results here, so its heading is absent entirely.
+    expect(fixture.nativeElement.textContent).not.toContain('Already in the app');
+  });
+
   it('does not fire a second search request when Enter is pressed while a search is in flight', () => {
     const fixture = TestBed.createComponent(SearchPanelComponent);
     fixture.detectChanges();

@@ -26,8 +26,16 @@
 
   @if (results().length > 0) {
     <ul class="flex flex-col gap-1 pt-2 max-h-[60vh] overflow-y-auto">
-      @for (result of results(); track result.book_id ?? result.google_books_id) {
-        <app-search-result-row [result]="result" />
+      @for (group of groups(); track group.heading) {
+        <li class="px-2 pt-3 pb-1 text-label-sm font-bold uppercase tracking-wide text-muted">
+          {{ group.heading }}
+          @if (group.hint) {
+            <span class="normal-case font-semibold opacity-70">{{ group.hint }}</span>
+          }
+        </li>
+        @for (result of group.results; track result.book_id ?? result.google_books_id) {
+          <app-search-result-row [result]="result" />
+        }
       }
     </ul>
   }
