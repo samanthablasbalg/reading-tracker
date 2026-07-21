@@ -1,0 +1,34 @@
+<div class="w-64 p-3">
+  <mat-form-field class="w-full" subscriptSizing="dynamic">
+    <mat-label>Search books</mat-label>
+    <input #searchInput matInput [formControl]="queryControl" (keydown.enter)="search()" />
+    <button
+      matSuffix
+      mat-icon-button
+      type="button"
+      [disabled]="isSearching()"
+      aria-label="Submit search"
+      (click)="search()"
+    >
+      <mat-icon>search</mat-icon>
+    </button>
+  </mat-form-field>
+
+  @if (isSearching()) {
+    <p class="text-sm text-muted px-1 pt-2">Searching…</p>
+  }
+  @if (searchError()) {
+    <p role="alert" class="text-sm text-error px-1 pt-2">Search failed — please try again.</p>
+  }
+  @if (!isSearching() && !searchError() && searched() && results().length === 0) {
+    <p class="text-sm text-muted px-1 pt-2">No results.</p>
+  }
+
+  @if (results().length > 0) {
+    <ul class="flex flex-col gap-1 pt-2 max-h-[60vh] overflow-y-auto">
+      @for (result of results(); track result.book_id ?? result.google_books_id) {
+        <app-search-result-row [result]="result" />
+      }
+    </ul>
+  }
+</div>
