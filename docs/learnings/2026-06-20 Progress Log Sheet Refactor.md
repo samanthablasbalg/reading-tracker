@@ -1,5 +1,7 @@
 # Session learnings — refactoring `progress-log-sheet.ts`
 
+> Work done in [#115](https://github.com/samanthablasbalg/rainbowsamreads/pull/115).
+
 Concepts implemented once while turning the messy DNF code into a single state machine. Captured so
 they don't evaporate.
 

@@ -1,5 +1,7 @@
 # Session learnings — refactoring audio support into `progress-log-sheet.ts`
 
+> Work done in [#125](https://github.com/samanthablasbalg/rainbowsamreads/pull/125).
+
 Cleaning up Sonnet's audio-logging additions. The original page-only version was clean; the audio
 bolt-on duplicated everything and branched everywhere instead of extending the existing patterns.
 
