@@ -19,9 +19,9 @@ explored. All of this came together in one fateful moment where a years-old, tin
 issue in one of my trackers made my brain go: _wait a minute, what if I just... try to build the
 reading tracker of my dreams myself?!_
 
-So I am! It's the first app I've ever built for real users, starting with me. Curious and want to
-give it a try? The app is invite-only while it's early, so if you want to poke around, email me at
-**rainbowsamreads@gmail.com**.
+So I am! It's the first app I've ever built for real users, starting with me. Curious? It's live at
+**[rainbowsamreads.fun](https://rainbowsamreads.fun)** — the app is invite-only while it's early, so
+if you want to poke around inside, email me at **rainbowsamreads@gmail.com** and I'll add you.
 
 ## What it does
 
@@ -67,5 +67,5 @@ CSS
 
 - **[Architecture](docs/architecture.md)** — the system and data model as one story
 - **[Decision records](docs/decisions/README.md)** — the _why_ behind every significant choice
-- **[Learnings](docs/learnings/)** — what I've picked up building hands-on
+- **[Learnings](docs/learnings/README.md)** — what I've picked up building hands-on
 - **[Roadmap](docs/roadmap.md)** — where it's going
