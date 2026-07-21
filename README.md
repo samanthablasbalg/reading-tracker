@@ -66,6 +66,6 @@ CSS
 ## Dig in
 
 - **[Architecture](docs/architecture.md)** — the system and data model as one story
-- **[Decision records](docs/decisions/)** — the _why_ behind every significant choice
+- **[Decision records](docs/decisions/README.md)** — the _why_ behind every significant choice
 - **[Learnings](docs/learnings/)** — what I've picked up building hands-on
 - **[Roadmap](docs/roadmap.md)** — where it's going
