@@ -260,6 +260,26 @@ def test_search_google_failure_with_no_local_results_returns_502(
     assert response.status_code == 502
 
 
+def test_search_retries_transient_5xx_and_succeeds(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    volume = _fake_volume(authors=["Susanna Clarke"])
+    attempts = {"count": 0}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        attempts["count"] += 1
+        if attempts["count"] < 3:
+            return httpx2.Response(503, json={"error": {"message": "backendFailed"}})
+        return httpx2.Response(200, json={"items": [volume]})
+
+    _patch_google(monkeypatch, handler)
+
+    response = client.get("/api/books/search?q=piranesi")
+    assert response.status_code == 200
+    assert attempts["count"] == 3
+    assert response.json()[0]["google_books_id"] == "abc123"
+
+
 def test_search_upgrades_http_cover_to_https(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
