@@ -50,22 +50,37 @@ describe('FormatPickSheetComponent', () => {
     expect(screen.getByRole('button', { name: 'Start reading Dune as Audio' })).toBeTruthy();
   });
 
-  it('calls markReading with the chosen format for print', async () => {
+  it('calls markReading with the chosen format for print, defaulting to status reading', async () => {
     const { mockEngagementService } = await setup();
     fireEvent.click(screen.getByRole('button', { name: 'Start reading Dune as Print' }));
-    expect(mockEngagementService.markReading).toHaveBeenCalledWith('book-1', 'print', undefined);
+    expect(mockEngagementService.markReading).toHaveBeenCalledWith(
+      'book-1',
+      'print',
+      undefined,
+      'reading',
+    );
   });
 
   it('calls markReading with the chosen format for digital', async () => {
     const { mockEngagementService } = await setup();
     fireEvent.click(screen.getByRole('button', { name: 'Start reading Dune as Digital' }));
-    expect(mockEngagementService.markReading).toHaveBeenCalledWith('book-1', 'digital', undefined);
+    expect(mockEngagementService.markReading).toHaveBeenCalledWith(
+      'book-1',
+      'digital',
+      undefined,
+      'reading',
+    );
   });
 
   it('calls markReading immediately for audio when length is known', async () => {
     const { mockEngagementService } = await setup({ default_audio_minutes: 600 });
     fireEvent.click(screen.getByRole('button', { name: 'Start reading Dune as Audio' }));
-    expect(mockEngagementService.markReading).toHaveBeenCalledWith('book-1', 'audio', undefined);
+    expect(mockEngagementService.markReading).toHaveBeenCalledWith(
+      'book-1',
+      'audio',
+      undefined,
+      'reading',
+    );
   });
 
   it('shows a length input instead of calling markReading for audio without a length', async () => {
@@ -86,7 +101,12 @@ describe('FormatPickSheetComponent', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Start reading Dune as Audio' }));
     fireEvent.input(screen.getByRole('textbox'), { target: { value: '10:30' } });
     fireEvent.click(screen.getByRole('button', { name: 'Start reading Dune as Audio' }));
-    expect(mockEngagementService.markReading).toHaveBeenCalledWith('book-1', 'audio', 630);
+    expect(mockEngagementService.markReading).toHaveBeenCalledWith(
+      'book-1',
+      'audio',
+      630,
+      'reading',
+    );
   });
 
   it('disables the start button when the length input is invalid', async () => {
@@ -136,5 +156,43 @@ describe('FormatPickSheetComponent', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(mockDialogRef.close).toHaveBeenCalledOnce();
     expect(mockEngagementService.markReading).not.toHaveBeenCalled();
+  });
+
+  it('uses a custom cancel label when given', async () => {
+    await setup({ cancelLabel: 'No thanks — just import' });
+    expect(screen.getByRole('button', { name: 'No thanks — just import' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
+  });
+
+  it('does not show a status step when only one status is given', async () => {
+    await setup({ statuses: ['reading'] });
+    expect(screen.getByRole('button', { name: 'Start reading Dune as Print' })).toBeTruthy();
+  });
+
+  it('shows a status step first when more than one status is given, then formats', async () => {
+    await setup({ statuses: ['reading', 'finished', 'dnf'] });
+
+    expect(screen.getByRole('button', { name: 'Add Dune as Reading' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add Dune as Finished' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add Dune as DNF' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Start reading Dune as Print' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Dune as Finished' }));
+
+    expect(screen.getByRole('button', { name: 'Start reading Dune as Print' })).toBeTruthy();
+  });
+
+  it('calls markReading with the chosen status after picking format', async () => {
+    const { mockEngagementService } = await setup({ statuses: ['reading', 'finished', 'dnf'] });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Dune as Finished' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start reading Dune as Print' }));
+
+    expect(mockEngagementService.markReading).toHaveBeenCalledWith(
+      'book-1',
+      'print',
+      undefined,
+      'finished',
+    );
   });
 });

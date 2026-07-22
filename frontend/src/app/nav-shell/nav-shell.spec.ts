@@ -4,6 +4,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { BreakpointObserver } from '@angular/cdk/layout';
+import { MATERIAL_ANIMATIONS } from '@angular/material/core';
 import { of } from 'rxjs';
 import { AuthService } from '../auth.service';
 import { NavShellComponent } from './nav-shell';
@@ -20,6 +21,22 @@ function openAccountMenu(fixture: { nativeElement: HTMLElement; detectChanges: (
   fixture.detectChanges();
 }
 
+// The bar's own toggle button relabels itself ("Search books" <-> "Submit search" once open),
+// so match either state rather than assuming which one is currently showing.
+function openSearchMenu(fixture: { nativeElement: HTMLElement; detectChanges: () => void }): void {
+  const trigger: HTMLButtonElement = fixture.nativeElement.querySelector(
+    'button[aria-label="Search books"], button[aria-label="Submit search"]',
+  )!;
+  trigger.click();
+  fixture.detectChanges();
+}
+
+// The <input> is always in the DOM (clipped to 0 width when collapsed, for the width
+// transition to animate) - open/closed is reflected by the toggle button's aria-label instead.
+function isSearchOpen(fixture: { nativeElement: HTMLElement }): boolean {
+  return !!fixture.nativeElement.querySelector('button[aria-label="Submit search"]');
+}
+
 describe('NavShellComponent', () => {
   let httpTesting: HttpTestingController;
   let mockBreakpointObserver: { observe: ReturnType<typeof vi.fn> };
@@ -34,6 +51,7 @@ describe('NavShellComponent', () => {
         provideHttpClientTesting(),
         provideRouter([]),
         { provide: BreakpointObserver, useValue: mockBreakpointObserver },
+        { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
       ],
     });
     httpTesting = TestBed.inject(HttpTestingController);
@@ -94,6 +112,7 @@ describe('NavShellComponent', () => {
         provideHttpClientTesting(),
         provideRouter([]),
         { provide: BreakpointObserver, useValue: mockBreakpointObserver },
+        { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
       ],
     });
     httpTesting = TestBed.inject(HttpTestingController);
@@ -156,6 +175,95 @@ describe('NavShellComponent', () => {
       b.textContent?.includes('Log out'),
     )!;
     expect(logoutButton.previousElementSibling?.textContent).toContain('me@example.com');
+  });
+
+  it('opens the search panel inline in the header on desktop, and running a search keeps it open', () => {
+    configure(false);
+    const fixture = TestBed.createComponent(NavShellComponent);
+    fixture.detectChanges();
+
+    openSearchMenu(fixture);
+    expect(isSearchOpen(fixture)).toBe(true);
+
+    const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+    input.click();
+    input.value = 'Dune';
+    input.dispatchEvent(new Event('input'));
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    fixture.detectChanges();
+
+    httpTesting.expectOne((req) => req.url.includes('/api/books/search')).flush([]);
+    fixture.detectChanges();
+
+    expect(isSearchOpen(fixture)).toBe(true);
+  });
+
+  it('clicking the search icon again closes the inline search', () => {
+    configure(false);
+    const fixture = TestBed.createComponent(NavShellComponent);
+    fixture.detectChanges();
+
+    openSearchMenu(fixture);
+    expect(isSearchOpen(fixture)).toBe(true);
+
+    openSearchMenu(fixture);
+    expect(isSearchOpen(fixture)).toBe(false);
+  });
+
+  it('clicking outside the search container closes it', () => {
+    configure(false);
+    const fixture = TestBed.createComponent(NavShellComponent);
+    fixture.detectChanges();
+
+    openSearchMenu(fixture);
+    expect(isSearchOpen(fixture)).toBe(true);
+
+    document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(isSearchOpen(fixture)).toBe(false);
+  });
+
+  it('clicking inside the search results does not close it', () => {
+    configure(false);
+    const fixture = TestBed.createComponent(NavShellComponent);
+    fixture.detectChanges();
+
+    openSearchMenu(fixture);
+    const input = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+    input.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(isSearchOpen(fixture)).toBe(true);
+  });
+
+  it('pressing Escape closes the inline search and returns focus to the trigger', () => {
+    configure(false);
+    const fixture = TestBed.createComponent(NavShellComponent);
+    fixture.detectChanges();
+
+    openSearchMenu(fixture);
+    const trigger: HTMLButtonElement = fixture.nativeElement.querySelector(
+      'button[aria-label="Submit search"]',
+    );
+    expect(isSearchOpen(fixture)).toBe(true);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(isSearchOpen(fixture)).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('opens a full-screen dialog for search on mobile', () => {
+    configure(true);
+    const fixture = TestBed.createComponent(NavShellComponent);
+    fixture.detectChanges();
+
+    openSearchMenu(fixture);
+
+    expect(document.querySelector('input')).not.toBeNull();
+    expect(document.querySelector('.search-dialog-fullscreen')).not.toBeNull();
   });
 
   it('logs out and navigates to / when "Log out" is clicked', () => {

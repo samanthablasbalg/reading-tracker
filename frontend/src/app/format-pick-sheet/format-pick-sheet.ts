@@ -6,7 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogTitle } from '@angular/material/dialog';
 import { MatBottomSheetRef, MAT_BOTTOM_SHEET_DATA } from '@angular/material/bottom-sheet';
-import { EngagementService } from '../engagement.service';
+import { EngagementService, EngagementStatus } from '../engagement.service';
 import { parseHhmm, hhmmFormatValidator } from '../hhmm';
 
 export interface FormatPickSheetData {
@@ -14,6 +14,12 @@ export interface FormatPickSheetData {
   title: string;
   cover_url: string | null;
   default_audio_minutes: number | null;
+  /** Offer a status choice before format when there's more than one to choose from
+   * (e.g. from search's Add/Import flow). Omitted or single-entry: skip straight to
+   * format picking and use that one status, defaulting to 'reading'. */
+  statuses?: EngagementStatus[];
+  /** Label for the bail-out button. Defaults to 'Cancel'. */
+  cancelLabel?: string;
 }
 
 const FORMATS = [
@@ -21,6 +27,12 @@ const FORMATS = [
   { value: 'digital', label: 'Digital' },
   { value: 'audio', label: 'Audio' },
 ] as const;
+
+const STATUS_LABEL: Record<EngagementStatus, string> = {
+  reading: 'Reading',
+  finished: 'Finished',
+  dnf: 'DNF',
+};
 
 @Component({
   selector: 'app-format-pick-sheet',
@@ -40,6 +52,18 @@ const FORMATS = [
         <img [ngSrc]="data.cover_url" width="60" height="90" [alt]="data.title + ' cover'" />
       }
       <h2 mat-dialog-title style="margin: 0; text-align: center;">{{ data.title }}</h2>
+      @if (mode() === 'choosingStatus') {
+        @for (option of data.statuses; track option) {
+          <button
+            mat-stroked-button
+            style="width: 100%;"
+            [attr.aria-label]="'Add ' + data.title + ' as ' + statusLabel(option)"
+            (click)="chooseStatus(option)"
+          >
+            {{ statusLabel(option) }}
+          </button>
+        }
+      }
       @if (mode() === 'picking') {
         @for (format of formats; track format.value) {
           <button
@@ -52,7 +76,8 @@ const FORMATS = [
             {{ format.label }}
           </button>
         }
-      } @else {
+      }
+      @if (mode() === 'collectingLength') {
         <mat-form-field style="width: 100%;">
           <mat-label>How long is the audiobook?</mat-label>
           <input matInput [formControl]="lengthControl" placeholder="HH:MM" />
@@ -81,9 +106,9 @@ const FORMATS = [
       @if (error()) {
         <p role="alert">{{ error() }}</p>
       }
-      @if (mode() === 'picking') {
+      @if (mode() === 'choosingStatus' || mode() === 'picking') {
         <button mat-button style="width: 100%;" [disabled]="submitting()" (click)="close()">
-          Cancel
+          {{ data.cancelLabel ?? 'Cancel' }}
         </button>
       }
     </div>
@@ -98,7 +123,10 @@ export class FormatPickSheetComponent {
   private readonly engagementService = inject(EngagementService);
 
   protected readonly formats = FORMATS;
-  protected readonly mode = signal<'picking' | 'collectingLength'>('picking');
+  protected readonly mode = signal<'choosingStatus' | 'picking' | 'collectingLength'>(
+    (this.data.statuses?.length ?? 0) > 1 ? 'choosingStatus' : 'picking',
+  );
+  protected readonly status = signal<EngagementStatus>(this.data.statuses?.[0] ?? 'reading');
   protected readonly submitting = signal(false);
   protected readonly error = signal<string | null>(null);
 
@@ -106,6 +134,15 @@ export class FormatPickSheetComponent {
     Validators.required,
     hhmmFormatValidator(),
   ]);
+
+  protected statusLabel(status: EngagementStatus): string {
+    return STATUS_LABEL[status];
+  }
+
+  protected chooseStatus(option: EngagementStatus): void {
+    this.status.set(option);
+    this.mode.set('picking');
+  }
 
   protected pick(format: string): void {
     if (this.submitting()) return;
@@ -128,20 +165,22 @@ export class FormatPickSheetComponent {
     this.submitting.set(true);
     this.error.set(null);
 
-    this.engagementService.markReading(this.data.bookId, format, audioLengthMinutes).subscribe({
-      next: () => {
-        this.engagementService.reloadEngagements();
-        this.close();
-      },
-      error: () => {
-        this.submitting.set(false);
-        this.error.set('Failed to start reading. Please try again.');
-      },
-    });
+    this.engagementService
+      .markReading(this.data.bookId, format, audioLengthMinutes, this.status())
+      .subscribe({
+        next: () => {
+          this.engagementService.reloadEngagements();
+          this.close(this.status());
+        },
+        error: () => {
+          this.submitting.set(false);
+          this.error.set('Failed to start reading. Please try again.');
+        },
+      });
   }
 
-  protected close(): void {
-    this.dialogRef?.close();
-    this.bottomSheetRef?.dismiss();
+  protected close(result?: EngagementStatus): void {
+    this.dialogRef?.close(result);
+    this.bottomSheetRef?.dismiss(result);
   }
 }

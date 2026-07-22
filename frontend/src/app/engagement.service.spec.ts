@@ -32,13 +32,27 @@ describe('EngagementService', () => {
     vi.useRealTimers();
   });
 
-  it('markReading sends started_on as the local date', () => {
+  it('markReading sends started_on as the local date and defaults to status reading', () => {
     service.markReading('book-1', 'print').subscribe();
 
     const req = httpTesting.expectOne('/api/engagements');
     expect(req.request.body).toEqual({
       book_id: 'book-1',
       edition_format: 'print',
+      status: 'reading',
+      started_on: '2026-06-30',
+    });
+    req.flush({});
+  });
+
+  it('markReading sends the given status', () => {
+    service.markReading('book-1', 'print', undefined, 'finished').subscribe();
+
+    const req = httpTesting.expectOne('/api/engagements');
+    expect(req.request.body).toEqual({
+      book_id: 'book-1',
+      edition_format: 'print',
+      status: 'finished',
       started_on: '2026-06-30',
     });
     req.flush({});

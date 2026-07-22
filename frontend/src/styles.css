@@ -185,3 +185,16 @@
   max-height: 100vh !important;
   overflow-y: auto !important;
 }
+
+/* Mobile global search (nav-shell.ts): takes over the whole screen, not a centered card -
+   Material's dialog is centered with a max-width by default, neither of which apply here. */
+.search-dialog-fullscreen {
+  max-width: 100vw !important;
+  width: 100vw;
+  height: 100dvh;
+}
+.search-dialog-fullscreen .mat-mdc-dialog-surface {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}

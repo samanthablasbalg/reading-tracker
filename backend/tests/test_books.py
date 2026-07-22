@@ -19,7 +19,12 @@ from app.models.enums import Format
 from app.models.standalone_entry import StandaloneEntry
 from app.models.user import User
 from tests.conftest import owner_engine
-from tests.helpers import _create_bare_book, _create_book, _create_engagement
+from tests.helpers import (
+    _create_bare_book,
+    _create_book,
+    _create_edition,
+    _create_engagement,
+)
 
 
 def _fake_volume(
@@ -74,6 +79,9 @@ def test_search_returns_candidates(
     data = response.json()
     assert len(data) == 1
     candidate = data[0]
+    assert candidate["state"] == "not_in_app"
+    assert candidate["book_id"] is None
+    assert candidate["status"] is None
     assert candidate["google_books_id"] == "abc123"
     assert candidate["title"] == "Piranesi"
     assert candidate["authors"] == ["Susanna Clarke"]
@@ -82,6 +90,194 @@ def test_search_returns_candidates(
     assert candidate["categories"] == ["Fantasy"]
     assert candidate["cover_url"] == "https://example.com/cover.jpg"
     assert candidate["language"] == "en"
+
+
+def test_search_book_in_catalog_not_in_library(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    book = _create_bare_book(client, title="Piranesi", author="Susanna Clarke")
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json={})
+
+    _patch_google(monkeypatch, handler)
+
+    response = client.get("/api/books/search?q=piranesi")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["state"] == "in_catalog"
+    assert data[0]["book_id"] == book["id"]
+    assert data[0]["status"] is None
+
+
+def test_search_book_in_library_shows_status(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    book = _create_book(client, title="Piranesi", author="Susanna Clarke")
+    _create_engagement(client, book["id"])
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json={})
+
+    _patch_google(monkeypatch, handler)
+
+    response = client.get("/api/books/search?q=piranesi")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["state"] == "in_library"
+    assert data[0]["status"] == "reading"
+
+
+def test_search_matches_local_book_by_author_name(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _create_bare_book(client, title="Piranesi", author="Susanna Clarke")
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json={})
+
+    _patch_google(monkeypatch, handler)
+
+    response = client.get("/api/books/search?q=clarke")
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+
+
+def test_search_prefers_reading_status_when_multiple_engagements(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    book = _create_book(client, title="Piranesi", author="Susanna Clarke")
+    finished = _create_engagement(client, book["id"])
+    client.patch(f"/api/engagements/{finished['id']}", json={"status": "finished"})
+    client.post(
+        "/api/engagements", json={"book_id": book["id"], "edition_format": "audio"}
+    )
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json={})
+
+    _patch_google(monkeypatch, handler)
+
+    response = client.get("/api/books/search?q=piranesi")
+    assert response.json()[0]["status"] == "reading"
+
+
+def test_search_falls_back_to_most_recent_status(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    book = _create_book(client, title="Piranesi", author="Susanna Clarke")
+    first = _create_engagement(client, book["id"])
+    client.patch(f"/api/engagements/{first['id']}", json={"status": "dnf"})
+    second = client.post(
+        "/api/engagements", json={"book_id": book["id"], "edition_format": "audio"}
+    ).json()
+    client.patch(f"/api/engagements/{second['id']}", json={"status": "finished"})
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json={})
+
+    _patch_google(monkeypatch, handler)
+
+    response = client.get("/api/books/search?q=piranesi")
+    assert response.json()[0]["status"] == "finished"
+
+
+def test_search_dedups_google_hit_already_in_catalog_by_google_books_id(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    volume = _fake_volume(id="abc123", authors=["Susanna Clarke"])
+
+    def import_handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json=volume)
+
+    _patch_google(monkeypatch, import_handler)
+    client.post("/api/books/import", json={"google_books_id": "abc123"})
+
+    def search_handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json={"items": [volume]})
+
+    _patch_google(monkeypatch, search_handler)
+
+    response = client.get("/api/books/search?q=piranesi")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["state"] == "in_catalog"
+    assert data[0]["google_books_id"] == "abc123"
+
+
+def test_search_dedups_google_hit_matching_local_isbn(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    book = _create_bare_book(client, title="Piranesi", author="Susanna Clarke")
+    _create_edition(client, book["id"], isbn="9781526622426")
+
+    volume = _fake_volume(id="differentid", authors=["Susanna Clarke"])
+    volume["volumeInfo"]["industryIdentifiers"] = [
+        {"type": "ISBN_13", "identifier": "9781526622426"}
+    ]
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(200, json={"items": [volume]})
+
+    _patch_google(monkeypatch, handler)
+
+    response = client.get("/api/books/search?q=piranesi")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["state"] == "in_catalog"
+
+
+def test_search_google_failure_degrades_to_local_results(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _create_bare_book(client, title="Piranesi", author="Susanna Clarke")
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(500)
+
+    _patch_google(monkeypatch, handler)
+
+    response = client.get("/api/books/search?q=piranesi")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["state"] == "in_catalog"
+
+
+def test_search_google_failure_with_no_local_results_returns_502(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(500)
+
+    _patch_google(monkeypatch, handler)
+
+    response = client.get("/api/books/search?q=zzznomatch")
+    assert response.status_code == 502
+
+
+def test_search_retries_transient_5xx_and_succeeds(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    volume = _fake_volume(authors=["Susanna Clarke"])
+    attempts = {"count": 0}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        attempts["count"] += 1
+        if attempts["count"] < 3:
+            return httpx2.Response(503, json={"error": {"message": "backendFailed"}})
+        return httpx2.Response(200, json={"items": [volume]})
+
+    _patch_google(monkeypatch, handler)
+
+    response = client.get("/api/books/search?q=piranesi")
+    assert response.status_code == 200
+    assert attempts["count"] == 3
+    assert response.json()[0]["google_books_id"] == "abc123"
 
 
 def test_search_upgrades_http_cover_to_https(

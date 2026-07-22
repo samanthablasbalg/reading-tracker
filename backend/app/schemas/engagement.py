@@ -14,6 +14,7 @@ from app.schemas.review import ReviewRead
 class EngagementCreate(BaseModel):
     book_id: uuid.UUID
     edition_format: Format
+    status: Literal["reading", "finished", "dnf"] = "reading"
     audio_length_minutes: int | None = None
     started_on: datetime.date | None = None
 

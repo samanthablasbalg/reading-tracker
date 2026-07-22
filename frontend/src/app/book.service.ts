@@ -23,8 +23,10 @@ export interface Book {
   updated_at: string;
 }
 
-export interface BookSearchCandidate {
-  google_books_id: string;
+export interface BookSearchResult {
+  state: 'in_library' | 'in_catalog' | 'not_in_app';
+  book_id: string | null;
+  google_books_id: string | null;
   title: string;
   authors: string[];
   published_date: string | null;
@@ -32,6 +34,7 @@ export interface BookSearchCandidate {
   categories: string[];
   cover_url: string | null;
   language: string | null;
+  status: 'reading' | 'finished' | 'dnf' | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -49,8 +52,8 @@ export class BookService {
     this.reloadTrigger.next();
   }
 
-  searchBooks(q: string): Observable<BookSearchCandidate[]> {
-    return this.http.get<BookSearchCandidate[]>(`${environment.apiBaseUrl}/books/search`, {
+  searchBooks(q: string): Observable<BookSearchResult[]> {
+    return this.http.get<BookSearchResult[]>(`${environment.apiBaseUrl}/books/search`, {
       params: { q },
     });
   }

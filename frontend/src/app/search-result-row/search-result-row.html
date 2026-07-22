@@ -1,0 +1,43 @@
+<li class="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-hover">
+  <div class="relative w-12 h-16 rounded-md overflow-hidden flex-none bg-surface-2">
+    @if (result().cover_url; as cover) {
+      <img [ngSrc]="cover" fill [alt]="result().title + ' cover'" class="object-contain" />
+    }
+  </div>
+  <div class="min-w-0 flex-1">
+    <p class="font-serif font-semibold text-sm leading-tight truncate">{{ result().title }}</p>
+    <p class="text-xs text-muted truncate">{{ result().authors.join(', ') }}</p>
+    @if (stateLabel(); as label) {
+      <span
+        class="inline-flex items-center rounded-full text-label-sm px-2 py-0.5 mt-1"
+        [class]="
+          result().state === 'in_library'
+            ? 'bg-primary/14 text-primary'
+            : 'bg-surface-2 text-muted-strong border border-border'
+        "
+      >
+        {{ label }}
+      </span>
+    }
+  </div>
+  @if (result().state === 'not_in_app') {
+    <button
+      mat-stroked-button
+      [disabled]="importing()"
+      [attr.aria-label]="'Import ' + result().title"
+      (click)="importRequested.emit()"
+    >
+      {{ importing() ? 'Importing…' : 'Import' }}
+    </button>
+  }
+  @if (result().state === 'in_catalog') {
+    <button
+      mat-flat-button
+      color="primary"
+      [attr.aria-label]="'Add ' + result().title + ' to your library'"
+      (click)="addRequested.emit()"
+    >
+      Add
+    </button>
+  }
+</li>
