@@ -20,7 +20,7 @@ issue in one of my trackers made my brain go: _wait a minute, what if I just... 
 reading tracker of my dreams myself?!_
 
 So I am! It's the first app I've ever built for real users, starting with me. Curious? It's live at
-**[rainbowsamreads.fun](https://rainbowsamreads.fun)** — the app is invite-only while it's early, so
+**[rainbowsamreads.fun](https://rainbowsamreads.fun)**. The app is invite-only while it's early, so
 if you want to poke around inside, email me at **rainbowsamreads@gmail.com** and I'll add you.
 
 ## What it does
@@ -34,7 +34,7 @@ Today you can sign in with Google, add books, track your reads, log daily progre
 review. It is still pretty rough around the edges, but I am adding new improvements and features
 nearly every day.
 
-It's built mobile-friendly first — a phone is where I do most of my reading-tracking, so that's the
+It's built mobile-friendly first. A phone is where I do most of my reading-tracking, so that's the
 experience I design around, with the desktop layout built just as deliberately. I even run a
 separate staging environment so I can test in-progress work on my real phone before it ships.
 
@@ -48,13 +48,13 @@ all in the [roadmap](docs/roadmap.md).
 Testing is the discipline I bring to building, so it's not an afterthought:
 
 - **Backend:** pytest against a [dedicated test database](docs/decisions/0014-dedicated-test-database.md)
-  that resets the schema, runs migrations, and truncates between tests — every run starts from a
+  that resets the schema, runs migrations, and truncates between tests so every run starts from a
   known state.
 - **Frontend:** Vitest via Angular's runner, with Angular Testing Library for component specs.
 - **End-to-end:** Playwright with page objects and fixtures, on a
   [purpose-built e2e database strategy](docs/decisions/0018-e2e-testing-database-strategy.md), with a
   test-auth path so runs don't depend on live Google login.
-- **Static analysis:** mypy (strict), Ruff, ESLint, and Prettier — wired into pre-commit and re-run
+- **Static analysis:** mypy (strict), Ruff, ESLint, and Prettier, wired into pre-commit and re-run
   in CI, so nothing merges without passing.
 
 ## Built with an AI assistant
