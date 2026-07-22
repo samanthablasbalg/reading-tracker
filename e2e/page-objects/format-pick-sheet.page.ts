@@ -1,6 +1,7 @@
 import { Locator, Page } from '@playwright/test';
 
 export type PickableFormat = 'Print' | 'Digital' | 'Audio';
+export type PickableStatus = 'Reading' | 'Finished' | 'DNF';
 
 export class FormatPickSheetPage {
   constructor(public readonly page: Page) {}
@@ -14,6 +15,35 @@ export class FormatPickSheetPage {
    */
   getPickButton(title: string, format: PickableFormat): Locator {
     return this.page.getByRole('button', { name: `Start reading ${title} as ${format}` });
+  }
+
+  /**
+   * Locates the status-choice button, shown as the sheet's first step when
+   * more than one status is offered (e.g. from search's Import/Add flow),
+   * before format-picking.
+   * @param title - The book's title, as shown in the picker heading.
+   * @param status - The status to pick.
+   * @returns The button locator.
+   */
+  getStatusButton(title: string, status: PickableStatus): Locator {
+    return this.page.getByRole('button', { name: `Add ${title} as ${status}` });
+  }
+
+  /**
+   * Picks a status from the sheet's status-choice step.
+   * @param title - The book's title.
+   * @param status - The status to pick.
+   */
+  async chooseStatus(title: string, status: PickableStatus): Promise<void> {
+    await this.getStatusButton(title, status).click();
+  }
+
+  /**
+   * Dismisses the sheet via its bail-out button, whatever it's labeled.
+   * @param label - The button's label; defaults to "Cancel".
+   */
+  async dismiss(label = 'Cancel'): Promise<void> {
+    await this.page.getByRole('button', { name: label }).click();
   }
 
   /** Locates the HH:MM length input shown when starting an audio book with no known length. */
