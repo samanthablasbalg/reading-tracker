@@ -89,10 +89,12 @@ export class EngagementService {
     bookId: string,
     format = 'print',
     audioLengthMinutes?: number,
+    status: EngagementStatus = 'reading',
   ): Observable<Engagement> {
     return this.http.post<Engagement>(`${environment.apiBaseUrl}/engagements`, {
       book_id: bookId,
       edition_format: format,
+      status,
       started_on: localDateString(),
       ...(audioLengthMinutes != null && { audio_length_minutes: audioLengthMinutes }),
     });
