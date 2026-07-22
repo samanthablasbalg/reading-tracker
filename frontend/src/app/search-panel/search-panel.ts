@@ -1,11 +1,12 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { SearchResultRowComponent } from '../search-result-row/search-result-row';
 import { BookSearchResult, BookService } from '../book.service';
@@ -37,6 +38,7 @@ const GROUP_DEFINITIONS: {
 @Component({
   selector: 'app-search-panel',
   imports: [
+    NgTemplateOutlet,
     ReactiveFormsModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -45,18 +47,35 @@ const GROUP_DEFINITIONS: {
     SearchResultRowComponent,
   ],
   templateUrl: './search-panel.html',
-  // MatMenu's panel root closes the menu on any click that bubbles up through its
-  // projected content (see node_modules/@angular/material/fesm2022/menu.mjs) - it assumes
-  // everything inside is a mat-menu-item. Stop the click here so interacting with the
-  // search input/results doesn't close the whole menu.
-  host: { '(click)': '$event.stopPropagation()' },
+  // Desktop: this component IS the collapsed-icon <-> expanded-bar toggle, so it needs to see
+  // clicks/Escape anywhere on the page to know when to collapse - mobile ignores both (the
+  // dialog's own backdrop/Escape handling and the explicit close button cover it there).
+  host: {
+    '(document:click)': 'onDocumentClick($event)',
+    '(document:keydown.escape)': 'onEscape()',
+  },
 })
 export class SearchPanelComponent {
   private readonly bookService = inject(BookService);
   private readonly bottomSheet = inject(MatBottomSheet);
   private readonly dialog = inject(MatDialog);
   private readonly breakpointObserver = inject(BreakpointObserver);
+  private readonly elementRef = inject(ElementRef<HTMLElement>);
+  // Only set when nav-shell opens this as a full-screen MatDialog (mobile) - not when it's
+  // placed inline in the header (desktop), which has no dialog chrome around it. Doubles as
+  // the signal for which template branch to render (see search-panel.html).
+  private readonly dialogRef = inject(MatDialogRef, { optional: true });
+  protected readonly isFullScreen = !!this.dialogRef;
 
+  // #toggleButton sits on a mat-icon-button, so a bare ref would resolve to the MatIconButton
+  // directive instance (not the element) - `read: ElementRef` forces the native element.
+  private readonly toggleButton = viewChild<unknown, ElementRef<HTMLButtonElement>>(
+    'toggleButton',
+    { read: ElementRef },
+  );
+  private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
+
+  protected readonly isOpen = signal(false);
   protected readonly queryControl = new FormControl('', { nonNullable: true });
   protected readonly results = signal<BookSearchResult[]>([]);
   protected readonly isSearching = signal(false);
@@ -73,6 +92,58 @@ export class SearchPanelComponent {
       results: results.filter((r) => r.state === state),
     })).filter((group) => group.results.length > 0);
   });
+
+  // Gates the results dropdown itself (see search-panel.html) - without this it renders as an
+  // empty card the instant the bar opens, before a search has ever run.
+  protected readonly hasContent = computed(
+    () =>
+      this.isSearching() ||
+      this.searchError() ||
+      this.importError() !== null ||
+      this.searched() ||
+      this.results().length > 0,
+  );
+
+  protected close(): void {
+    this.dialogRef?.close();
+  }
+
+  protected toggleOpen(): void {
+    if (this.isOpen()) {
+      this.collapse();
+      return;
+    }
+    this.isOpen.set(true);
+    this.searchInput()?.nativeElement.focus();
+  }
+
+  protected onDocumentClick(event: MouseEvent): void {
+    if (this.isFullScreen || !this.isOpen()) return;
+    if (!this.elementRef.nativeElement.contains(event.target as Node)) {
+      this.collapse();
+    }
+  }
+
+  protected onEscape(): void {
+    if (this.isFullScreen || !this.isOpen()) return;
+    this.collapse();
+  }
+
+  private collapse(): void {
+    this.isOpen.set(false);
+    this.resetSearch();
+    this.toggleButton()?.nativeElement.focus();
+  }
+
+  private resetSearch(): void {
+    this.queryControl.reset('');
+    this.results.set([]);
+    this.isSearching.set(false);
+    this.searchError.set(false);
+    this.searched.set(false);
+    this.importingIds.set(new Set());
+    this.importError.set(null);
+  }
 
   protected search(): void {
     if (this.isSearching()) return;

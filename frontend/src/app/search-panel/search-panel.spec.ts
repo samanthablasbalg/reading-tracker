@@ -75,7 +75,20 @@ describe('SearchPanelComponent', () => {
     httpTesting.verify();
   });
 
+  // Standalone (not inside a dialog), the panel starts collapsed to a 40px icon - opening it
+  // is a prerequisite for typing/seeing results, not a separate concern each test re-proves.
+  function openBar(fixture: { nativeElement: HTMLElement; detectChanges: () => void }): void {
+    const toggle = fixture.nativeElement.querySelector(
+      'button[aria-label="Search books"]',
+    ) as HTMLButtonElement | null;
+    if (toggle) {
+      toggle.click();
+      fixture.detectChanges();
+    }
+  }
+
   function search(fixture: { nativeElement: HTMLElement; detectChanges: () => void }, q: string) {
+    openBar(fixture);
     const input: HTMLInputElement = fixture.nativeElement.querySelector('input')!;
     input.value = q;
     input.dispatchEvent(new Event('input'));
@@ -214,6 +227,7 @@ describe('SearchPanelComponent', () => {
   it('clicking the submit button also triggers a search', () => {
     const fixture = TestBed.createComponent(SearchPanelComponent);
     fixture.detectChanges();
+    openBar(fixture);
 
     const input: HTMLInputElement = fixture.nativeElement.querySelector('input')!;
     input.value = 'Dune';

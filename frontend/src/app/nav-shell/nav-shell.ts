@@ -6,6 +6,7 @@ import { BreakpointObserver } from '@angular/cdk/layout';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDialog } from '@angular/material/dialog';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { AuthService } from '../auth.service';
 import { SearchPanelComponent } from '../search-panel/search-panel';
@@ -50,17 +51,18 @@ const TOUCH_HANDSET =
     <div class="bg-background text-text">
       <div class="flex flex-col min-h-dvh">
         <header class="flex justify-end items-center gap-1 px-4 py-2">
-          <button
-            mat-icon-button
-            class="!w-10 !h-10 !p-0 !rounded-full"
-            [matMenuTriggerFor]="searchMenu"
-            aria-label="Search books"
-          >
-            <mat-icon>search</mat-icon>
-          </button>
-          <mat-menu #searchMenu="matMenu" xPosition="before">
+          @if (isMobile()) {
+            <button
+              mat-icon-button
+              class="!w-10 !h-10 !p-0 !rounded-full"
+              aria-label="Search books"
+              (click)="openMobileSearch()"
+            >
+              <mat-icon>search</mat-icon>
+            </button>
+          } @else {
             <app-search-panel />
-          </mat-menu>
+          }
 
           <button
             mat-icon-button
@@ -151,6 +153,7 @@ export class NavShellComponent {
   private readonly router = inject(Router);
   private readonly breakpointObserver = inject(BreakpointObserver);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly dialog = inject(MatDialog);
 
   protected readonly destinations = DESTINATIONS;
 
@@ -169,5 +172,12 @@ export class NavShellComponent {
 
   protected logout(): void {
     this.auth.logout().subscribe(() => this.router.navigate(['/']));
+  }
+
+  // Mobile gets a full-screen dialog (matches the mockup - search takes over the whole
+  // screen). Desktop renders app-search-panel directly - it owns its own collapsed/expanded
+  // bar and the results dropdown below it.
+  protected openMobileSearch(): void {
+    this.dialog.open(SearchPanelComponent, { panelClass: 'search-dialog-fullscreen' });
   }
 }
