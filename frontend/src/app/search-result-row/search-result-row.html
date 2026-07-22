@@ -20,4 +20,24 @@
       </span>
     }
   </div>
+  @if (result().state === 'not_in_app') {
+    <button
+      mat-stroked-button
+      [disabled]="importing()"
+      [attr.aria-label]="'Import ' + result().title"
+      (click)="importRequested.emit()"
+    >
+      {{ importing() ? 'Importing…' : 'Import' }}
+    </button>
+  }
+  @if (result().state === 'in_catalog') {
+    <button
+      mat-flat-button
+      color="primary"
+      [attr.aria-label]="'Add ' + result().title + ' to your library'"
+      (click)="addRequested.emit()"
+    >
+      Add
+    </button>
+  }
 </li>
