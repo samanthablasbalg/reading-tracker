@@ -117,6 +117,16 @@ export class SearchPanelComponent {
     this.searchInput()?.nativeElement.focus();
   }
 
+  // Once open, the toggle button doubles as "Submit search" - only treat the click as a
+  // submit when there's a query to send, otherwise it's a second press meant to close the bar.
+  protected onToggleClick(): void {
+    if (this.isOpen() && this.queryControl.value.trim()) {
+      this.search();
+      return;
+    }
+    this.toggleOpen();
+  }
+
   protected onDocumentClick(event: MouseEvent): void {
     if (this.isFullScreen || !this.isOpen()) return;
     if (!this.elementRef.nativeElement.contains(event.target as Node)) {

@@ -42,7 +42,7 @@
         type="button"
         class="!w-10 !h-10 !p-0 shrink-0 !rounded-full"
         [attr.aria-label]="isOpen() ? 'Submit search' : 'Search books'"
-        (click)="isOpen() ? search() : toggleOpen()"
+        (click)="onToggleClick()"
       >
         <mat-icon>search</mat-icon>
       </button>
