@@ -1,10 +1,60 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
+import { MatDialog } from '@angular/material/dialog';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { SearchPanelComponent } from './search-panel';
+import { FormatPickSheetComponent } from '../format-pick-sheet/format-pick-sheet';
+
+const notInAppResult = {
+  state: 'not_in_app',
+  book_id: null,
+  google_books_id: 'gbid-dune',
+  title: 'Dune',
+  authors: ['Frank Herbert'],
+  published_date: '1965',
+  page_count: 412,
+  categories: [],
+  cover_url: null,
+  language: 'en',
+  status: null,
+};
+
+const importedBook = {
+  id: 'book-dune',
+  title: 'Dune',
+  authors: [],
+  google_books_id: 'gbid-dune',
+  default_cover_url: null,
+  default_page_count: 412,
+  default_audio_minutes: null,
+  original_language: 'en',
+  genres: [],
+  publication_date: '1965-01-01',
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
+};
+
+const inCatalogResult = {
+  state: 'in_catalog',
+  book_id: 'book-dune',
+  google_books_id: 'gbid-dune',
+  title: 'Dune',
+  authors: ['Frank Herbert'],
+  published_date: '1965',
+  page_count: 412,
+  categories: [],
+  cover_url: null,
+  language: 'en',
+  status: null,
+};
 
 describe('SearchPanelComponent', () => {
   let httpTesting: HttpTestingController;
+  let bottomSheet: MatBottomSheet;
+  let dialog: MatDialog;
+  let breakpointObserver: BreakpointObserver;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -13,6 +63,9 @@ describe('SearchPanelComponent', () => {
     }).compileComponents();
 
     httpTesting = TestBed.inject(HttpTestingController);
+    bottomSheet = TestBed.inject(MatBottomSheet);
+    dialog = TestBed.inject(MatDialog);
+    breakpointObserver = TestBed.inject(BreakpointObserver);
   });
 
   afterEach(() => {
@@ -166,5 +219,102 @@ describe('SearchPanelComponent', () => {
     fixture.detectChanges();
 
     httpTesting.expectOne((req) => req.url.includes('/api/books/search')).flush([]);
+  });
+
+  describe('importing and adding', () => {
+    it('imports on click, updates the row to in_catalog, and opens the add sheet on desktop', () => {
+      vi.spyOn(breakpointObserver, 'isMatched').mockReturnValue(false);
+      vi.spyOn(dialog, 'open');
+
+      const fixture = TestBed.createComponent(SearchPanelComponent);
+      fixture.detectChanges();
+      search(fixture, 'Dune');
+      httpTesting.expectOne((req) => req.url.includes('/api/books/search')).flush([notInAppResult]);
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Import Dune"]').click();
+      fixture.detectChanges();
+
+      httpTesting.expectOne('/api/books/import').flush(importedBook);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('button[aria-label="Import Dune"]')).toBeNull();
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Add Dune to your library"]'),
+      ).not.toBeNull();
+      expect(dialog.open).toHaveBeenCalledWith(FormatPickSheetComponent, {
+        data: {
+          bookId: 'book-dune',
+          title: 'Dune',
+          cover_url: null,
+          default_audio_minutes: null,
+          statuses: ['reading', 'finished', 'dnf'],
+          cancelLabel: 'No thanks — just import',
+        },
+      });
+    });
+
+    it('disables the Import button while the request is in flight', () => {
+      const fixture = TestBed.createComponent(SearchPanelComponent);
+      fixture.detectChanges();
+      search(fixture, 'Dune');
+      httpTesting.expectOne((req) => req.url.includes('/api/books/search')).flush([notInAppResult]);
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Import Dune"]').click();
+      fixture.detectChanges();
+
+      const button: HTMLButtonElement = fixture.nativeElement.querySelector(
+        'button[aria-label="Import Dune"]',
+      );
+      expect(button.disabled).toBe(true);
+      expect(button.textContent).toContain('Importing…');
+
+      httpTesting.expectOne('/api/books/import').flush(importedBook);
+    });
+
+    it('shows an error and re-enables the button when import fails', () => {
+      const fixture = TestBed.createComponent(SearchPanelComponent);
+      fixture.detectChanges();
+      search(fixture, 'Dune');
+      httpTesting.expectOne((req) => req.url.includes('/api/books/search')).flush([notInAppResult]);
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Import Dune"]').click();
+      httpTesting.expectOne('/api/books/import').error(new ProgressEvent('error'));
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.textContent).toContain('Import failed');
+      const button: HTMLButtonElement = fixture.nativeElement.querySelector(
+        'button[aria-label="Import Dune"]',
+      );
+      expect(button.disabled).toBe(false);
+    });
+
+    it('clicking Add on an in_catalog result opens the sheet directly, without importing', () => {
+      vi.spyOn(breakpointObserver, 'isMatched').mockReturnValue(true);
+      vi.spyOn(bottomSheet, 'open');
+
+      const fixture = TestBed.createComponent(SearchPanelComponent);
+      fixture.detectChanges();
+      search(fixture, 'Dune');
+      httpTesting
+        .expectOne((req) => req.url.includes('/api/books/search'))
+        .flush([inCatalogResult]);
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Add Dune to your library"]').click();
+
+      httpTesting.expectNone((req) => req.url.includes('/api/books/import'));
+      expect(bottomSheet.open).toHaveBeenCalledWith(FormatPickSheetComponent, {
+        data: {
+          bookId: 'book-dune',
+          title: 'Dune',
+          cover_url: null,
+          default_audio_minutes: null,
+          statuses: ['reading', 'finished', 'dnf'],
+        },
+      });
+    });
   });
 });

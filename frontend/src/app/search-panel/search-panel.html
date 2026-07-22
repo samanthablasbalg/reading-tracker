@@ -20,6 +20,9 @@
   @if (searchError()) {
     <p role="alert" class="text-sm text-error px-1 pt-2">Search failed — please try again.</p>
   }
+  @if (importError(); as message) {
+    <p role="alert" class="text-sm text-error px-1 pt-2">{{ message }}</p>
+  }
   @if (!isSearching() && !searchError() && searched() && results().length === 0) {
     <p class="text-sm text-muted px-1 pt-2">No results.</p>
   }
@@ -34,7 +37,12 @@
           }
         </li>
         @for (result of group.results; track result.book_id ?? result.google_books_id) {
-          <app-search-result-row [result]="result" />
+          <app-search-result-row
+            [result]="result"
+            [importing]="importingIds().has(result.google_books_id ?? '')"
+            (importRequested)="onImport(result)"
+            (addRequested)="onAdd(result)"
+          />
         }
       }
     </ul>

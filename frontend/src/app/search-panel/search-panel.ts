@@ -4,8 +4,19 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatBottomSheet } from '@angular/material/bottom-sheet';
+import { MatDialog } from '@angular/material/dialog';
+import { BreakpointObserver } from '@angular/cdk/layout';
 import { SearchResultRowComponent } from '../search-result-row/search-result-row';
 import { BookSearchResult, BookService } from '../book.service';
+import { EngagementStatus } from '../engagement.service';
+import {
+  FormatPickSheetComponent,
+  FormatPickSheetData,
+} from '../format-pick-sheet/format-pick-sheet';
+
+const ADD_STATUSES: EngagementStatus[] = ['reading', 'finished', 'dnf'];
+const MOBILE_BREAKPOINT = '(max-width: 599px)';
 
 interface ResultGroup {
   heading: string;
@@ -42,12 +53,17 @@ const GROUP_DEFINITIONS: {
 })
 export class SearchPanelComponent {
   private readonly bookService = inject(BookService);
+  private readonly bottomSheet = inject(MatBottomSheet);
+  private readonly dialog = inject(MatDialog);
+  private readonly breakpointObserver = inject(BreakpointObserver);
 
   protected readonly queryControl = new FormControl('', { nonNullable: true });
   protected readonly results = signal<BookSearchResult[]>([]);
   protected readonly isSearching = signal(false);
   protected readonly searchError = signal(false);
   protected readonly searched = signal(false);
+  protected readonly importingIds = signal<ReadonlySet<string>>(new Set());
+  protected readonly importError = signal<string | null>(null);
 
   protected readonly groups = computed<ResultGroup[]>(() => {
     const results = this.results();
@@ -79,5 +95,89 @@ export class SearchPanelComponent {
         this.searched.set(true);
       },
     });
+  }
+
+  protected onImport(result: BookSearchResult): void {
+    const googleBooksId = result.google_books_id!;
+    this.importError.set(null);
+    this.importingIds.update((ids) => new Set(ids).add(googleBooksId));
+
+    this.bookService.importBook(googleBooksId).subscribe({
+      next: (book) => {
+        this.importingIds.update((ids) => {
+          const next = new Set(ids);
+          next.delete(googleBooksId);
+          return next;
+        });
+        this.results.update((results) =>
+          results.map((r) =>
+            r.google_books_id === googleBooksId
+              ? { ...r, state: 'in_catalog', book_id: book.id }
+              : r,
+          ),
+        );
+        this.openAddSheet(
+          {
+            bookId: book.id,
+            title: book.title,
+            cover_url: book.default_cover_url,
+            default_audio_minutes: book.default_audio_minutes,
+            statuses: ADD_STATUSES,
+            cancelLabel: 'No thanks — just import',
+          },
+          book.id,
+        );
+      },
+      error: () => {
+        this.importingIds.update((ids) => {
+          const next = new Set(ids);
+          next.delete(googleBooksId);
+          return next;
+        });
+        this.importError.set('Import failed — please try again.');
+      },
+    });
+  }
+
+  protected onAdd(result: BookSearchResult): void {
+    this.openAddSheet(
+      {
+        bookId: result.book_id!,
+        title: result.title,
+        cover_url: result.cover_url,
+        default_audio_minutes: null,
+        statuses: ADD_STATUSES,
+      },
+      result.book_id!,
+    );
+  }
+
+  private openAddSheet(data: FormatPickSheetData, bookId: string): void {
+    const onClosed = (status: EngagementStatus | undefined) => {
+      if (!status) return;
+      this.results.update((results) =>
+        results.map((r) => (r.book_id === bookId ? { ...r, state: 'in_library', status } : r)),
+      );
+    };
+
+    if (this.breakpointObserver.isMatched(MOBILE_BREAKPOINT)) {
+      this.bottomSheet
+        .open<
+          FormatPickSheetComponent,
+          FormatPickSheetData,
+          EngagementStatus
+        >(FormatPickSheetComponent, { data })
+        .afterDismissed()
+        .subscribe(onClosed);
+    } else {
+      this.dialog
+        .open<
+          FormatPickSheetComponent,
+          FormatPickSheetData,
+          EngagementStatus
+        >(FormatPickSheetComponent, { data })
+        .afterClosed()
+        .subscribe(onClosed);
+    }
   }
 }
