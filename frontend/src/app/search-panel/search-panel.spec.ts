@@ -4,7 +4,10 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
 import { MatDialog } from '@angular/material/dialog';
 import { BreakpointObserver } from '@angular/cdk/layout';
+import { Subject } from 'rxjs';
 import { SearchPanelComponent } from './search-panel';
+import { BookService } from '../book.service';
+import { EngagementStatus } from '../engagement.service';
 import { FormatPickSheetComponent } from '../format-pick-sheet/format-pick-sheet';
 
 const notInAppResult = {
@@ -222,7 +225,7 @@ describe('SearchPanelComponent', () => {
   });
 
   describe('importing and adding', () => {
-    it('imports on click, updates the row to in_catalog, and opens the add sheet on desktop', () => {
+    it('imports on click and opens the add sheet, but leaves the row unchanged until the sheet closes', () => {
       vi.spyOn(breakpointObserver, 'isMatched').mockReturnValue(false);
       vi.spyOn(dialog, 'open');
 
@@ -238,10 +241,6 @@ describe('SearchPanelComponent', () => {
       httpTesting.expectOne('/api/books/import').flush(importedBook);
       fixture.detectChanges();
 
-      expect(fixture.nativeElement.querySelector('button[aria-label="Import Dune"]')).toBeNull();
-      expect(
-        fixture.nativeElement.querySelector('button[aria-label="Add Dune to your library"]'),
-      ).not.toBeNull();
       expect(dialog.open).toHaveBeenCalledWith(FormatPickSheetComponent, {
         data: {
           bookId: 'book-dune',
@@ -252,6 +251,74 @@ describe('SearchPanelComponent', () => {
           cancelLabel: 'No thanks — just import',
         },
       });
+      // The row itself hasn't changed - nothing should shift in the list behind an open sheet.
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Import Dune"]'),
+      ).not.toBeNull();
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Add Dune to your library"]'),
+      ).toBeNull();
+    });
+
+    it('reloads the books list and flips the row to in_library once the sheet closes with a status', () => {
+      vi.spyOn(breakpointObserver, 'isMatched').mockReturnValue(false);
+      const closed$ = new Subject<EngagementStatus | undefined>();
+      vi.spyOn(dialog, 'open').mockReturnValue({
+        afterClosed: () => closed$.asObservable(),
+      } as ReturnType<typeof dialog.open>);
+
+      const bookService = TestBed.inject(BookService);
+      bookService.books$.subscribe();
+      httpTesting.expectOne('/api/books').flush([]);
+
+      const fixture = TestBed.createComponent(SearchPanelComponent);
+      fixture.detectChanges();
+      search(fixture, 'Dune');
+      httpTesting.expectOne((req) => req.url.includes('/api/books/search')).flush([notInAppResult]);
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Import Dune"]').click();
+      httpTesting.expectOne('/api/books/import').flush(importedBook);
+      fixture.detectChanges();
+
+      // Sheet is still open (mocked) - nothing reloads or changes yet.
+      httpTesting.expectNone('/api/books');
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Import Dune"]'),
+      ).not.toBeNull();
+
+      closed$.next('finished');
+      fixture.detectChanges();
+
+      httpTesting.expectOne('/api/books').flush([importedBook]);
+      expect(fixture.nativeElement.querySelector('button[aria-label="Import Dune"]')).toBeNull();
+      expect(fixture.nativeElement.textContent).toContain('Finished');
+    });
+
+    it('flips the row to in_catalog, not in_library, when the sheet is dismissed without adding', () => {
+      vi.spyOn(breakpointObserver, 'isMatched').mockReturnValue(false);
+      const closed$ = new Subject<EngagementStatus | undefined>();
+      vi.spyOn(dialog, 'open').mockReturnValue({
+        afterClosed: () => closed$.asObservable(),
+      } as ReturnType<typeof dialog.open>);
+
+      const fixture = TestBed.createComponent(SearchPanelComponent);
+      fixture.detectChanges();
+      search(fixture, 'Dune');
+      httpTesting.expectOne((req) => req.url.includes('/api/books/search')).flush([notInAppResult]);
+      fixture.detectChanges();
+
+      fixture.nativeElement.querySelector('button[aria-label="Import Dune"]').click();
+      httpTesting.expectOne('/api/books/import').flush(importedBook);
+      fixture.detectChanges();
+
+      closed$.next(undefined);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('button[aria-label="Import Dune"]')).toBeNull();
+      expect(
+        fixture.nativeElement.querySelector('button[aria-label="Add Dune to your library"]'),
+      ).not.toBeNull();
     });
 
     it('disables the Import button while the request is in flight', () => {

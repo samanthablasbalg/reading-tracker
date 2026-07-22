@@ -109,13 +109,8 @@ export class SearchPanelComponent {
           next.delete(googleBooksId);
           return next;
         });
-        this.results.update((results) =>
-          results.map((r) =>
-            r.google_books_id === googleBooksId
-              ? { ...r, state: 'in_catalog', book_id: book.id }
-              : r,
-          ),
-        );
+        // The row itself doesn't change yet - only once the sheet below closes - so nothing
+        // visibly shifts in the list behind an open sheet/dialog while the user is mid-workflow.
         this.openAddSheet(
           {
             bookId: book.id,
@@ -125,7 +120,20 @@ export class SearchPanelComponent {
             statuses: ADD_STATUSES,
             cancelLabel: 'No thanks — just import',
           },
-          book.id,
+          (status) => {
+            this.results.update((results) =>
+              results.map((r) =>
+                r.google_books_id === googleBooksId
+                  ? {
+                      ...r,
+                      book_id: book.id,
+                      state: status ? 'in_library' : 'in_catalog',
+                      status: status ?? null,
+                    }
+                  : r,
+              ),
+            );
+          },
         );
       },
       error: () => {
@@ -140,24 +148,33 @@ export class SearchPanelComponent {
   }
 
   protected onAdd(result: BookSearchResult): void {
+    const bookId = result.book_id!;
     this.openAddSheet(
       {
-        bookId: result.book_id!,
+        bookId,
         title: result.title,
         cover_url: result.cover_url,
         default_audio_minutes: null,
         statuses: ADD_STATUSES,
       },
-      result.book_id!,
+      (status) => {
+        if (!status) return;
+        this.results.update((results) =>
+          results.map((r) => (r.book_id === bookId ? { ...r, state: 'in_library', status } : r)),
+        );
+      },
     );
   }
 
-  private openAddSheet(data: FormatPickSheetData, bookId: string): void {
+  private openAddSheet(
+    data: FormatPickSheetData,
+    onWorkflowDone: (status: EngagementStatus | undefined) => void,
+  ): void {
     const onClosed = (status: EngagementStatus | undefined) => {
-      if (!status) return;
-      this.results.update((results) =>
-        results.map((r) => (r.book_id === bookId ? { ...r, state: 'in_library', status } : r)),
-      );
+      // Reload only once the whole workflow is done (whatever the user chose) - reloading
+      // mid-workflow would visibly change the Catalog list behind an open sheet/dialog.
+      this.bookService.reloadBooks();
+      onWorkflowDone(status);
     };
 
     if (this.breakpointObserver.isMatched(MOBILE_BREAKPOINT)) {
