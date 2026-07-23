@@ -587,6 +587,29 @@ def test_list_books_empty(client: TestClient) -> None:
     assert response.json() == []
 
 
+# --- Get single book ---
+
+
+def test_get_book_returns_200_with_correct_fields(client: TestClient) -> None:
+    book = _create_book(client)
+
+    response = client.get(f"/api/books/{book['id']}")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == book["id"]
+    assert data["title"] == "Piranesi"
+    assert data["authors"][0]["name"] == "Susanna Clarke"
+    assert data["default_page_count"] == 245
+    assert data["publication_date"] == "2020-09-15"
+    assert data["publication_date_precision"] == "day"
+
+
+def test_get_book_unknown_id_returns_404(client: TestClient) -> None:
+    response = client.get(f"/api/books/{uuid.uuid4()}")
+    assert response.status_code == 404
+
+
 # --- Delete book ---
 
 
