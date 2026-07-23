@@ -40,6 +40,12 @@ class CRUDBase[ModelType: Base]:
         stmt = select(self.model).filter_by(**filters).options(*options)
         return db.execute(stmt).scalar_one_or_none()
 
+    def list_by(
+        self, db: Session, *, options: Sequence[ORMOption] = (), **filters: Any
+    ) -> list[ModelType]:
+        stmt = select(self.model).filter_by(**filters).options(*options)
+        return list(db.execute(stmt).scalars().all())
+
     def list(
         self, db: Session, *, options: Sequence[ORMOption] = ()
     ) -> list[ModelType]:

@@ -125,3 +125,10 @@ def remove_book(db: Session, book: Book) -> None:
     if book.engagements or book.standalone_entries:
         raise ConflictError("Remove its engagements first.")
     book_crud.delete(db, book)
+
+
+def capture_audio_length(book: Book, edition: Edition, length: int) -> None:
+    if book.default_audio_minutes is None:
+        book.default_audio_minutes = length
+    if edition.audio_minutes is None:
+        edition.audio_minutes = length
