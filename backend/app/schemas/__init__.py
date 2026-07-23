@@ -19,9 +19,12 @@ from app.schemas.engagement import (
     EngagementStatusUpdate,
 )
 from app.schemas.progress_log import (
+    MinuteProgressLogRead,
+    PageProgressLogRead,
     ProgressLogCreate,
     ProgressLogRead,
     ProgressLogUpdate,
+    progress_log_read,
 )
 from app.schemas.review import ReviewRead, ReviewUpsert
 
@@ -40,9 +43,12 @@ __all__ = [
     "EngagementDatesUpdate",
     "EngagementRead",
     "EngagementStatusUpdate",
+    "MinuteProgressLogRead",
+    "PageProgressLogRead",
     "ProgressLogCreate",
     "ProgressLogRead",
     "ProgressLogUpdate",
+    "progress_log_read",
     "ReviewRead",
     "ReviewUpsert",
 ]

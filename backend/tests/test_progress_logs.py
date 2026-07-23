@@ -33,7 +33,7 @@ def test_log_progress_returns_201_with_correct_fields(client: TestClient) -> Non
     assert log["engagement_id"] == engagement["id"]
     assert log["page_start"] == 0
     assert log["page_end"] == 100
-    assert log["unit"] == "pages"
+    assert log["type"] == "page"
     assert log["new_ground"] is True
 
 
@@ -482,11 +482,11 @@ def test_audio_log_returns_201_with_minutes_fields(client: TestClient) -> None:
 
     log = _log_audio_progress(client, engagement["id"], 75)
 
-    assert log["unit"] == "minutes"
+    assert log["type"] == "minute"
     assert log["minute_start"] == 0
     assert log["minute_end"] == 75
-    assert log["page_start"] is None
-    assert log["page_end"] is None
+    assert "page_start" not in log
+    assert "page_end" not in log
     assert log["new_ground"] is True
 
 
