@@ -40,6 +40,32 @@ Two things worth knowing about the wiring:
 
 ---
 
+## Backend at a glance
+
+`app/` is layered by responsibility, each with one job
+([ADR-0025](decisions/0025-api-services-crud-layering.md)):
+
+- **`app/api/`** — routers. Parse and validate the request, call a service function (or, for routes
+  with no real logic, a `crud` instance directly), commit, shape the response. Router files that
+  outgrow one concern split into a package instead of staying flat — `engagements.py` (698 lines)
+  became `app/api/engagements/{lifecycle,progress_logs,bindings,reviews}.py`, each paired with a
+  matching file under `app/services/engagements/`.
+- **`app/services/`** — business logic. One function per operation that has actual rules to enforce
+  (`create_book`, `import_book_from_google`, engagement lifecycle transitions, review upsert) —
+  plain functions, callable independent of FastAPI, so a rule needed by two routes has exactly one
+  implementation to find or change.
+- **`app/crud/`** — a single generic `CRUDBase[ModelType]` (`get`, `get_or_raise`, `get_by`, `list`,
+  `list_by`, `create`, `update`, `delete`, `get_or_create`), instantiated once per model in
+  `crud/__init__.py` (`book_crud`, `engagement_crud`, …) and imported from there by everything else,
+  instead of each model growing its own get/list/create/update/delete boilerplate.
+
+`app/exceptions.py` defines plain-Python `NotFoundError`/`ConflictError`/`InvalidOperationError` (no
+FastAPI dependency), with `register_exception_handlers()` mapping each to an HTTP status once in
+`main.py` — how `crud`/`services` code raises domain errors without importing FastAPI or
+hand-rolling `HTTPException` in every router.
+
+---
+
 ## Frontend at a glance
 
 The Angular app uses modern Angular's defaults — standalone components and signals — with a thin
