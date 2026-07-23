@@ -4,12 +4,11 @@ import uuid
 
 from sqlalchemy.orm import Session
 
+from app.crud import edition_crud, engagement_edition_crud
 from app.exceptions import ConflictError, NotFoundError
 from app.models.edition import EngagementEdition
 from app.models.engagement import Engagement
 from app.models.enums import Format
-from app.services.books import edition_crud
-from app.services.engagements.lifecycle import engagement_edition_crud
 
 
 def create_binding(

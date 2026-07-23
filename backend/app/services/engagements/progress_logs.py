@@ -4,14 +4,12 @@ import datetime
 
 from sqlalchemy.orm import Session
 
-from app.crud import CRUDBase
+from app.crud import progress_log_crud
 from app.exceptions import ConflictError, InvalidOperationError
 from app.models.engagement import Engagement
 from app.models.enums import Format, LogUnit, ReadingStatus
 from app.models.progress_log import ProgressLog
 from app.services.books import capture_audio_length
-
-progress_log_crud = CRUDBase(ProgressLog)
 
 
 def reject_future_date(value: datetime.date | None) -> None:

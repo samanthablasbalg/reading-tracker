@@ -6,13 +6,13 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.crud import engagement_crud
 from app.database import get_db
 from app.exceptions import NotFoundError
 from app.models.engagement import Engagement
 from app.models.progress_log import ProgressLog
 from app.schemas import ProgressLogCreate, ProgressLogRead, ProgressLogUpdate
 from app.services.engagements import progress_logs as progress_log_service
-from app.services.engagements.lifecycle import engagement_crud
 
 router = APIRouter()
 

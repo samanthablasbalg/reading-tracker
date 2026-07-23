@@ -5,13 +5,11 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.crud import CRUDBase
+from app.crud import review_crud
 from app.exceptions import ConflictError
 from app.models.engagement import Engagement
 from app.models.enums import ReadingStatus
 from app.models.review import Review
-
-review_crud = CRUDBase(Review)
 
 
 def upsert_review(

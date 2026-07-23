@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
+from app.crud import book_crud
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.author import Author
@@ -30,7 +31,7 @@ _BOOK_READ_OPTIONS = (selectinload(Book.book_authors).selectinload(BookAuthor.au
 
 
 def _reload(db: Session, book_id: uuid.UUID) -> Book:
-    book = book_service.book_crud.get(db, book_id, options=_BOOK_READ_OPTIONS)
+    book = book_crud.get(db, book_id, options=_BOOK_READ_OPTIONS)
     assert book is not None
     return book
 
@@ -216,12 +217,12 @@ def import_book(
 
 @router.get("", response_model=list[BookRead])
 def list_books(db: Session = Depends(get_db)) -> list[BookRead]:
-    books = book_service.book_crud.list(db, options=_BOOK_READ_OPTIONS)
+    books = book_crud.list(db, options=_BOOK_READ_OPTIONS)
     return [_to_book_read(book) for book in books]
 
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_book(book_id: uuid.UUID, db: Session = Depends(get_db)) -> None:
-    book = book_service.book_crud.get_or_raise(db, book_id)
+    book = book_crud.get_or_raise(db, book_id)
     book_service.remove_book(db, book)
     db.commit()

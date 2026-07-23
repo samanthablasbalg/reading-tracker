@@ -6,21 +6,20 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.crud import CRUDBase
+from app.crud import (
+    book_crud,
+    edition_crud,
+    engagement_crud,
+    engagement_edition_crud,
+    progress_log_crud,
+)
 from app.exceptions import ConflictError, NotFoundError
 from app.models.edition import Edition, EngagementEdition
 from app.models.engagement import Engagement
 from app.models.enums import Format, LogUnit, ReadingStatus
 from app.models.progress_log import ProgressLog
-from app.services.books import book_crud, capture_audio_length, edition_crud
-from app.services.engagements.progress_logs import (
-    latest_log,
-    progress_log_crud,
-    reject_future_date,
-)
-
-engagement_crud = CRUDBase(Engagement)
-engagement_edition_crud = CRUDBase(EngagementEdition)
+from app.services.books import capture_audio_length
+from app.services.engagements.progress_logs import latest_log, reject_future_date
 
 
 def create_engagement(

@@ -8,7 +8,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.crud import CRUDBase
+from app.crud import user_crud
 from app.database import get_unscoped_db
 from app.models.user import User
 from app.oauth import oauth
@@ -22,8 +22,6 @@ _TEST_LOGIN_PERSONAS: dict[str, str] = {
     "e2e": E2E_TEST_USER_EMAIL,
     "dev": DEV_TEST_USER_EMAIL,
 }
-
-user_crud = CRUDBase(User)
 
 
 class TestLoginRequest(BaseModel):

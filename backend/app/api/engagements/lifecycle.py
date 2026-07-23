@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.crud import engagement_crud
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.engagement import Engagement
@@ -19,7 +20,6 @@ from app.schemas import (
     EngagementStatusUpdate,
 )
 from app.services.engagements import lifecycle as lifecycle_service
-from app.services.engagements.lifecycle import engagement_crud
 
 from ._shared import ENGAGEMENT_READ_OPTIONS, reload
 

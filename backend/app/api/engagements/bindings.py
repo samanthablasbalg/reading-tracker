@@ -5,11 +5,11 @@ import uuid
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session, selectinload
 
+from app.crud import engagement_crud, engagement_edition_crud
 from app.database import get_db
 from app.models.edition import EngagementEdition
 from app.schemas import EngagementEditionCreate, EngagementEditionRead
 from app.services.engagements import bindings as bindings_service
-from app.services.engagements.lifecycle import engagement_crud, engagement_edition_crud
 
 router = APIRouter()
 

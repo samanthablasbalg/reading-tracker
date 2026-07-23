@@ -6,11 +6,11 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.crud import book_crud, edition_crud
 from app.database import get_db
 from app.exceptions import ConflictError
 from app.models.edition import Edition
 from app.schemas import EditionCreate, EditionRead, EditionUpdate
-from app.services.books import book_crud, edition_crud
 
 router = APIRouter(prefix="/editions", tags=["editions"])
 

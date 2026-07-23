@@ -4,10 +4,10 @@ import uuid
 
 from sqlalchemy.orm import Session, selectinload
 
+from app.crud import engagement_crud
 from app.models.book import Book, BookAuthor
 from app.models.edition import EngagementEdition
 from app.models.engagement import Engagement
-from app.services.engagements.lifecycle import engagement_crud
 
 ENGAGEMENT_READ_OPTIONS = (
     selectinload(Engagement.book)

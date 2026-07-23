@@ -4,18 +4,12 @@ import datetime
 
 from sqlalchemy.orm import Session
 
-from app.crud import CRUDBase
+from app.crud import author_crud, book_author_crud, book_crud, edition_crud
 from app.exceptions import ConflictError, NotFoundError
-from app.models.author import Author
 from app.models.book import Book, BookAuthor
 from app.models.edition import Edition
 from app.models.enums import BookAuthorRole, DatePrecision, Format
 from app.services.google_books import get_volume
-
-book_crud = CRUDBase(Book)
-author_crud = CRUDBase(Author)
-book_author_crud = CRUDBase(BookAuthor)
-edition_crud = CRUDBase(Edition)
 
 
 def create_book(
