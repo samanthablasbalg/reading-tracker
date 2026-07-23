@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, cast
 
 from fastapi.testclient import TestClient
@@ -9,8 +10,20 @@ def _create_book(
     client: TestClient,
     title: str = "Piranesi",
     author: str = "Susanna Clarke",
+    default_page_count: int = 245,
+    publication_date: date = date(2020, 9, 15),
+    publication_date_precision: str = "day",
 ) -> dict[str, Any]:
-    response = client.post("/api/books", json={"title": title, "author": author})
+    response = client.post(
+        "/api/books",
+        json={
+            "title": title,
+            "author": author,
+            "default_page_count": default_page_count,
+            "publication_date": publication_date,
+            "publication_date_precision": publication_date_precision,
+        },
+    )
     assert response.status_code == 201
     book = cast(dict[str, Any], response.json())
     client.post(

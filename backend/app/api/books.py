@@ -31,6 +31,9 @@ from app.services.google_books import (
 router = APIRouter(prefix="/books", tags=["books"])
 
 
+_LOAD_OPTIONS = (selectinload(Book.book_authors).selectinload(BookAuthor.author),)
+
+
 def _parse_published_date(
     raw: str | None,
 ) -> tuple[datetime.date | None, DatePrecision | None]:
@@ -75,6 +78,15 @@ def _pick_status(
         return cast(Literal["reading", "finished", "dnf"], reading.status.value)
     latest = max(engagements, key=lambda e: e.updated_at)
     return cast(Literal["reading", "finished", "dnf"], latest.status.value)
+
+
+def _fetch(book_id: uuid.UUID, db: Session) -> Book:
+    book = db.execute(
+        select(Book).where(Book.id == book_id).options(*_LOAD_OPTIONS)
+    ).scalar_one_or_none()
+    if book is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return book
 
 
 @router.post("", response_model=BookRead, status_code=status.HTTP_201_CREATED)
@@ -286,6 +298,14 @@ def list_books(db: Session = Depends(get_db)) -> list[BookRead]:
         .all()
     )
     return [_to_book_read(book) for book in books]
+
+
+@router.get("/{book_id}", response_model=BookRead)
+def get_book(
+    book_id: uuid.UUID,
+    db: Session = Depends(get_db),
+) -> BookRead:
+    return BookRead.model_validate(_fetch(book_id, db))
 
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
