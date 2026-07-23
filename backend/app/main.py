@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api import router
+from app.exceptions import register_exception_handlers
 
 _session_secret = os.getenv("SESSION_SECRET")
 if not _session_secret:
@@ -19,6 +20,7 @@ app.add_middleware(
     https_only=os.getenv("SESSION_COOKIE_SECURE", "").lower() == "true",
 )
 app.include_router(router, prefix="/api")
+register_exception_handlers(app)
 
 FRONTEND_DIST = (
     Path(__file__).resolve().parent.parent.parent

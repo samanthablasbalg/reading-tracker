@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.crud import book_crud, edition_crud
 from app.database import get_db
-from app.models.book import Book
+from app.exceptions import ConflictError
 from app.models.edition import Edition
 from app.schemas import EditionCreate, EditionRead, EditionUpdate
 
@@ -18,25 +19,20 @@ router = APIRouter(prefix="/editions", tags=["editions"])
 def create_edition(
     payload: EditionCreate, db: Session = Depends(get_db)
 ) -> EditionRead:
-    if db.get(Book, payload.book_id) is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    edition = Edition(**payload.model_dump())
-    db.add(edition)
+    book_crud.get_or_raise(db, payload.book_id)
     try:
+        edition = edition_crud.create(db, Edition(**payload.model_dump()))
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT) from None
+        raise ConflictError("An edition with these fields already exists.") from None
     db.refresh(edition)
     return EditionRead.model_validate(edition)
 
 
 @router.get("/{edition_id}", response_model=EditionRead)
 def get_edition(edition_id: uuid.UUID, db: Session = Depends(get_db)) -> EditionRead:
-    edition = db.get(Edition, edition_id)
-    if edition is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    edition = edition_crud.get_or_raise(db, edition_id)
     return EditionRead.model_validate(edition)
 
 
@@ -46,13 +42,8 @@ def update_edition(
     payload: EditionUpdate,
     db: Session = Depends(get_db),
 ) -> EditionRead:
-    edition = db.get(Edition, edition_id)
-    if edition is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    for field in payload.model_fields_set:
-        setattr(edition, field, getattr(payload, field))
-
+    edition = edition_crud.get_or_raise(db, edition_id)
+    edition_crud.update(db, edition, payload)
     db.commit()
     db.refresh(edition)
     return EditionRead.model_validate(edition)

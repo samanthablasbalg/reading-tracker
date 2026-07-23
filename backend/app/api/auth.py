@@ -6,9 +6,9 @@ from typing import Literal, cast
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.crud import user_crud
 from app.database import get_unscoped_db
 from app.models.user import User
 from app.oauth import oauth
@@ -29,11 +29,8 @@ class TestLoginRequest(BaseModel):
 
 
 def _get_or_create_user(db: Session, email: str) -> User:
-    user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
-    if user is None:
-        user = User(email=email)
-        db.add(user)
-        db.commit()
+    user = user_crud.get_or_create(db, lookup={"email": email})
+    db.commit()
     return user
 
 
