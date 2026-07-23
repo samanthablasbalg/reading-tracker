@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from typing import Literal, cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -67,46 +68,30 @@ def create_book(payload: BookCreate, db: Session = Depends(get_db)) -> BookRead:
     return _to_book_read(_reload(db, book.id))
 
 
-@router.get("/search", response_model=list[BookSearchResult])
-def search_books(
-    q: str = Query(min_length=1),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> list[BookSearchResult]:
-    pattern = f"%{q}%"
-    local_books = (
-        db.execute(
-            select(Book)
-            .distinct()
-            .outerjoin(BookAuthor, BookAuthor.book_id == Book.id)
-            .outerjoin(Author, Author.id == BookAuthor.author_id)
-            .where(or_(Book.title.ilike(pattern), Author.name.ilike(pattern)))
-            .options(
-                selectinload(Book.book_authors).selectinload(BookAuthor.author),
-                selectinload(Book.editions),
-            )
-        )
-        .scalars()
-        .all()
-    )
-
-    book_ids = [book.id for book in local_books]
+def _engagements_by_book(
+    db: Session, book_ids: list[uuid.UUID], user_id: uuid.UUID
+) -> dict[uuid.UUID, list[Engagement]]:
+    if not book_ids:
+        return {}
     engagements = (
         db.execute(
             select(Engagement).where(
-                Engagement.book_id.in_(book_ids),
-                Engagement.user_id == current_user.id,
+                Engagement.book_id.in_(book_ids), Engagement.user_id == user_id
             )
         )
         .scalars()
         .all()
-        if book_ids
-        else []
     )
-    engagements_by_book: dict[uuid.UUID, list[Engagement]] = {}
+    grouped: dict[uuid.UUID, list[Engagement]] = {}
     for engagement in engagements:
-        engagements_by_book.setdefault(engagement.book_id, []).append(engagement)
+        grouped.setdefault(engagement.book_id, []).append(engagement)
+    return grouped
 
+
+def _local_search_results(
+    local_books: Sequence[Book],
+    engagements_by_book: dict[uuid.UUID, list[Engagement]],
+) -> tuple[list[BookSearchResult], set[str], set[str]]:
     results: list[BookSearchResult] = []
     seen_google_ids: set[str] = set()
     seen_isbns: set[str] = set()
@@ -134,13 +119,24 @@ def search_books(
             if edition.isbn:
                 seen_isbns.add(edition.isbn)
 
+    return results, seen_google_ids, seen_isbns
+
+
+def _not_in_app_results(
+    q: str,
+    seen_google_ids: set[str],
+    seen_isbns: set[str],
+    *,
+    has_local_results: bool,
+) -> list[BookSearchResult]:
     try:
         volumes = search_volumes(q)
     except GoogleBooksError as exc:
-        if not results:
+        if not has_local_results:
             raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY) from exc
-        volumes = []
+        return []
 
+    results: list[BookSearchResult] = []
     for volume in volumes:
         if volume.google_books_id in seen_google_ids:
             continue
@@ -161,7 +157,41 @@ def search_books(
                 status=None,
             )
         )
+    return results
 
+
+@router.get("/search", response_model=list[BookSearchResult])
+def search_books(
+    q: str = Query(min_length=1),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[BookSearchResult]:
+    pattern = f"%{q}%"
+    local_books = (
+        db.execute(
+            select(Book)
+            .distinct()
+            .outerjoin(BookAuthor, BookAuthor.book_id == Book.id)
+            .outerjoin(Author, Author.id == BookAuthor.author_id)
+            .where(or_(Book.title.ilike(pattern), Author.name.ilike(pattern)))
+            .options(
+                selectinload(Book.book_authors).selectinload(BookAuthor.author),
+                selectinload(Book.editions),
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    engagements_by_book = _engagements_by_book(
+        db, [book.id for book in local_books], current_user.id
+    )
+    results, seen_google_ids, seen_isbns = _local_search_results(
+        local_books, engagements_by_book
+    )
+    results += _not_in_app_results(
+        q, seen_google_ids, seen_isbns, has_local_results=bool(results)
+    )
     return results
 
 
