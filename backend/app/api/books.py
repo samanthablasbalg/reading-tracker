@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import datetime
 import uuid
 from typing import Literal, cast
 
@@ -12,9 +11,8 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.author import Author
 from app.models.book import Book, BookAuthor
-from app.models.edition import Edition
 from app.models.engagement import Engagement
-from app.models.enums import BookAuthorRole, DatePrecision, Format, ReadingStatus
+from app.models.enums import DatePrecision, ReadingStatus
 from app.models.user import User
 from app.schemas import (
     BookCreate,
@@ -22,35 +20,18 @@ from app.schemas import (
     BookRead,
     BookSearchResult,
 )
-from app.services.google_books import (
-    GoogleBooksError,
-    get_volume,
-    search_volumes,
-)
+from app.services import books as book_service
+from app.services.google_books import GoogleBooksError, search_volumes
 
 router = APIRouter(prefix="/books", tags=["books"])
 
-
-def _parse_published_date(
-    raw: str | None,
-) -> tuple[datetime.date | None, DatePrecision | None]:
-    if not raw:
-        return None, None
-    if len(raw) == 4:
-        return datetime.date(int(raw), 1, 1), DatePrecision.year
-    if len(raw) == 7:
-        year, month = raw.split("-")
-        return datetime.date(int(year), int(month), 1), DatePrecision.month
-    return datetime.datetime.strptime(raw, "%Y-%m-%d").date(), DatePrecision.day
+_BOOK_READ_OPTIONS = (selectinload(Book.book_authors).selectinload(BookAuthor.author),)
 
 
-def _get_or_create_author(name: str, db: Session) -> Author:
-    author = db.execute(select(Author).where(Author.name == name)).scalar_one_or_none()
-    if author is None:
-        author = Author(name=name)
-        db.add(author)
-        db.flush()
-    return author
+def _reload(db: Session, book_id: uuid.UUID) -> Book:
+    book = book_service.book_crud.get(db, book_id, options=_BOOK_READ_OPTIONS)
+    assert book is not None
+    return book
 
 
 def _to_book_read(book: Book) -> BookRead:
@@ -79,22 +60,11 @@ def _pick_status(
 
 @router.post("", response_model=BookRead, status_code=status.HTTP_201_CREATED)
 def create_book(payload: BookCreate, db: Session = Depends(get_db)) -> BookRead:
-    author = _get_or_create_author(payload.author, db)
-
-    book = Book(title=payload.title, default_page_count=payload.page_count)
-    db.add(book)
-    db.flush()
-
-    db.add(BookAuthor(book_id=book.id, author_id=author.id, role=BookAuthorRole.author))
+    book = book_service.create_book(
+        db, title=payload.title, authors=[payload.author], page_count=payload.page_count
+    )
     db.commit()
-
-    loaded = db.execute(
-        select(Book)
-        .where(Book.id == book.id)
-        .options(selectinload(Book.book_authors).selectinload(BookAuthor.author))
-    ).scalar_one()
-
-    return _to_book_read(loaded)
+    return _to_book_read(_reload(db, book.id))
 
 
 @router.get("/search", response_model=list[BookSearchResult])
@@ -201,104 +171,27 @@ def import_book(
     response: Response,
     db: Session = Depends(get_db),
 ) -> BookRead:
-    existing = db.execute(
-        select(Book)
-        .where(Book.google_books_id == payload.google_books_id)
-        .options(selectinload(Book.book_authors).selectinload(BookAuthor.author))
-    ).scalar_one_or_none()
-    if existing:
-        return _to_book_read(existing)
-
     try:
-        volume = get_volume(payload.google_books_id)
+        book, created = book_service.import_book_from_google(
+            db, google_books_id=payload.google_books_id
+        )
     except GoogleBooksError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY) from exc
-    if volume is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    pub_date, pub_precision = _parse_published_date(volume.published_date)
-
-    book = Book(
-        title=volume.title,
-        google_books_id=volume.google_books_id,
-        default_cover_url=volume.cover_url,
-        default_page_count=volume.page_count,
-        original_language=volume.language,
-        genres=volume.categories,
-        publication_date=pub_date,
-        publication_date_precision=pub_precision or DatePrecision.day,
-    )
-    db.add(book)
-    db.flush()
-
-    for name in volume.authors:
-        author = _get_or_create_author(name, db)
-        db.add(
-            BookAuthor(book_id=book.id, author_id=author.id, role=BookAuthorRole.author)
-        )
-
-    db.add(
-        Edition(
-            book_id=book.id,
-            edition_format=Format.print,
-            isbn=volume.isbn,
-            page_count=volume.page_count,
-            cover_url=volume.cover_url,
-        )
-    )
-    db.add(
-        Edition(
-            book_id=book.id,
-            edition_format=Format.digital,
-            page_count=volume.page_count,
-            cover_url=volume.cover_url,
-        )
-    )
-    db.add(
-        Edition(
-            book_id=book.id,
-            edition_format=Format.audio,
-            cover_url=volume.cover_url,
-        )
-    )
 
     db.commit()
-
-    loaded = db.execute(
-        select(Book)
-        .where(Book.id == book.id)
-        .options(selectinload(Book.book_authors).selectinload(BookAuthor.author))
-    ).scalar_one()
-
-    response.status_code = status.HTTP_201_CREATED
-    return _to_book_read(loaded)
+    if created:
+        response.status_code = status.HTTP_201_CREATED
+    return _to_book_read(_reload(db, book.id))
 
 
 @router.get("", response_model=list[BookRead])
 def list_books(db: Session = Depends(get_db)) -> list[BookRead]:
-    books = (
-        db.execute(
-            select(Book).options(
-                selectinload(Book.book_authors).selectinload(BookAuthor.author)
-            )
-        )
-        .scalars()
-        .all()
-    )
+    books = book_service.book_crud.list(db, options=_BOOK_READ_OPTIONS)
     return [_to_book_read(book) for book in books]
 
 
 @router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_book(book_id: uuid.UUID, db: Session = Depends(get_db)) -> None:
-    book = db.get(Book, book_id)
-    if book is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-    if book.engagements or book.standalone_entries:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Remove its engagements first.",
-        )
-
-    db.delete(book)
+    book = book_service.book_crud.get_or_raise(db, book_id)
+    book_service.remove_book(db, book)
     db.commit()

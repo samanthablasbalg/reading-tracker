@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import uuid
 
+import pytest
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.crud import CRUDBase
+from app.exceptions import NotFoundError
 from app.models.author import Author
 
 crud_author = CRUDBase(Author)
@@ -62,3 +64,30 @@ def test_get_or_create_returns_existing_without_duplicating(db: Session) -> None
     second = crud_author.get_or_create(db, lookup={"name": "R.F. Kuang"})
     assert first.id == second.id
     assert len(crud_author.list(db)) == 1
+
+
+def test_get_by_returns_matching_object(db: Session) -> None:
+    crud_author.create(db, Author(name="Ling Ma"))
+    found = crud_author.get_by(db, name="Ling Ma")
+    assert found is not None
+    assert found.name == "Ling Ma"
+
+
+def test_get_by_returns_none_when_no_match(db: Session) -> None:
+    assert crud_author.get_by(db, name="Nobody Here") is None
+
+
+def test_get_or_raise_returns_existing_object(db: Session) -> None:
+    author = crud_author.create(db, Author(name="Jeff VanderMeer"))
+    found = crud_author.get_or_raise(db, author.id)
+    assert found.id == author.id
+
+
+def test_get_or_raise_raises_not_found_for_missing_id(db: Session) -> None:
+    with pytest.raises(NotFoundError, match="Author not found"):
+        crud_author.get_or_raise(db, uuid.uuid4())
+
+
+def test_get_or_raise_uses_custom_message(db: Session) -> None:
+    with pytest.raises(NotFoundError, match="no such author"):
+        crud_author.get_or_raise(db, uuid.uuid4(), message="no such author")

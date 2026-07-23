@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.interfaces import ORMOption
 
 from app.database import Base
+from app.exceptions import NotFoundError
 
 
 class CRUDBase[ModelType: Base]:
@@ -19,6 +20,25 @@ class CRUDBase[ModelType: Base]:
         self, db: Session, id: Any, *, options: Sequence[ORMOption] = ()
     ) -> ModelType | None:
         return db.get(self.model, id, options=options)
+
+    def get_or_raise(
+        self,
+        db: Session,
+        id: Any,
+        *,
+        options: Sequence[ORMOption] = (),
+        message: str | None = None,
+    ) -> ModelType:
+        obj = self.get(db, id, options=options)
+        if obj is None:
+            raise NotFoundError(message or f"{self.model.__name__} not found")
+        return obj
+
+    def get_by(
+        self, db: Session, *, options: Sequence[ORMOption] = (), **filters: Any
+    ) -> ModelType | None:
+        stmt = select(self.model).filter_by(**filters).options(*options)
+        return db.execute(stmt).scalar_one_or_none()
 
     def list(
         self, db: Session, *, options: Sequence[ORMOption] = ()
@@ -48,11 +68,8 @@ class CRUDBase[ModelType: Base]:
         lookup: dict[str, Any],
         defaults: dict[str, Any] | None = None,
     ) -> ModelType:
-        stmt = select(self.model).filter_by(**lookup)
-        existing = db.execute(stmt).scalar_one_or_none()
+        existing = self.get_by(db, **lookup)
         if existing is not None:
             return existing
         obj = self.model(**lookup, **(defaults or {}))
-        db.add(obj)
-        db.flush()
-        return obj
+        return self.create(db, obj)
