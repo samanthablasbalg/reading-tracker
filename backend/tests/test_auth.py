@@ -115,7 +115,10 @@ def test_logout_clears_the_session(
     assert client.get("/api/auth/me").status_code == 401
 
 
-def test_test_login_is_absent_without_the_flag(client: TestClient) -> None:
+def test_test_login_is_absent_without_the_flag(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("ALLOW_TEST_LOGIN", raising=False)
     assert client.post("/api/auth/test-login").status_code == 404
 
 
