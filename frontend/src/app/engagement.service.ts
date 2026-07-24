@@ -1,20 +1,21 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { Book } from './book.service';
-import { environment } from '../environments/environment';
+import { EngagementsService as EngagementsApiService } from './api/generated/engagements/engagements.service';
+import type {
+  EngagementCreateStatus,
+  EngagementRead,
+  Format,
+  MinuteProgressLogRead,
+  PageProgressLogRead,
+  ProgressLogCreate,
+} from './api/generated/readingTracker.schemas';
 
-export type EngagementStatus = 'reading' | 'finished' | 'dnf';
-
-export type EngagedBook = Pick<
-  Book,
-  'id' | 'title' | 'authors' | 'default_page_count' | 'default_audio_minutes'
->;
-
-export interface Review {
-  rating: string | null;
-  body: string | null;
-}
+export type {
+  EngagementRead as Engagement,
+  ReviewRead as Review,
+} from './api/generated/readingTracker.schemas';
+export type EngagementStatus = EngagementCreateStatus;
+export type ProgressLog = PageProgressLogRead | MinuteProgressLogRead;
 
 export function localDateString(date: Date = new Date()): string {
   const year = date.getFullYear();
@@ -23,52 +24,25 @@ export function localDateString(date: Date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
-export interface ProgressLog {
-  id: string;
-  engagement_id: string;
-  logged_on: string;
-  unit: 'pages' | 'minutes';
-  page_start: number | null;
-  page_end: number | null;
-  minute_start: number | null;
-  minute_end: number | null;
-  new_ground: boolean;
-}
-
-export interface Engagement {
-  id: string;
-  book: EngagedBook;
-  formats: string[];
-  cover_url: string | null;
-  status: EngagementStatus;
-  started_on: string | null;
-  finished_on: string | null;
-  abandoned_on: string | null;
-  resume_from_page: number;
-  resume_from_minute: number;
-  completion_pct: number | null;
-  review: Review | null;
-}
-
 @Injectable({ providedIn: 'root' })
 export class EngagementService {
-  private readonly http = inject(HttpClient);
-  private readonly cache = new Map<EngagementStatus, BehaviorSubject<Engagement[]>>();
+  private readonly engagementsApi = inject(EngagementsApiService);
+  private readonly cache = new Map<EngagementStatus, BehaviorSubject<EngagementRead[]>>();
 
-  private subject(status: EngagementStatus): BehaviorSubject<Engagement[]> {
+  private subject(status: EngagementStatus): BehaviorSubject<EngagementRead[]> {
     if (!this.cache.has(status)) {
-      this.cache.set(status, new BehaviorSubject<Engagement[]>([]));
+      this.cache.set(status, new BehaviorSubject<EngagementRead[]>([]));
     }
     return this.cache.get(status)!;
   }
 
   private fetch(status: EngagementStatus): void {
-    this.http
-      .get<Engagement[]>(`${environment.apiBaseUrl}/engagements`, { params: { status } })
+    this.engagementsApi
+      .engagementsListEngagements({ status })
       .subscribe((list) => this.subject(status).next(list));
   }
 
-  engagements(status: EngagementStatus): Observable<Engagement[]> {
+  engagements(status: EngagementStatus): Observable<EngagementRead[]> {
     const subject = this.subject(status);
     this.fetch(status);
     return subject.asObservable();
@@ -78,7 +52,7 @@ export class EngagementService {
     this.cache.forEach((_, status) => this.fetch(status));
   }
 
-  patchEngagementInPlace(id: string, patch: Partial<Engagement>): void {
+  patchEngagementInPlace(id: string, patch: Partial<EngagementRead>): void {
     const subject = this.cache.get('reading');
     if (subject) {
       subject.next(subject.value.map((e) => (e.id === id ? { ...e, ...patch } : e)));
@@ -90,25 +64,25 @@ export class EngagementService {
     format = 'print',
     audioLengthMinutes?: number,
     status: EngagementStatus = 'reading',
-  ): Observable<Engagement> {
-    return this.http.post<Engagement>(`${environment.apiBaseUrl}/engagements`, {
+  ): Observable<EngagementRead> {
+    return this.engagementsApi.engagementsCreateEngagement({
       book_id: bookId,
-      edition_format: format,
+      edition_format: format as Format,
       status,
       started_on: localDateString(),
       ...(audioLengthMinutes != null && { audio_length_minutes: audioLengthMinutes }),
     });
   }
 
-  markFinished(engagementId: string): Observable<Engagement> {
-    return this.http.patch<Engagement>(`${environment.apiBaseUrl}/engagements/${engagementId}`, {
+  markFinished(engagementId: string): Observable<EngagementRead> {
+    return this.engagementsApi.engagementsUpdateEngagementStatus(engagementId, {
       status: 'finished',
       effective_on: localDateString(),
     });
   }
 
-  markDnf(engagementId: string): Observable<Engagement> {
-    return this.http.patch<Engagement>(`${environment.apiBaseUrl}/engagements/${engagementId}`, {
+  markDnf(engagementId: string): Observable<EngagementRead> {
+    return this.engagementsApi.engagementsUpdateEngagementStatus(engagementId, {
       status: 'dnf',
       effective_on: localDateString(),
     });
@@ -118,24 +92,19 @@ export class EngagementService {
     engagementId: string,
     payload: Record<string, number>,
     loggedOn?: string,
-  ): Observable<unknown> {
-    return this.http.post<unknown>(
-      `${environment.apiBaseUrl}/engagements/${engagementId}/progress-logs`,
-      {
-        ...payload,
-        logged_on: loggedOn ?? localDateString(),
-      },
-    );
+  ): Observable<PageProgressLogRead | MinuteProgressLogRead> {
+    return this.engagementsApi.engagementsLogProgress(engagementId, {
+      ...payload,
+      logged_on: loggedOn ?? localDateString(),
+    } as ProgressLogCreate);
   }
 
-  getEngagement(id: string): Observable<Engagement> {
-    return this.http.get<Engagement>(`${environment.apiBaseUrl}/engagements/${id}`);
+  getEngagement(id: string): Observable<EngagementRead> {
+    return this.engagementsApi.engagementsGetEngagement(id);
   }
 
   getProgressLogs(id: string): Observable<ProgressLog[]> {
-    return this.http.get<ProgressLog[]>(
-      `${environment.apiBaseUrl}/engagements/${id}/progress-logs`,
-    );
+    return this.engagementsApi.engagementsListProgressLogs(id);
   }
 
   patchProgressLog(
@@ -143,37 +112,29 @@ export class EngagementService {
     logId: string,
     patch: { logged_on?: string; page_end?: number; minute_end?: number },
   ): Observable<ProgressLog> {
-    return this.http.patch<ProgressLog>(
-      `${environment.apiBaseUrl}/engagements/${engagementId}/progress-logs/${logId}`,
-      patch,
-    );
+    return this.engagementsApi.engagementsUpdateProgressLog(engagementId, logId, patch);
   }
 
   deleteProgressLog(engagementId: string, logId: string): Observable<void> {
-    return this.http.delete<void>(
-      `${environment.apiBaseUrl}/engagements/${engagementId}/progress-logs/${logId}`,
-    );
+    return this.engagementsApi.engagementsDeleteProgressLog(engagementId, logId);
   }
 
   deleteEngagement(id: string): Observable<void> {
-    return this.http.delete<void>(`${environment.apiBaseUrl}/engagements/${id}`);
+    return this.engagementsApi.engagementsDeleteEngagement(id);
   }
 
   patchEngagementDates(
     id: string,
     patch: { started_on?: string; finished_on?: string },
-  ): Observable<Engagement> {
-    return this.http.patch<Engagement>(`${environment.apiBaseUrl}/engagements/${id}/dates`, patch);
+  ): Observable<EngagementRead> {
+    return this.engagementsApi.engagementsUpdateEngagementDates(id, patch);
   }
 
   upsertReview(
     engagementId: string,
     rating: number | null,
     body: string | null,
-  ): Observable<Engagement> {
-    return this.http.put<Engagement>(
-      `${environment.apiBaseUrl}/engagements/${engagementId}/review`,
-      { rating, body },
-    );
+  ): Observable<EngagementRead> {
+    return this.engagementsApi.engagementsUpsertReview(engagementId, { rating, body });
   }
 }

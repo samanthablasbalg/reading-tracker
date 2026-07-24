@@ -71,3 +71,9 @@ jobs:
         run: |
           cd backend
           pytest || [ $? -eq 5 ]
+
+      - name: Check committed OpenAPI schema is up to date
+        run: |
+          cd backend
+          python scripts/export_openapi.py
+          git diff --exit-code openapi.json

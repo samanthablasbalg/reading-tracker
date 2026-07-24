@@ -1,23 +1,17 @@
 import { inject, Injectable, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { catchError, Observable, of, tap } from 'rxjs';
-import { environment } from '../environments/environment';
-
-export interface CurrentUser {
-  id: string;
-  email: string;
-  picture?: string | null;
-}
+import { AuthService as AuthApiService } from './api/generated/auth/auth.service';
+import type { AuthMe200 } from './api/generated/readingTracker.schemas';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly http = inject(HttpClient);
-  private readonly currentUserSignal = signal<CurrentUser | null>(null);
+  private readonly authApi = inject(AuthApiService);
+  private readonly currentUserSignal = signal<AuthMe200 | null>(null);
 
   readonly currentUser = this.currentUserSignal.asReadonly();
 
-  checkSession(): Observable<CurrentUser | null> {
-    return this.http.get<CurrentUser>(`${environment.apiBaseUrl}/auth/me`).pipe(
+  checkSession(): Observable<AuthMe200 | null> {
+    return this.authApi.authMe().pipe(
       tap((user) => this.currentUserSignal.set(user)),
       catchError(() => {
         this.currentUserSignal.set(null);
@@ -27,12 +21,10 @@ export class AuthService {
   }
 
   login(): void {
-    window.location.href = `${environment.apiBaseUrl}/auth/login`;
+    window.location.href = '/api/auth/login';
   }
 
-  logout(): Observable<void> {
-    return this.http
-      .post<void>(`${environment.apiBaseUrl}/auth/logout`, {})
-      .pipe(tap(() => this.currentUserSignal.set(null)));
+  logout(): Observable<unknown> {
+    return this.authApi.authLogout().pipe(tap(() => this.currentUserSignal.set(null)));
   }
 }

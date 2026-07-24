@@ -29,10 +29,16 @@ repos:
         files: ^frontend/.*\.(ts|html|css|scss|json)$
         entry: bash -c 'cd frontend && npx lint-staged'
         pass_filenames: false
+      - id: regenerate-api-client
+        name: Regenerate OpenAPI schema and client
+        language: system
+        files: ^backend/app/.*\.py$
+        entry: bash -c 'python3 backend/scripts/export_openapi.py && npm --prefix frontend run generate:api && git add backend/openapi.json frontend/src/app/api/generated'
+        pass_filenames: false
       - id: frontend-typecheck
         name: TypeScript (frontend)
         language: system
-        files: ^frontend/.*\.ts$
+        files: ^(frontend/.*\.ts|backend/app/.*\.py)$
         entry: bash -c 'cd frontend && npm run typecheck'
         pass_filenames: false
       - id: prettier-docs

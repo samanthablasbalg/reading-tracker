@@ -12,8 +12,16 @@ const mockEngagement: Engagement = {
     id: 'book-1',
     title: 'Dune',
     authors: [{ id: 'auth-1', name: 'Frank Herbert' }],
+    google_books_id: null,
+    default_cover_url: null,
     default_page_count: 412,
     default_audio_minutes: 0,
+    original_language: null,
+    genres: [],
+    publication_date: null,
+    publication_date_precision: 'day',
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
   },
   formats: ['print'],
   cover_url: null,
@@ -25,6 +33,8 @@ const mockEngagement: Engagement = {
   resume_from_minute: 0,
   completion_pct: null,
   review: null,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
 };
 
 const mockLogs: ProgressLog[] = [
@@ -32,22 +42,18 @@ const mockLogs: ProgressLog[] = [
     id: 'log-1',
     engagement_id: 'eng-1',
     logged_on: '2026-01-01',
-    unit: 'pages',
+    type: 'page',
     page_start: 1,
     page_end: 50,
-    minute_start: null,
-    minute_end: null,
     new_ground: true,
   },
   {
     id: 'log-2',
     engagement_id: 'eng-1',
     logged_on: '2026-01-10',
-    unit: 'pages',
+    type: 'page',
     page_start: 51,
     page_end: 100,
-    minute_start: null,
-    minute_end: null,
     new_ground: true,
   },
 ];
@@ -461,10 +467,11 @@ describe('EngagementHistoryComponent', () => {
 
     it('audio log range shows h:mm timestamps', () => {
       const minuteLog: ProgressLog = {
-        ...mockLogs[0],
-        unit: 'minutes',
-        page_start: null,
-        page_end: null,
+        id: mockLogs[0].id,
+        engagement_id: mockLogs[0].engagement_id,
+        logged_on: mockLogs[0].logged_on,
+        new_ground: mockLogs[0].new_ground,
+        type: 'minute',
         minute_start: 0,
         minute_end: 110,
       };
@@ -477,10 +484,11 @@ describe('EngagementHistoryComponent', () => {
 
     it('submitting a minutes log sends minute_end', () => {
       const minuteLog: ProgressLog = {
-        ...mockLogs[1],
-        unit: 'minutes',
-        page_start: null,
-        page_end: null,
+        id: mockLogs[1].id,
+        engagement_id: mockLogs[1].engagement_id,
+        logged_on: mockLogs[1].logged_on,
+        new_ground: mockLogs[1].new_ground,
+        type: 'minute',
         minute_start: 0,
         minute_end: 60,
       };

@@ -21,10 +21,10 @@ function formatMinutes(minutes: number): string {
 }
 
 function formatRange(log: ProgressLog): string {
-  if (log.unit === 'pages') {
-    return `pp. ${log.page_start ?? 0}–${log.page_end ?? 0}`;
+  if ('page_start' in log) {
+    return `pp. ${log.page_start}–${log.page_end}`;
   }
-  return `${formatMinutes(log.minute_start ?? 0)}–${formatMinutes(log.minute_end ?? 0)}`;
+  return `${formatMinutes(log.minute_start)}–${formatMinutes(log.minute_end)}`;
 }
 
 @Component({
@@ -156,13 +156,13 @@ function formatRange(log: ProgressLog): string {
                     <input
                       #pageInput
                       type="number"
-                      [value]="log.unit === 'pages' ? log.page_end : log.minute_end"
+                      [value]="'page_start' in log ? log.page_end : log.minute_end"
                       [attr.max]="
-                        log.unit === 'pages'
+                        'page_start' in log
                           ? (d.engagement.book.default_page_count ?? null)
                           : (d.engagement.book.default_audio_minutes ?? null)
                       "
-                      [attr.aria-label]="log.unit === 'pages' ? 'Edit end page' : 'Edit end minute'"
+                      [attr.aria-label]="'page_start' in log ? 'Edit end page' : 'Edit end minute'"
                       (keydown.enter)="submitPage(log, pageInput.value)"
                       (keydown.escape)="cancelEditPage()"
                     />
@@ -388,7 +388,7 @@ export class EngagementHistoryComponent {
       this.cancelEditPage();
       return;
     }
-    const patch = log.unit === 'pages' ? { page_end: num } : { minute_end: num };
+    const patch = 'page_start' in log ? { page_end: num } : { minute_end: num };
     this.engagementService.patchProgressLog(log.engagement_id, log.id, patch).subscribe({
       next: () => {
         this.editingPageLogId.set(null);

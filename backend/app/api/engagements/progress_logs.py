@@ -11,7 +11,12 @@ from app.database import get_db
 from app.exceptions import NotFoundError
 from app.models.engagement import Engagement
 from app.models.progress_log import ProgressLog
-from app.schemas import ProgressLogCreate, ProgressLogRead, ProgressLogUpdate
+from app.schemas import (
+    ProgressLogCreate,
+    ProgressLogRead,
+    ProgressLogUpdate,
+    progress_log_read,
+)
 from app.services.engagements import progress_logs as progress_log_service
 
 router = APIRouter()
@@ -47,7 +52,7 @@ def log_progress(
     )
     db.commit()
     db.refresh(log)
-    return ProgressLogRead.model_validate(log)
+    return progress_log_read(log)
 
 
 @router.get("/{engagement_id}/progress-logs", response_model=list[ProgressLogRead])
@@ -65,7 +70,7 @@ def list_progress_logs(
         .scalars()
         .all()
     )
-    return [ProgressLogRead.model_validate(log) for log in logs]
+    return [progress_log_read(log) for log in logs]
 
 
 @router.patch(
@@ -89,7 +94,7 @@ def update_progress_log(
     )
     db.commit()
     db.refresh(log)
-    return ProgressLogRead.model_validate(log)
+    return progress_log_read(log)
 
 
 @router.delete(
