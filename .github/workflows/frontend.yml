@@ -42,3 +42,9 @@ jobs:
       - name: Test
         run: npm test
         working-directory: frontend
+
+      - name: Check committed API client is up to date
+        run: |
+          npm run generate:api
+          git diff --exit-code src/app/api/generated
+        working-directory: frontend
