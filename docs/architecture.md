@@ -74,9 +74,12 @@ service layer over the `/api` endpoints:
 - **Standalone components, organized by feature.** Each screen or sheet is its own folder
   (`currently-reading`, `book-search`, `progress-log-sheet`, `insights`, `nav-shell`, …), with
   templates moving out of inline strings into their own `.html` files as the app matures.
-- **A thin service layer.** Three injectable services — `auth`, `book`, and `engagement` — wrap the
-  `/api` endpoints; there's no store beyond them. They're on track to be replaced by an
-  orval-generated client, typed straight from the backend's OpenAPI schema.
+- **A thin service layer over a generated client.** Three injectable services — `auth`, `book`, and
+  `engagement` — wrap the `/api` endpoints; there's no store beyond them. The HTTP calls and types
+  themselves come from an orval-generated client, typed straight from the backend's OpenAPI schema
+  ([ADR-0026](decisions/0026-generated-frontend-api-client-orval.md)); the hand-written services
+  delegate to it and keep only the rxjs caching/reload layer (e.g. `books$`, the
+  engagements-by-status cache) that generation doesn't cover.
 - **Signals for state, reactive forms for input.** Component state lives in signals and `computed`;
   input uses reactive `FormControl`s. (The [learnings notes](learnings/README.md) are mostly
   hard-won lessons from exactly this.)
