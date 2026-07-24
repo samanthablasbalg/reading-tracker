@@ -162,8 +162,8 @@ export class NavShellComponent {
     { initialValue: false },
   );
 
-  protected readonly email = computed(() => this.auth.currentUser()?.email);
-  protected readonly picture = computed(() => this.auth.currentUser()?.picture);
+  protected readonly email = computed(() => this.auth.currentUser()?.['email']);
+  protected readonly picture = computed(() => this.auth.currentUser()?.['picture']);
   protected readonly initial = computed(() => this.email()?.charAt(0).toUpperCase() ?? '?');
 
   protected iconSvg(name: string): SafeHtml {

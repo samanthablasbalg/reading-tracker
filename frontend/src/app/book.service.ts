@@ -1,50 +1,22 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Observable, Subject, shareReplay, startWith, switchMap } from 'rxjs';
-import { environment } from '../environments/environment';
+import { BooksService as BooksApiService } from './api/generated/books/books.service';
+import type { BookRead, BookSearchResult } from './api/generated/readingTracker.schemas';
 
-export interface Author {
-  id: string;
-  name: string;
-}
-
-export interface Book {
-  id: string;
-  title: string;
-  authors: Author[];
-  google_books_id: string | null;
-  default_cover_url: string | null;
-  default_page_count: number | null;
-  default_audio_minutes: number | null;
-  original_language: string | null;
-  genres: string[];
-  publication_date: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface BookSearchResult {
-  state: 'in_library' | 'in_catalog' | 'not_in_app';
-  book_id: string | null;
-  google_books_id: string | null;
-  title: string;
-  authors: string[];
-  published_date: string | null;
-  page_count: number | null;
-  categories: string[];
-  cover_url: string | null;
-  language: string | null;
-  status: 'reading' | 'finished' | 'dnf' | null;
-}
+export type {
+  AuthorRead as Author,
+  BookRead as Book,
+  BookSearchResult,
+} from './api/generated/readingTracker.schemas';
 
 @Injectable({ providedIn: 'root' })
 export class BookService {
-  private readonly http = inject(HttpClient);
+  private readonly booksApi = inject(BooksApiService);
   private readonly reloadTrigger = new Subject<void>();
 
-  readonly books$: Observable<Book[]> = this.reloadTrigger.pipe(
+  readonly books$: Observable<BookRead[]> = this.reloadTrigger.pipe(
     startWith(undefined),
-    switchMap(() => this.http.get<Book[]>(`${environment.apiBaseUrl}/books`)),
+    switchMap(() => this.booksApi.booksListBooks()),
     shareReplay(1),
   );
 
@@ -53,18 +25,14 @@ export class BookService {
   }
 
   searchBooks(q: string): Observable<BookSearchResult[]> {
-    return this.http.get<BookSearchResult[]>(`${environment.apiBaseUrl}/books/search`, {
-      params: { q },
-    });
+    return this.booksApi.booksSearchBooks({ q });
   }
 
-  importBook(googleBooksId: string): Observable<Book> {
-    return this.http.post<Book>(`${environment.apiBaseUrl}/books/import`, {
-      google_books_id: googleBooksId,
-    });
+  importBook(googleBooksId: string): Observable<BookRead> {
+    return this.booksApi.booksImportBook({ google_books_id: googleBooksId });
   }
 
   deleteBook(id: string): Observable<void> {
-    return this.http.delete<void>(`${environment.apiBaseUrl}/books/${id}`);
+    return this.booksApi.booksDeleteBook(id);
   }
 }
